@@ -1,13 +1,11 @@
-const API_BASE = {
-  catalog: 'http://localhost:8081',
-  acquisition: 'http://localhost:8082',
-  stream: 'http://localhost:8083'
-}
+const API_GATEWAY = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+const API_KEY = import.meta.env.VITE_API_KEY || 'dev-local-key'
 
 async function request(url, options = {}) {
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
+      'X-API-Key': API_KEY,
       ...(options.headers || {})
     },
     ...options
@@ -27,27 +25,27 @@ async function request(url, options = {}) {
 
 export function searchMedia(query) {
   const suffix = query ? `?query=${encodeURIComponent(query)}` : ''
-  return request(`${API_BASE.catalog}/api/media${suffix}`)
+  return request(`${API_GATEWAY}/api/media${suffix}`)
 }
 
 export function createMedia(payload) {
-  return request(`${API_BASE.catalog}/api/media`, {
+  return request(`${API_GATEWAY}/api/media`, {
     method: 'POST',
     body: JSON.stringify(payload)
   })
 }
 
 export function importMedia(payload) {
-  return request(`${API_BASE.acquisition}/api/acquisition/import`, {
+  return request(`${API_GATEWAY}/api/acquisition/import`, {
     method: 'POST',
     body: JSON.stringify(payload)
   })
 }
 
 export function streamManifest(mediaId) {
-  return request(`${API_BASE.stream}/api/stream/${mediaId}/manifest`)
+  return request(`${API_GATEWAY}/api/stream/${mediaId}/manifest`)
 }
 
 export function streamCaptionsUrl(mediaId, lang = 'en') {
-  return `${API_BASE.stream}/api/stream/${mediaId}/captions?lang=${encodeURIComponent(lang)}`
+  return `${API_GATEWAY}/api/stream/${mediaId}/captions?lang=${encodeURIComponent(lang)}&api_key=${encodeURIComponent(API_KEY)}`
 }

@@ -1,13 +1,14 @@
 # Home Media Server
 
 This workspace now contains the projects described in `project.md`:
-- Spring Boot microservices for media catalog, acquisition, and streaming
+- Spring Boot microservices for media catalog, acquisition, streaming, and API gateway
 - Dockerfiles for each service and docker-compose orchestration
 - Vue.js frontend for search, media display, streaming, and closed caption controls
 
 ## Project layout
 
 - `backend/`
+  - `api-gateway-service` (port 8080)
   - `media-catalog-service` (port 8081)
   - `media-acquisition-service` (port 8082)
   - `media-stream-service` (port 8083)
@@ -20,6 +21,7 @@ This workspace now contains the projects described in `project.md`:
    - `cd backend`
    - `mvn clean package`
 2. Run each service in separate terminals:
+  - `cd backend/api-gateway-service && mvn spring-boot:run`
    - `cd backend/media-catalog-service && mvn spring-boot:run`
    - `cd backend/media-acquisition-service && mvn spring-boot:run`
    - `cd backend/media-stream-service && mvn spring-boot:run`
@@ -28,7 +30,8 @@ This workspace now contains the projects described in `project.md`:
 
 1. `cd frontend`
 2. `npm install`
-3. `npm run dev`
+3. Optional: create `.env` from `.env.example` and set `VITE_API_KEY`
+4. `npm run dev`
 
 ## Run with Docker Compose
 
@@ -40,6 +43,9 @@ This workspace now contains the projects described in `project.md`:
 
 ## API summary
 
+- API gateway:
+  - `http://localhost:8080`
+  - Requires `X-API-Key` header (or `api_key` query param for media track URLs)
 - Catalog service:
   - `GET /api/media?query=...`
   - `POST /api/media`
@@ -53,3 +59,9 @@ This workspace now contains the projects described in `project.md`:
 ## Important note
 
 The torrent lookup and virus scan flow is scaffolded as a safe simulation layer. Replace it with real integrations (torrent indexer client, downloader, scanner engine, and secure file pipeline) before production use.
+
+## Gateway protection
+
+- `GATEWAY_API_KEY` controls gateway API-key authentication
+- `GATEWAY_RATE_LIMIT_PER_MINUTE` controls per-client request limits
+- Defaults are set for local development in compose (`dev-local-key`, `240`)

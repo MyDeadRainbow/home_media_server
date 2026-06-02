@@ -1,4 +1,22 @@
 services:
+  api-gateway-service:
+    build:
+      context: ./backend
+      dockerfile: api-gateway-service/Dockerfile
+    image: hms/api-gateway-service:0.1.0
+    environment:
+      CATALOG_SERVICE_URL: http://media-catalog-service:8081
+      ACQUISITION_SERVICE_URL: http://media-acquisition-service:8082
+      STREAM_SERVICE_URL: http://media-stream-service:8083
+      GATEWAY_API_KEY: dev-local-key
+      GATEWAY_RATE_LIMIT_PER_MINUTE: 240
+    ports:
+      - "8080:8080"
+    depends_on:
+      - media-catalog-service
+      - media-acquisition-service
+      - media-stream-service
+
   media-catalog-service:
     build:
       context: ./backend
@@ -30,6 +48,4 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - media-catalog-service
-      - media-acquisition-service
-      - media-stream-service
+      - api-gateway-service
