@@ -1,0 +1,35 @@
+services:
+  media-catalog-service:
+    build:
+      context: ./backend
+      dockerfile: media-catalog-service/Dockerfile
+    image: hms/media-catalog-service:0.1.0
+    ports:
+      - "8081:8081"
+
+  media-acquisition-service:
+    build:
+      context: ./backend
+      dockerfile: media-acquisition-service/Dockerfile
+    image: hms/media-acquisition-service:0.1.0
+    ports:
+      - "8082:8082"
+
+  media-stream-service:
+    build:
+      context: ./backend
+      dockerfile: media-stream-service/Dockerfile
+    image: hms/media-stream-service:0.1.0
+    ports:
+      - "8083:8083"
+
+  frontend:
+    build:
+      context: ./frontend
+    image: hms/frontend:0.1.0
+    ports:
+      - "5173:80"
+    depends_on:
+      - media-catalog-service
+      - media-acquisition-service
+      - media-stream-service

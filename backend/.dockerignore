@@ -1,0 +1,13 @@
+# Exclude local build outputs and tooling metadata from Docker build context
+**/target/
+**/.idea/
+**/.vscode/
+**/.settings/
+**/.classpath
+**/.project
+
+# Exclude VCS and temp files
+.git/
+**/*.iml
+**/.DS_Store
+**/Thumbs.db
