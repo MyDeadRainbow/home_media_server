@@ -8,6 +8,7 @@ This workspace now contains the projects described in `project.md`:
 ## Project layout
 
 - `backend/`
+  - `shared-lib` (shared Java code used by all backend services)
   - `api-gateway-service` (port 8080)
   - `media-catalog-service` (port 8081)
   - `media-acquisition-service` (port 8082)

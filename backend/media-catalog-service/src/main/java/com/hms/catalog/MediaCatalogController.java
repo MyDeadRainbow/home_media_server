@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+// @CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/media")
 public class MediaCatalogController {
 
@@ -39,6 +39,7 @@ public class MediaCatalogController {
 
     @PostMapping
     public ResponseEntity<MediaItem> create(@Valid @RequestBody CreateMediaRequest request) {
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(mediaCatalogService.add(request));
     }
 }

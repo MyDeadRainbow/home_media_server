@@ -4,3 +4,13 @@ server:
 spring:
   application:
     name: media-acquisition-service
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: media-acquisition-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer

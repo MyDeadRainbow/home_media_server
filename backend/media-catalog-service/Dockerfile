@@ -3,13 +3,18 @@ WORKDIR /workspace
 
 # Copy Maven descriptors first for better layer cache reuse.
 COPY pom.xml ./pom.xml
+COPY shared-lib/pom.xml shared-lib/pom.xml
+COPY api-gateway-service/pom.xml api-gateway-service/pom.xml
 COPY media-catalog-service/pom.xml media-catalog-service/pom.xml
+COPY media-acquisition-service/pom.xml media-acquisition-service/pom.xml
+COPY media-stream-service/pom.xml media-stream-service/pom.xml
 
 # Download dependencies before copying sources.
-RUN mvn -B -f media-catalog-service/pom.xml dependency:go-offline
+RUN mvn -B -pl media-catalog-service -am dependency:go-offline
 
+COPY shared-lib/src shared-lib/src
 COPY media-catalog-service/src media-catalog-service/src
-RUN mvn -B -f media-catalog-service/pom.xml clean package -DskipTests
+RUN mvn -B -pl media-catalog-service -am clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app

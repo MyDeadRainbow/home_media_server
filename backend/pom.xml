@@ -13,6 +13,7 @@
     <description>Spring Boot microservices for home media automation and streaming</description>
 
     <modules>
+        <module>shared-lib</module>
         <module>api-gateway-service</module>
         <module>media-catalog-service</module>
         <module>media-acquisition-service</module>
@@ -31,6 +32,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.hms</groupId>
+                <artifactId>shared-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
