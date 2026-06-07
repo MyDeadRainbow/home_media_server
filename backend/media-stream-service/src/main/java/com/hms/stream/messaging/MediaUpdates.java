@@ -1,23 +1,31 @@
-package com.hms.stream;
+package com.hms.stream.messaging;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @Configuration
-public class Messaging {
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Messaging.class);
+public class MediaUpdates {
+    private static final Logger LOG = LoggerFactory.getLogger(MediaUpdates.class);
+
+    public static final String TOPIC = "media-updates";
+
     private final KafkaTemplate<String, String> kafkaTemplate;
-    public static Messaging INSTANCE;
+    public static MediaUpdates INSTANCE;
     
-    private Messaging(KafkaTemplate<String, String> kafkaTemplate) {
+    private MediaUpdates(KafkaTemplate<String, String> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         INSTANCE = this;
+    }
+
+    public void sendMessage(String message) {
+        kafkaTemplate.send(TOPIC, message);
     }
 
     public void sendMessage(String topic, String message) {
@@ -26,10 +34,10 @@ public class Messaging {
 
     @Bean
     public NewTopic mediaUpdatesTopic() {
-        return new NewTopic("media-updates", 1, (short) 1);
+        return new NewTopic(TOPIC, 1, (short) 1);
     }
 
-    @KafkaListener(topics = "media-updates", groupId = "media-stream-service")
+    @KafkaListener(topics = TOPIC, groupId = "media-stream-service")
     public void listen(String message) {
         LOG.info("Received message: {}", message);
         System.out.println("Received message: " + message);

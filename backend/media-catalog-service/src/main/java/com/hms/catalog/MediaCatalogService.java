@@ -21,11 +21,13 @@ public class MediaCatalogService {
                 "Open Source Adventures",
                 "series",
                 2025,
-                "Demo entry to validate UI and stream controls.",
-                "https://picsum.photos/seed/hms1/320/180",
-                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-                List.of("en", "es")
-        );
+                "Demo entry to validate UI and stream controls."
+                // ,
+
+                // "https://picsum.photos/seed/hms1/320/180",
+                // "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                // List.of("en", "es")
+                );
         mediaIndex.put(sample.id(), sample);
     }
 
@@ -37,7 +39,8 @@ public class MediaCatalogService {
         return mediaIndex.values().stream()
                 .filter(item -> item.title().toLowerCase(Locale.ROOT).contains(normalized)
                         || item.type().toLowerCase(Locale.ROOT).contains(normalized)
-                        || Optional.ofNullable(item.description()).orElse("").toLowerCase(Locale.ROOT).contains(normalized))
+                        || Optional.ofNullable(item.description()).orElse("").toLowerCase(Locale.ROOT)
+                                .contains(normalized))
                 .toList();
     }
 
@@ -47,11 +50,18 @@ public class MediaCatalogService {
                 request.title(),
                 request.type(),
                 request.year(),
-                request.description(),
-                request.posterUrl(),
-                request.streamUrl(),
-                List.of("en")
-        );
+                request.description()
+                // ,
+                // request.posterUrl(),
+                // request.streamUrl(),
+                // List.of("en")
+            );
+        try {
+            item.insert();
+        } catch (Exception e) {
+            // throw new RuntimeException("Failed to insert media item into database", e);
+        }
+        
         mediaIndex.put(item.id(), item);
         return item;
     }
