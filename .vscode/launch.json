@@ -1,0 +1,118 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "dockerfile",
+            "request": "launch",
+            "name": "Docker: Build",
+            "dockerfile": "Dockerfile",
+            "contextPath": "${workspaceFolder}"
+        },
+        {
+            "type": "chrome",
+            "name": "Debug Frontend",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/frontend/src",
+            "preLaunchTask": "Start Vite Dev Server",
+            "postDebugTask": "Stop Vite Dev Server"
+        },
+        {
+            "type": "chrome",
+            "name": "Debug Frontend (Docker)",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/frontend/src"
+        },
+        {
+            "type": "java",
+            "name": "Debug Catalog Service",
+            "request": "launch",
+            "mainClass": "com.hms.catalog.CatalogServiceApplication",
+            "projectName": "media-catalog-service",
+            "cwd": "${workspaceFolder}/backend/media-catalog-service",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Debug Acquisition Service",
+            "request": "launch",
+            "mainClass": "com.hms.acquisition.AcquisitionServiceApplication",
+            "projectName": "media-acquisition-service",
+            "cwd": "${workspaceFolder}/backend/media-acquisition-service",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Debug Stream Service",
+            "request": "launch",
+            "mainClass": "com.hms.stream.StreamServiceApplication",
+            "projectName": "media-stream-service",
+            "cwd": "${workspaceFolder}/backend/media-stream-service",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Attach Gateway Service (Docker)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5004
+        },
+        {
+            "type": "java",
+            "name": "Attach Catalog Service (Docker)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005
+        },
+        {
+            "type": "java",
+            "name": "Attach Acquisition Service (Docker)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5006
+        },
+        {
+            "type": "java",
+            "name": "Attach Stream Service (Docker)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5007
+        },
+    ],
+    "compounds": [
+        {
+            "name": "Debug All Backend Services",
+            "configurations": [
+                "Debug Catalog Service",
+                "Debug Acquisition Service",
+                "Debug Stream Service"
+            ]
+        },
+        {
+            "name": "Attach All Backend Services (Docker)",
+            "preLaunchTask": "Compose Up (Debug)",
+            "postDebugTask": "Compose Down (Debug)",
+            "configurations": [
+                "Attach Gateway Service (Docker)",
+                "Attach Catalog Service (Docker)",
+                "Attach Acquisition Service (Docker)",
+                "Attach Stream Service (Docker)"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Debug Full Stack (Docker)",
+            "preLaunchTask": "Compose Up (Debug)",
+            "postDebugTask": "Compose Down (Debug)",
+            "configurations": [
+                "Debug Frontend (Docker)",
+                "Attach Gateway Service (Docker)",
+                "Attach Catalog Service (Docker)",
+                "Attach Acquisition Service (Docker)",
+                "Attach Stream Service (Docker)"
+            ],
+            "stopAll": true
+        }
+    ]
+}

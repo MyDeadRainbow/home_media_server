@@ -1,0 +1,127 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Vite Dev Server",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "VITE",
+                    "endsPattern": "Local:.*localhost"
+                }
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Stop Vite Dev Server",
+            "type": "shell",
+            "command": "taskkill /F /IM node.exe",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Compose Up (Debug)",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.yml -f compose.debug.yaml up -d --build",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Compose Down (Debug)",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.yml -f compose.debug.yaml down",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Open Gateway Logs",
+            "type": "shell",
+            "command": "docker logs home_media_server-api-gateway-service-1 --tail 50 -f",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Open Acquisition Logs",
+            "type": "shell",
+            "command": "docker logs home_media_server-media-acquisition-service-1 --tail 50 -f",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Open Catalog Logs",
+            "type": "shell",
+            "command": "docker logs home_media_server-media-catalog-service-1 --tail 50 -f",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Open Stream Logs",
+            "type": "shell",
+            "command": "docker logs home_media_server-media-stream-service-1 --tail 50 -f",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Build Shared Library",
+            "type": "shell",
+            "command": "mvn clean install",
+            "options": {
+                "cwd": "${workspaceFolder}/backend/shared-lib"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        }
+    ],
+    
+}
