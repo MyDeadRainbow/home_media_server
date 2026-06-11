@@ -1,17 +1,12 @@
-package com.hms.stream.messaging;
-
-import java.util.Map;
+package com.hms.catalog.messaging;
 
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.stereotype.Component;
 
 import com.hms.shared.messaging.mediaupdates.MediaUpdate;
@@ -39,28 +34,20 @@ import com.hms.shared.messaging.mediaupdates.MediaUpdate;
 //         kafkaTemplate.send(topic, message);
 //     }
 
+//     public static void postMessage(MediaUpdate message) {
+//         if (INSTANCE != null) {
+//             INSTANCE.sendMessage(message);
+//         } else {
+//             LOG.warn("MediaUpdates instance is not initialized yet. Message not sent: {}", message);
+//         }
+//     }
+
 //     @Bean
 //     public NewTopic mediaUpdatesTopic() {
 //         return new NewTopic(TOPIC, 1, (short) 1);
 //     }
 
-//     @Bean
-//     public ProducerFactory<String, MediaUpdate> mediaUpdatesProducerFactory() {
-//         return new DefaultKafkaProducerFactory<>(
-//             Map.of(
-//                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
-//                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer",
-//                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "com.hms.shared.messaging.mediaupdates.MediaUpdateSerializer"
-//             )
-//         );
-//     }
-
-//     @Bean
-//     public KafkaTemplate<String, MediaUpdate> mediaUpdatesKafkaTemplate() {
-//         return new KafkaTemplate<>(mediaUpdatesProducerFactory());
-//     }
-
-//     @KafkaListener(topics = TOPIC, groupId = "media-stream-service")
+//     @KafkaListener(topics = TOPIC, groupId = "media-catalog-service")
 //     public void listen(MediaUpdate message) {
 //         LOG.info("Received message: {}", message);
 //         System.out.println("Received message: " + message);

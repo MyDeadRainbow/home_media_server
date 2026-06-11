@@ -21,5 +21,30 @@ public interface JsonSerializable<T> {
         return json;
     }
 
-    public T fromJsonObject(JsonObject json);
+    public static <T> T fromJsonObject(JsonObject json, Class<T> clazz) {
+        // use reflection to find a constructor that matches the fields in the JSON object
+        try {
+            var constructors = clazz.getConstructors();
+            for (var constructor : constructors) {
+                var params = constructor.getParameters();
+                Object[] args = new Object[params.length];
+                boolean matches = true;
+                for (int i = 0; i < params.length; i++) {
+                    var param = params[i];
+                    if (json.has(param.getName())) {
+                        args[i] = json.get(param.getName()).getAsString();
+                    } else {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches) {
+                    return (T) constructor.newInstance(args);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

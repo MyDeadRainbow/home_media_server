@@ -1,6 +1,9 @@
 package com.hms.shared.dao;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -14,9 +17,14 @@ public enum Database {
     public static Connection getConnection(String databasePath) throws GetConnectionException, DBFileNotFoundException {
         try {
             // Check if db file exists
+            Path dbFilePath = Path.of(DATA_PATH, databasePath);
+            Files.createDirectories(dbFilePath.getParent());
+
             File dbFile = new File(DATA_PATH + "/" + databasePath);
             if (!dbFile.exists()) {
-                throw new DBFileNotFoundException("Database file not found: " + databasePath);
+                if (!dbFile.createNewFile()) {
+                    throw new DBFileNotFoundException("Failed to create database file: " + databasePath);
+                }
             }
 
             // Load the SQLite JDBC driver (you must have the .jar file in your classpath)
@@ -24,7 +32,7 @@ public enum Database {
             // Establish a connection to the SQLite database
             String url = "jdbc:sqlite:" + DATA_PATH + "/" + databasePath; // Change this to your database path
             return DriverManager.getConnection(url);
-        } catch (ClassNotFoundException | SQLException e) {
+        } catch (ClassNotFoundException | SQLException | IOException e) {
             throw new GetConnectionException("Failed to get database connection for: " + databasePath, e);
         }
     }

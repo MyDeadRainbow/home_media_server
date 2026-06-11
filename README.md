@@ -42,6 +42,33 @@ This workspace now contains the projects described in `project.md`:
 2. From repo root:
    - `docker compose up --build`
 
+## Hot update running containers
+
+Use the VS Code tasks in `.vscode/tasks.json` to compile and copy new artifacts into already running containers (without rebuilding images):
+
+- Backend per-service hot update:
+  - `Hot Update Backend: API Gateway`
+  - `Hot Update Backend: Catalog`
+  - `Hot Update Backend: Acquisition`
+  - `Hot Update Backend: Stream`
+- Backend full hot update:
+  - `Hot Update Backend: All Services`
+  - `Ensure + Hot Update Backend: All Services`
+- Frontend hot update:
+  - `Hot Update Frontend Container`
+
+What each task does:
+
+- Backend tasks:
+  - run Maven package for the selected module(s)
+  - copy the newly built `target/*.jar` to `/app/app.jar` in the running container(s)
+  - restart the target container(s) so the new jar is loaded
+  - `Ensure + Hot Update Backend: All Services` first runs `docker compose -f docker-compose.yml up -d` for backend services so missing containers are started automatically
+- Frontend task:
+  - run `npm run build`
+  - clear `/usr/share/nginx/html` in the running frontend container
+  - copy `frontend/dist` into `/usr/share/nginx/html`
+
 ## API summary
 
 - API gateway:

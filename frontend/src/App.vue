@@ -31,7 +31,20 @@
         <button @click="runImport">Find + Download Torrent</button>
       </div>
 
+      <div class="upload-grid">
+        <input v-model="uploadRequest.title" placeholder="Upload title" />
+        <select v-model="uploadRequest.type">
+          <option value="movie">Movie</option>
+          <option value="series">Series</option>
+        </select>
+        <input v-model.number="uploadRequest.year" type="number" placeholder="Year" />
+        <input v-model="uploadRequest.description" placeholder="Description" />
+        <input type="file" accept="video/*" @change="onUploadFileSelected" />
+        <button @click="uploadAndCreateMedia">Upload Video + Add Catalog Item</button>
+      </div>
+
       <p v-if="importStatus" class="status">{{ importStatus }}</p>
+      <p v-if="uploadStatus" class="status">{{ uploadStatus }}</p>
       <p v-if="error" class="error">{{ error }}</p>
     </section>
 
@@ -48,16 +61,9 @@
         <p v-if="!activeMedia">Select media to begin streaming.</p>
         <div v-else>
           <h3>{{ activeMedia.title }}</h3>
-          <video ref="player" controls preload="metadata" :src="manifest?.playbackUrl || activeMedia.streamUrl">
-            <track
-              v-for="track in tracks"
-              :key="track.language"
-              kind="subtitles"
-              :label="track.label"
-              :src="track.url"
-              :srclang="track.language"
-              :default="track.language === selectedCaption"
-            />
+          <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
+            <track v-for="track in tracks" :key="track.language" kind="subtitles" :label="track.label" :src="track.url"
+              :srclang="track.language" :default="track.language === selectedCaption" />
           </video>
           <div class="caption-controls">
             <label for="caption-select">Closed Captions</label>
@@ -77,7 +83,7 @@
 <script setup>
 import { nextTick, onMounted, ref } from 'vue'
 import MediaCard from './components/MediaCard.vue'
-import { createMedia, importMedia, searchMedia, streamCaptionsUrl, streamManifest } from './api'
+import { createMedia, importMedia, searchMedia, streamCaptionsUrl, streamManifest, uploadMediaFile, API_GATEWAY } from './api'
 
 const media = ref([])
 const query = ref('')
@@ -86,8 +92,10 @@ const manifest = ref(null)
 const tracks = ref([])
 const selectedCaption = ref('off')
 const importStatus = ref('')
+const uploadStatus = ref('')
 const error = ref('')
 const player = ref(null)
+const selectedUploadFile = ref(null)
 
 const newMedia = ref({
   title: '',
@@ -99,6 +107,13 @@ const importRequest = ref({
   title: '',
   type: 'movie',
   quality: '1080p'
+})
+
+const uploadRequest = ref({
+  title: '',
+  type: 'movie',
+  year: new Date().getFullYear(),
+  description: ''
 })
 
 async function loadMedia() {
@@ -141,13 +156,60 @@ async function runImport() {
   }
 }
 
+function onUploadFileSelected(event) {
+  const [file] = event.target.files || []
+  selectedUploadFile.value = file || null
+}
+
+async function uploadAndCreateMedia() {
+  if (!uploadRequest.value.title) {
+    error.value = 'Title is required to upload media.'
+    return
+  }
+
+  if (!selectedUploadFile.value) {
+    error.value = 'A video file is required for upload.'
+    return
+  }
+
+  error.value = ''
+  uploadStatus.value = 'Uploading file to stream service...'
+
+  try {
+    const uploadResult = await uploadMediaFile(selectedUploadFile.value, {
+      title: uploadRequest.value.title,
+      type: uploadRequest.value.type,
+      year: uploadRequest.value.year,
+      description: uploadRequest.value.description
+    })
+    // uploadStatus.value = 'File uploaded. Saving metadata in catalog...'
+
+    // await createMedia({
+    //   title: uploadRequest.value.title,
+    //   type: uploadRequest.value.type,
+    //   year: uploadRequest.value.year,
+    //   description: uploadRequest.value.description,
+    //   streamUrl: uploadResult.playbackUrl
+    // })
+
+    uploadStatus.value = `Upload complete: ${selectedUploadFile.value.name}`
+    uploadRequest.value.title = ''
+    uploadRequest.value.description = ''
+    selectedUploadFile.value = null
+    await loadMedia()
+  } catch (err) {
+    uploadStatus.value = ''
+    error.value = err.message
+  }
+}
+
 async function startPlayback(item) {
   activeMedia.value = item
   selectedCaption.value = 'off'
   error.value = ''
 
   try {
-    manifest.value = await streamManifest(item.id)
+    manifest.value = await streamManifest(item.id, item.streamUrl)
     tracks.value = (manifest.value.captions || []).map((track) => ({
       ...track,
       url: streamCaptionsUrl(item.id, track.language)

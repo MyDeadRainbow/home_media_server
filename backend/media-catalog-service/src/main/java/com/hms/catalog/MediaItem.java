@@ -11,11 +11,9 @@ public record MediaItem(
         String title,
         String type,
         Integer year,
-        String description
-        // ,
-        // String posterUrl,
-        // String streamUrl,
-        // List<String> subtitleLanguages
+        String description,
+        String posterUrl,
+        String streamUrl
 ) implements SQLiteSerializable {
         @Override
         public String getDbPath() {
