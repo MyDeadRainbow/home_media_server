@@ -91,8 +91,6 @@
         },
         {
             "name": "Attach All Backend Services (Docker)",
-            "preLaunchTask": "Compose Up (Debug)",
-            "postDebugTask": "Compose Down (Debug)",
             "configurations": [
                 "Attach Gateway Service (Docker)",
                 "Attach Catalog Service (Docker)",
@@ -107,6 +105,19 @@
             "postDebugTask": "Compose Down (Debug)",
             "configurations": [
                 "Debug Frontend (Docker)",
+                "Attach Gateway Service (Docker)",
+                "Attach Catalog Service (Docker)",
+                "Attach Acquisition Service (Docker)",
+                "Attach Stream Service (Docker)"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Hot-Update Debug Backend (Docker)",
+            "preLaunchTask": "Ensure + Hot Update Backend: All Services",
+            // "postDebugTask": "Compose Down (Debug)",
+            "configurations": [
+                // "Debug Frontend (Docker)",
                 "Attach Gateway Service (Docker)",
                 "Attach Catalog Service (Docker)",
                 "Attach Acquisition Service (Docker)",

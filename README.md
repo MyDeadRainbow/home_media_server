@@ -56,6 +56,7 @@ Use the VS Code tasks in `.vscode/tasks.json` to compile and copy new artifacts 
   - `Ensure + Hot Update Backend: All Services`
 - Frontend hot update:
   - `Hot Update Frontend Container`
+  - `Ensure + Hot Update Frontend Container`
 
 What each task does:
 
@@ -68,6 +69,7 @@ What each task does:
   - run `npm run build`
   - clear `/usr/share/nginx/html` in the running frontend container
   - copy `frontend/dist` into `/usr/share/nginx/html`
+  - `Ensure + Hot Update Frontend Container` first runs `docker compose -f docker-compose.yml up -d frontend` so the frontend container is started automatically
 
 ## API summary
 

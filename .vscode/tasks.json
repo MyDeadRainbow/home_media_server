@@ -125,7 +125,7 @@
         {
             "label": "Hot Update Backend: API Gateway",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl api-gateway-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml ps -q api-gateway-service) ; if (-not $cid) { throw 'api-gateway-service container is not running' } ; docker cp backend/api-gateway-service/target/api-gateway-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
+            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl api-gateway-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q api-gateway-service) ; if (-not $cid) { throw 'api-gateway-service container is not running' } ; docker cp backend/api-gateway-service/target/api-gateway-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -138,7 +138,7 @@
         {
             "label": "Hot Update Backend: Catalog",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl media-catalog-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml ps -q media-catalog-service) ; if (-not $cid) { throw 'media-catalog-service container is not running' } ; docker cp backend/media-catalog-service/target/media-catalog-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
+            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl media-catalog-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-catalog-service) ; if (-not $cid) { throw 'media-catalog-service container is not running' } ; docker cp backend/media-catalog-service/target/media-catalog-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -151,7 +151,7 @@
         {
             "label": "Hot Update Backend: Acquisition",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl media-acquisition-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml ps -q media-acquisition-service) ; if (-not $cid) { throw 'media-acquisition-service container is not running' } ; docker cp backend/media-acquisition-service/target/media-acquisition-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
+            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl media-acquisition-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-acquisition-service) ; if (-not $cid) { throw 'media-acquisition-service container is not running' } ; docker cp backend/media-acquisition-service/target/media-acquisition-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -164,7 +164,7 @@
         {
             "label": "Hot Update Backend: Stream",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl media-stream-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml ps -q media-stream-service) ; if (-not $cid) { throw 'media-stream-service container is not running' } ; docker cp backend/media-stream-service/target/media-stream-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
+            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml -pl media-stream-service -am clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-stream-service) ; if (-not $cid) { throw 'media-stream-service container is not running' } ; docker cp backend/media-stream-service/target/media-stream-service-0.1.0.jar ${cid}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $cid",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -177,7 +177,7 @@
         {
             "label": "Hot Update Backend: All Services",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $gateway=$(docker compose -f docker-compose.yml ps -q api-gateway-service) ; $catalog=$(docker compose -f docker-compose.yml ps -q media-catalog-service) ; $acquisition=$(docker compose -f docker-compose.yml ps -q media-acquisition-service) ; $stream=$(docker compose -f docker-compose.yml ps -q media-stream-service) ; if (-not $gateway -or -not $catalog -or -not $acquisition -or -not $stream) { throw 'One or more backend containers are not running' } ; docker cp backend/api-gateway-service/target/api-gateway-service-0.1.0.jar ${gateway}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-catalog-service/target/media-catalog-service-0.1.0.jar ${catalog}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-acquisition-service/target/media-acquisition-service-0.1.0.jar ${acquisition}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-stream-service/target/media-stream-service-0.1.0.jar ${stream}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $gateway $catalog $acquisition $stream",
+            "command": "$ErrorActionPreference='Stop' ; mvn -f backend/pom.xml clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $gateway=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q api-gateway-service) ; $catalog=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-catalog-service) ; $acquisition=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-acquisition-service) ; $stream=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-stream-service) ; if (-not $gateway -or -not $catalog -or -not $acquisition -or -not $stream) { throw 'One or more backend containers are not running' } ; docker cp backend/api-gateway-service/target/api-gateway-service-0.1.0.jar ${gateway}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-catalog-service/target/media-catalog-service-0.1.0.jar ${catalog}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-acquisition-service/target/media-acquisition-service-0.1.0.jar ${acquisition}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-stream-service/target/media-stream-service-0.1.0.jar ${stream}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $gateway $catalog $acquisition $stream",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -190,7 +190,7 @@
         {
             "label": "Ensure + Hot Update Backend: All Services",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; docker compose -f docker-compose.yml up -d api-gateway-service media-catalog-service media-acquisition-service media-stream-service ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; mvn -f backend/pom.xml clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $gateway=$(docker compose -f docker-compose.yml ps -q api-gateway-service) ; $catalog=$(docker compose -f docker-compose.yml ps -q media-catalog-service) ; $acquisition=$(docker compose -f docker-compose.yml ps -q media-acquisition-service) ; $stream=$(docker compose -f docker-compose.yml ps -q media-stream-service) ; if (-not $gateway -or -not $catalog -or -not $acquisition -or -not $stream) { throw 'One or more backend containers are not running' } ; docker cp backend/api-gateway-service/target/api-gateway-service-0.1.0.jar ${gateway}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-catalog-service/target/media-catalog-service-0.1.0.jar ${catalog}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-acquisition-service/target/media-acquisition-service-0.1.0.jar ${acquisition}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-stream-service/target/media-stream-service-0.1.0.jar ${stream}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $gateway $catalog $acquisition $stream",
+            "command": "$ErrorActionPreference='Stop' ; docker compose -f docker-compose.yml -f compose.debug.yaml up -d api-gateway-service media-catalog-service media-acquisition-service media-stream-service ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; mvn -f backend/pom.xml clean package -DskipTests ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $gateway=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q api-gateway-service) ; $catalog=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-catalog-service) ; $acquisition=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-acquisition-service) ; $stream=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q media-stream-service) ; if (-not $gateway -or -not $catalog -or -not $acquisition -or -not $stream) { throw 'One or more backend containers are not running' } ; docker cp backend/api-gateway-service/target/api-gateway-service-0.1.0.jar ${gateway}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-catalog-service/target/media-catalog-service-0.1.0.jar ${catalog}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-acquisition-service/target/media-acquisition-service-0.1.0.jar ${acquisition}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp backend/media-stream-service/target/media-stream-service-0.1.0.jar ${stream}:/app/app.jar ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker restart $gateway $catalog $acquisition $stream",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -203,7 +203,20 @@
         {
             "label": "Hot Update Frontend Container",
             "type": "shell",
-            "command": "$ErrorActionPreference='Stop' ; npm --prefix frontend run build ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml ps -q frontend) ; if (-not $cid) { throw 'frontend container is not running' } ; docker exec $cid sh -c \"rm -rf /usr/share/nginx/html/*\" ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp frontend/dist/. ${cid}:/usr/share/nginx/html/",
+            "command": "$ErrorActionPreference='Stop' ; npm --prefix frontend run build ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q frontend) ; if (-not $cid) { throw 'frontend container is not running' } ; $cleanupCommand = 'rm -rf /usr/share/nginx/html/*' ; & docker exec $cid sh -c $cleanupCommand ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp frontend/dist/. ${cid}:/usr/share/nginx/html/",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Ensure + Hot Update Frontend Container",
+            "type": "shell",
+            "command": "$ErrorActionPreference='Stop' ; docker compose -f docker-compose.yml -f compose.debug.yaml up -d frontend ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; npm --prefix frontend run build ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; $cid=$(docker compose -f docker-compose.yml -f compose.debug.yaml ps -q frontend) ; if (-not $cid) { throw 'frontend container is not running' } ; $cleanupCommand = 'rm -rf /usr/share/nginx/html/*' ; & docker exec $cid sh -c $cleanupCommand ; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } ; docker cp frontend/dist/. ${cid}:/usr/share/nginx/html/",
             "options": {
                 "cwd": "${workspaceFolder}"
             },
