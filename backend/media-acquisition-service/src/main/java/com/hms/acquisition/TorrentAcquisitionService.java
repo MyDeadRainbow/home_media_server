@@ -1,9 +1,17 @@
 package com.hms.acquisition;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import com.hms.acquisition.importmedia.ImportMediaEntry;
+import com.hms.acquisition.importmedia.ImportMediaRequest;
+import com.hms.acquisition.importmedia.ImportMediaStatus;
 
 @Service
 public class TorrentAcquisitionService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TorrentAcquisitionService.class);
 
     private final VirusScannerService virusScannerService;
 
@@ -11,16 +19,21 @@ public class TorrentAcquisitionService {
         this.virusScannerService = virusScannerService;
     }
 
-    public ImportMediaResponse importMedia(ImportMediaRequest request) {
-        String quality = request.quality() == null || request.quality().isBlank() ? "1080p" : request.quality();
+    public boolean addImportRequest(ImportMediaRequest request) {
+        ImportMediaEntry entry = new ImportMediaEntry(
+                java.util.UUID.randomUUID().toString(),
+                request.title(),
+                ImportMediaStatus.PENDING,
+                null
+            );
 
-        // This simulates an integration pipeline: tracker search -> download -> scan -> organize.
-        String torrentSource = "https://tracker.example/search?q=" + request.title().replace(" ", "+");
-        String downloadFolder = "downloads/torrents/" + request.title().replace(" ", "_").toLowerCase();
-        boolean safe = virusScannerService.scanFolder(downloadFolder);
-        String organizedPath = "media-library/" + request.type().toLowerCase() + "/" + request.title().replace(" ", "_") + "_" + quality;
+        try {
+            entry.insert();
+        } catch (Exception e) {
+            LOG.error("Failed to add media request", e);
+            return false;
+        }
 
-        String status = safe ? "QUEUED_FOR_LIBRARY_INDEX" : "BLOCKED_BY_SECURITY_SCAN";
-        return new ImportMediaResponse(request.title(), torrentSource, downloadFolder, safe, organizedPath, status);
+        return true;
     }
 }

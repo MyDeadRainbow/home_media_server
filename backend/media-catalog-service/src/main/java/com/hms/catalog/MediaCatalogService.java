@@ -37,7 +37,7 @@ public class MediaCatalogService {
     public List<MediaItem> search(String query) {
         List<MediaItem> results;
         try {
-            results = SQLiteSerializable.ListAll(MediaItem.class);
+            results = SQLiteSerializable.select(MediaItem.class, Map.of());
         } catch (DBFileNotFoundException | GetConnectionException | SQLException e) {
             // Log the error and fall back to in-memory index
             System.err.println("Failed to query media items from database: " + e.getMessage());

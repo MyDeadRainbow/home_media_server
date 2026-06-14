@@ -6,30 +6,32 @@ spring:
     name: api-gateway-service
   cloud:
     gateway:
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "http://localhost:5173"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-      routes:
-        - id: catalog
-          uri: ${CATALOG_SERVICE_URL:http://localhost:8081}
-          predicates:
-            - Path=/api/media/**
-        - id: acquisition
-          uri: ${ACQUISITION_SERVICE_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/acquisition/**
-        - id: stream
-          uri: ${STREAM_SERVICE_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/stream/**
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "http://localhost:5173"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+          routes:
+            - id: catalog
+              uri: ${CATALOG_SERVICE_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/media/**
+            - id: acquisition
+              uri: ${ACQUISITION_SERVICE_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/acquisition/**
+            - id: stream
+              uri: ${STREAM_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/stream/**
 
 management:
   endpoints:

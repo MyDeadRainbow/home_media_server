@@ -3,17 +3,39 @@ package com.hms.shared.dao;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public interface SQLiteSerializable {
 
     public String getDbPath();
 
     public String getTableName();
+
+    private void ensureTableExists() throws DBFileNotFoundException, GetConnectionException, SQLException {
+        Path dbPath = Path.of(getDbPath());
+        try {
+            Path parentDir = dbPath.getParent();
+            if (parentDir != null) {
+                Files.createDirectories(parentDir);
+            }
+            if (!Files.exists(dbPath)) {
+                Files.createFile(dbPath);
+            }
+        } catch (Exception e) {
+            throw new DBFileNotFoundException("Failed to create directories or database file: " + dbPath, e);
+        }
+        try (var conn = Database.getConnection(getDbPath());
+                var stmt = conn.prepareStatement(toCreateTableStatement())) {
+            stmt.execute();
+        }
+    }
 
     public default String toCreateTableStatement() {
         // 'this' refers to the concrete object implementing the interface
@@ -44,7 +66,7 @@ public interface SQLiteSerializable {
     }
 
     private static String mapJavaTypeToSQLiteType(Class<?> javaType) {
-        if (javaType == String.class) {
+        if (javaType == String.class || javaType.isEnum()) {
             return "TEXT";
         } else if (javaType == int.class || javaType == Integer.class) {
             return "INTEGER";
@@ -90,10 +112,9 @@ public interface SQLiteSerializable {
     }
 
     public default void insert() throws DBFileNotFoundException, GetConnectionException, SQLException {
+        ensureTableExists();
         try (var conn = Database.getConnection(getDbPath());) {
-            try (var createStmt = conn.prepareStatement(toCreateTableStatement());) {
-                createStmt.execute();
-            }
+
             try (var pstmt = conn.prepareStatement(toInsertStatement())) {
                 Field[] fields = this.getClass().getDeclaredFields();
                 int index = 1;
@@ -101,7 +122,11 @@ public interface SQLiteSerializable {
                     if (!field.isAnnotationPresent(IgnoreField.class)) {
                         field.setAccessible(true);
                         try {
-                            pstmt.setObject(index++, field.get(this));
+                            Object value = field.get(this);
+                            if (value instanceof Enum) {
+                                value = ((Enum<?>) value).name(); // Store enum as string
+                            }
+                            pstmt.setObject(index++, value);
                         } catch (IllegalAccessException e) {
                             throw new RuntimeException(e);
                         }
@@ -109,6 +134,67 @@ public interface SQLiteSerializable {
                 }
                 pstmt.executeUpdate();
             }
+        }
+    }
+
+    public default void update() throws DBFileNotFoundException, GetConnectionException, SQLException {
+        ensureTableExists();
+        try (var conn = Database.getConnection(getDbPath());) {
+            Field[] fields = this.getClass().getDeclaredFields();
+            StringBuilder sql = new StringBuilder();
+            sql.append("UPDATE ").append(getTableName()).append(" SET ");
+
+            String pkFieldName = Arrays.stream(fields)
+                    .filter(f -> f.isAnnotationPresent(PrimaryKey.class))
+                    .map(Field::getName)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No primary key field found"));
+
+            List<Field> nonPkFields = new ArrayList<>();
+            for (Field field : fields) {
+                if (!field.isAnnotationPresent(IgnoreField.class) && !field.getName().equals(pkFieldName)) {
+                    nonPkFields.add(field);
+                }
+            }
+
+            for (int i = 0; i < nonPkFields.size(); i++) {
+                sql.append(nonPkFields.get(i).getName()).append(" = ?");
+                if (i < nonPkFields.size() - 1) {
+                    sql.append(", ");
+                }
+            }
+            sql.append(" WHERE ").append(pkFieldName).append(" = ?");
+
+            try (var pstmt = conn.prepareStatement(sql.toString())) {
+                int index = 1;
+                for (Field field : nonPkFields) {
+                    field.setAccessible(true);
+                    try {
+                        Object value = field.get(this);
+                        if (value instanceof Enum) {
+                            value = ((Enum<?>) value).name(); // Store enum as string
+                        }
+                        pstmt.setObject(index++, value);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                // Set primary key value
+                Field pkField = this.getClass().getDeclaredField(pkFieldName);
+                pkField.setAccessible(true);
+                try {
+                    Object value = pkField.get(this);
+                    if (value instanceof Enum) {
+                        value = ((Enum<?>) value).name(); // Store enum as string
+                    }
+                    pstmt.setObject(index, value);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+                pstmt.executeUpdate();
+            }
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -123,7 +209,7 @@ public interface SQLiteSerializable {
         } catch (Exception e) {
             throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
         }
-
+        ((SQLiteSerializable) instance).ensureTableExists();
         try (var conn = Database.getConnection(instance.getDbPath());) {
             String tableName = instance.getTableName();
             String pkFieldName = clazz.getDeclaredFields().length > 0
@@ -143,6 +229,9 @@ public interface SQLiteSerializable {
                             if (!field.isAnnotationPresent(IgnoreField.class)) {
                                 field.setAccessible(true);
                                 Object value = rs.getObject(field.getName());
+                                if (field.getType().isEnum() && value instanceof String) {
+                                    value = Enum.valueOf((Class<Enum>) field.getType(), (String) value);
+                                }
                                 try {
                                     field.set(instance, value);
                                 } catch (IllegalAccessException e) {
@@ -159,7 +248,7 @@ public interface SQLiteSerializable {
         }
     }
 
-    public static <T extends SQLiteSerializable> List<T> ListAll(Class<T> clazz)
+    public static <T extends SQLiteSerializable> List<T> select(Class<T> clazz, Map<Field, Object> filters)
             throws DBFileNotFoundException, GetConnectionException, SQLException {
 
         T instance = null;
@@ -172,39 +261,62 @@ public interface SQLiteSerializable {
             throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
         }
 
+        if (filters.keySet().stream().anyMatch(field -> !field.getDeclaringClass().equals(clazz))) {
+            throw new IllegalArgumentException("All filter fields must belong to the class " + clazz.getName());
+        }
+
+        ((SQLiteSerializable) instance).ensureTableExists();
         List<T> results = new ArrayList<>();
         try (var conn = Database.getConnection(instance.getDbPath());) {
             String tableName = instance.getTableName();
-            String sql = "SELECT * FROM " + tableName;
-            try (var pstmt = conn.prepareStatement(sql); var rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    // try {
-                    // rowInstance = (T) constructor.newInstance(new
-                    // Object[constructor.getParameterCount()]);
-                    // } catch (Exception e) {
-                    // throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
-                    // }
-                    Field[] fields = clazz.getDeclaredFields();
-                    List<Object> fieldValues = new ArrayList<>();
-                    for (Field field : fields) {
-                        if (!field.isAnnotationPresent(IgnoreField.class)) {
-                            field.setAccessible(true);
-                            Object value = rs.getObject(field.getName());
-                            fieldValues.add(value);
-                            // try {
-                            // field.set(rowInstance, value);
-                            // } catch (IllegalAccessException e) {
-                            // throw new RuntimeException(e);
-                            // }
+            StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM " + tableName);
+            if (!filters.isEmpty()) {
+                sqlBuilder.append(" WHERE ");
+                List<String> conditions = new ArrayList<>();
+                for (Field field : filters.keySet()) {
+                    conditions.add(field.getName() + " = ?");
+                }
+                sqlBuilder.append(String.join(" AND ", conditions));
+            }
+            String sql = sqlBuilder.toString();
+            try (var pstmt = conn.prepareStatement(sql)) {
+                int index = 1;
+                for (Object value : filters.values()) {
+                    pstmt.setObject(index++, value);
+                }
+                try (var rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        // try {
+                        // rowInstance = (T) constructor.newInstance(new
+                        // Object[constructor.getParameterCount()]);
+                        // } catch (Exception e) {
+                        // throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
+                        // }
+                        Field[] fields = clazz.getDeclaredFields();
+                        List<Object> fieldValues = new ArrayList<>();
+                        for (Field field : fields) {
+                            if (!field.isAnnotationPresent(IgnoreField.class)) {
+                                field.setAccessible(true);
+                                Object value = rs.getObject(field.getName());
+                                if (field.getType().isEnum() && value instanceof String) {
+                                    value = Enum.valueOf((Class<Enum>) field.getType(), (String) value);
+                                }
+                                fieldValues.add(value);
+                                // try {
+                                // field.set(rowInstance, value);
+                                // } catch (IllegalAccessException e) {
+                                // throw new RuntimeException(e);
+                                // }
+                            }
                         }
+                        T rowInstance;
+                        try {
+                            rowInstance = (T) constructor.newInstance(fieldValues.toArray(new Object[0]));
+                        } catch (Exception e) {
+                            throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
+                        }
+                        results.add(rowInstance);
                     }
-                    T rowInstance;
-                    try {
-                        rowInstance = (T) constructor.newInstance(fieldValues.toArray(new Object[0]));
-                    } catch (Exception e) {
-                        throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
-                    }
-                    results.add(rowInstance);
                 }
             }
         }

@@ -100,6 +100,15 @@
             "stopAll": true
         },
         {
+            "name": "Debug Media Acquisition Service (Docker)",
+            "preLaunchTask": "Media Acquisition Service Compose Up (Debug)",
+            "postDebugTask": "Media Acquisition Service Compose Down (Debug)",
+            "configurations": [
+                "Attach Acquisition Service (Docker)",
+            ],
+            "stopAll": true
+        },
+        {
             "name": "Debug Full Stack (Docker)",
             "preLaunchTask": "Compose Up (Debug)",
             "postDebugTask": "Compose Down (Debug)",
@@ -114,7 +123,7 @@
         },
         {
             "name": "Hot-Update Debug Backend (Docker)",
-            "preLaunchTask": "Ensure + Hot Update Backend: All Services",
+            "preLaunchTask": "Hot Update Backend: All Services",
             // "postDebugTask": "Compose Down (Debug)",
             "configurations": [
                 // "Debug Frontend (Docker)",

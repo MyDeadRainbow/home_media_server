@@ -23,12 +23,7 @@
 
       <div class="form-grid">
         <input v-model="importRequest.title" placeholder="Import title" />
-        <select v-model="importRequest.type">
-          <option value="movie">Movie</option>
-          <option value="series">Series</option>
-        </select>
-        <input v-model="importRequest.quality" placeholder="Quality (1080p/4k)" />
-        <button @click="runImport">Find + Download Torrent</button>
+        <button @click="runImport">Create Import Request</button>
       </div>
 
       <div class="upload-grid">
@@ -104,9 +99,7 @@ const newMedia = ref({
 })
 
 const importRequest = ref({
-  title: '',
-  type: 'movie',
-  quality: '1080p'
+  title: ''
 })
 
 const uploadRequest = ref({
@@ -142,16 +135,22 @@ async function addMedia() {
 }
 
 async function runImport() {
-  if (!importRequest.value.title) {
+  const title = importRequest.value.title.trim()
+  if (!title) {
     error.value = 'Title is required to import media.'
     return
   }
 
   error.value = ''
+  importStatus.value = 'Creating import request...'
   try {
-    const result = await importMedia(importRequest.value)
-    importStatus.value = `Status: ${result.status} | Scan passed: ${result.virusScanPassed}`
+    const created = await importMedia({ title })
+    importStatus.value = created
+      ? `Import request created for "${title}".`
+      : `Import request could not be created for "${title}".`
+    importRequest.value.title = ''
   } catch (err) {
+    importStatus.value = ''
     error.value = err.message
   }
 }

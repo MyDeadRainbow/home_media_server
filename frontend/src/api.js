@@ -38,7 +38,7 @@ export function createMedia(payload) {
 }
 
 export function importMedia(payload) {
-  return request(`${API_GATEWAY}/api/acquisition/import`, {
+  return request(`${API_GATEWAY}/api/acquisition/importRequest`, {
     method: 'POST',
     body: JSON.stringify(payload)
   })

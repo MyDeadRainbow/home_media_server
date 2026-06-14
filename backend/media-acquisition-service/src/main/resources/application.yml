@@ -14,3 +14,10 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+logging:
+  level:
+    bt.peer.ScheduledPeerSource: ERROR
+    bt.peer.PeerRegistry: OFF
+    bt.net.IncomingConnectionListener: OFF
+    bt.net.DataReceivingLoop: OFF

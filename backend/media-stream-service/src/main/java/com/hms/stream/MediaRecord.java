@@ -1,6 +1,5 @@
 package com.hms.stream;
 
-import com.google.gson.JsonObject;
 import com.hms.shared.dao.SQLiteSerializable;
 import com.hms.shared.messaging.JsonSerializable;
 

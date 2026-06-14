@@ -7,7 +7,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,16 +21,15 @@ import com.hms.shared.messaging.catalogupdates.CatalogUpdateSerializer;
 
 @Service
 public class CatalogUpdateProducer {
-    private static final Logger LOG = LoggerFactory.getLogger(CatalogUpdateProducer.class);
+    // private static final Logger LOG = LoggerFactory.getLogger(CatalogUpdateProducer.class);
 
-    @Autowired
     @Qualifier("catalogUpdateKafkaTemplate")
-    private KafkaTemplate<String, CatalogUpdate> kafkaTemplate;
+    private final KafkaTemplate<String, CatalogUpdate> kafkaTemplate;
 
     public static CatalogUpdateProducer INSTANCE;
 
-    public CatalogUpdateProducer() {// KafkaTemplate<String, CatalogUpdate> kafkaTemplate) {
-        // this.kafkaTemplate = kafkaTemplate;
+    public CatalogUpdateProducer(KafkaTemplate<String, CatalogUpdate> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
         INSTANCE = this;
     }
 
