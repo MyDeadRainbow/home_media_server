@@ -13,8 +13,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
 import com.hms.acquisition.importmedia.pipeline.ImportMediaPipeline;
-import com.hms.acquisition.scrape.PirateBayMagnetFinder;
-import com.hms.acquisition.torrent.TorrentMagnetLink;
 import com.hms.shared.dao.DBFileNotFoundException;
 import com.hms.shared.dao.GetConnectionException;
 import com.hms.shared.dao.SQLiteSerializable;

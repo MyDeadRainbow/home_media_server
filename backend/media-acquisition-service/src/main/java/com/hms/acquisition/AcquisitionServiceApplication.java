@@ -4,7 +4,7 @@ import org.libtorrent4j.SessionManager;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.hms.acquisition.torrent.TorrentMagnetLink;
+import com.hms.acquisition.importmedia.TorrentMagnetLink;
 
 @SpringBootApplication
 public class AcquisitionServiceApplication {

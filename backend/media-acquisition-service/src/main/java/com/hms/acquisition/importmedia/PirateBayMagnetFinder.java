@@ -1,11 +1,9 @@
-package com.hms.acquisition.scrape;
+package com.hms.acquisition.importmedia;
 
 import java.io.IOException;
 import java.util.List;
 
-import com.hms.acquisition.importmedia.ImportMediaEntry;
-import com.hms.acquisition.importmedia.ImportMediaHandler;
-import com.hms.acquisition.importmedia.ImportMediaStatus;
+import com.hms.acquisition.importmedia.pipeline.ImportMediaHandler;
 import com.hms.shared.scrape.SearchParameter;
 import com.hms.shared.scrape.SearchUrl;
 import com.microsoft.playwright.Browser;

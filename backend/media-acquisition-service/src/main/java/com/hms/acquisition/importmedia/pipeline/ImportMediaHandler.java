@@ -1,4 +1,6 @@
-package com.hms.acquisition.importmedia;
+package com.hms.acquisition.importmedia.pipeline;
+
+import com.hms.acquisition.importmedia.ImportMediaEntry;
 
 @FunctionalInterface
 public interface ImportMediaHandler {

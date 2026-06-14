@@ -1,4 +1,4 @@
-package com.hms.acquisition.torrent;
+package com.hms.acquisition.importmedia;
 
 import java.net.InetAddress;
 import java.net.URI;
@@ -36,9 +36,7 @@ import org.libtorrent4j.alerts.BlockFinishedAlert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hms.acquisition.importmedia.ImportMediaEntry;
-import com.hms.acquisition.importmedia.ImportMediaHandler;
-import com.hms.acquisition.importmedia.ImportMediaStatus;
+import com.hms.acquisition.importmedia.pipeline.ImportMediaHandler;
 import com.hms.shared.dao.DBFileNotFoundException;
 import com.hms.shared.dao.GetConnectionException;
 
