@@ -1,8 +1,12 @@
-package com.hms.acquisition.importmedia;
+package com.hms.acquisition.importmedia.magnetfinder;
 
 import java.io.IOException;
 import java.util.List;
 
+import org.slf4j.Logger;
+
+import com.hms.acquisition.importmedia.ImportMediaEntry;
+import com.hms.acquisition.importmedia.ImportMediaStatus;
 import com.hms.acquisition.importmedia.pipeline.ImportMediaHandler;
 import com.hms.shared.scrape.SearchParameter;
 import com.hms.shared.scrape.SearchUrl;
@@ -11,10 +15,12 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.Response;
 import com.microsoft.playwright.Playwright.CreateOptions;
 
-public class PirateBayMagnetFinder implements ImportMediaHandler{
+public class PirateBayMagnetFinder extends MagnetFinder {
 
+    private final Logger LOG = org.slf4j.LoggerFactory.getLogger(PirateBayMagnetFinder.class);
     private static final String PIRATE_BAY_BASE_URL = "https://thepiratebay.org";
     private static final String PIRATE_BAY_SEARCH_URL = PIRATE_BAY_BASE_URL + "/search.php?";
     private static final String HD_MOVIE_CATEGORY = "207";
@@ -25,16 +31,27 @@ public class PirateBayMagnetFinder implements ImportMediaHandler{
     public PirateBayMagnetFinder() {
     }
 
-    public String findBestMagnetLink(ImportMediaEntry entry) {
+    @Override
+    protected String findBestMagnetLink(ImportMediaEntry entry) {
 
         try (Playwright playwright = Playwright.create(new CreateOptions());
                 Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
                 Page page = browser.newPage();) {
 
-            page.navigate(pirateBaySearchUrl.getSearchUrl(
+            Response response = page.navigate(pirateBaySearchUrl.getSearchUrl(
                     new SearchParameter("q", entry.title()),
                     new SearchParameter("cat", HD_MOVIE_CATEGORY)));
 
+            switch (response.status()) {
+                case 200:
+                    break; // OK
+                case 403:
+                    LOG.error("Access to Pirate Bay is forbidden. Check if the site is blocked in your region.");
+                    return null;
+                default:
+                    LOG.error("Failed to access Pirate Bay. HTTP status: {}", response.status());
+                    return null;
+            }
             // Wait for the search results to load
             page.waitForSelector("li.list-entry");
 
@@ -63,22 +80,5 @@ public class PirateBayMagnetFinder implements ImportMediaHandler{
             }
         }
         return null;
-    }
-
-    @Override
-    public ImportMediaEntry handle(ImportMediaEntry entry) {
-        try {
-            String magnetLink = findBestMagnetLink(entry);
-            if (magnetLink != null) {
-                entry = new ImportMediaEntry(entry.id(), entry.title(), entry.status(), magnetLink);
-            } else {
-                entry = new ImportMediaEntry(entry.id(), entry.title(), ImportMediaStatus.MAGNET_NOT_FOUND, null);
-            }
-            entry.update();
-        } catch (Exception e) {
-            // Log the error or handle it accordingly
-            e.printStackTrace();
-        }
-        return entry;
     }
 }

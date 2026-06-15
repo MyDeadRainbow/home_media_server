@@ -53,20 +53,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Core libtorrent4j wrapper -->
-            <dependency>
-                <groupId>org.libtorrent4j</groupId>
-                <artifactId>libtorrent4j</artifactId>
-                <version>2.1.0-39</version>
-            </dependency>
-
-            <!-- Native Linux binaries -->
-            <dependency>
-                <groupId>org.libtorrent4j</groupId>
-                <artifactId>libtorrent4j-linux</artifactId>
-                <version>2.1.0-39</version>
-                <!-- <scope>provided</scope> -->
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

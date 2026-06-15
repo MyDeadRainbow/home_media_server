@@ -4,8 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.hms.acquisition.importmedia.ImportMediaEntry;
+import com.hms.shared.pipline.Handler;
 
-public class ImportMediaPipeline {
+public class ImportMediaPipeline implements Handler<ImportMediaEntry> {
 
     private final Logger LOG = LoggerFactory.getLogger(ImportMediaPipeline.class);
     private final ImportMediaHandler[] handlers;
@@ -20,7 +21,8 @@ public class ImportMediaPipeline {
         return new ImportMediaPipelineBuilder();
     }
 
-    public ImportMediaEntry executeHandlers(ImportMediaEntry entry) {
+    @Override
+    public ImportMediaEntry handle(ImportMediaEntry entry) {
         for (ImportMediaHandler handler : handlers) {
             try {
                 entry = handler.handle(entry);

@@ -65,6 +65,84 @@ body {
   grid-template-columns: 1.3fr 0.7fr 0.5fr auto;
 }
 
+.acquisition-search {
+  margin-bottom: 0.7rem;
+}
+
+.acquisition-search label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.acquisition-search-box {
+  position: relative;
+}
+
+.acquisition-search-box input {
+  width: 100%;
+}
+
+.acquisition-popup {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 28px rgba(34, 31, 25, 0.15);
+  z-index: 20;
+}
+
+.acquisition-popup ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.acquisition-popup li + li {
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, white 30%);
+}
+
+.popup-result {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.popup-result:hover {
+  background: color-mix(in srgb, var(--accent) 11%, white 89%);
+  transform: none;
+}
+
+.popup-title {
+  font-weight: 600;
+}
+
+.popup-meta {
+  font-size: 0.82rem;
+  opacity: 0.72;
+}
+
+.popup-state {
+  margin: 0;
+  padding: 0.75rem 0.8rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
 .upload-grid {
   display: grid;
   grid-template-columns: 1fr 0.7fr 0.5fr 1.2fr 1fr auto;

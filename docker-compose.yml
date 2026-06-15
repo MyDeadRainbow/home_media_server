@@ -50,6 +50,8 @@ services:
       - kafka
 
   media-acquisition-service:
+    init: true
+    ipc: host
     build:
       context: ./backend
       dockerfile: media-acquisition-service/Dockerfile

@@ -11,6 +11,34 @@
         <button @click="loadMedia">Search</button>
       </div>
 
+      <div ref="acquisitionSearchContainer" class="acquisition-search">
+        <label for="acquisition-search-box">Acquisition Search</label>
+        <div class="acquisition-search-box">
+          <input
+            id="acquisition-search-box"
+            v-model="acquisitionQuery"
+            placeholder="Search torrent sources"
+            @input="onAcquisitionInput"
+            @focus="onAcquisitionFocus"
+            @keydown.esc="hideAcquisitionPopup"
+          />
+
+          <div v-if="showAcquisitionPopup" class="acquisition-popup">
+            <p v-if="acquisitionLoading" class="popup-state">Searching...</p>
+            <p v-else-if="!acquisitionResults.length" class="popup-state">No results found.</p>
+
+            <ul v-else>
+              <li v-for="(result, index) in acquisitionResults" :key="result.magnetLink || result.sourceUrl || `${result.title}-${index}`">
+                <button class="popup-result" type="button" @click="useAcquisitionResult(result)">
+                  <span class="popup-title">{{ result.title }}</span>
+                  <span class="popup-meta">{{ result.source }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div class="form-grid">
         <input v-model="newMedia.title" placeholder="New media title" />
         <select v-model="newMedia.type">
@@ -76,9 +104,18 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import MediaCard from './components/MediaCard.vue'
-import { createMedia, importMedia, searchMedia, streamCaptionsUrl, streamManifest, uploadMediaFile, API_GATEWAY } from './api'
+import {
+  createMedia,
+  importMedia,
+  searchAcquisition,
+  searchMedia,
+  streamCaptionsUrl,
+  streamManifest,
+  uploadMediaFile,
+  API_GATEWAY
+} from './api'
 
 const media = ref([])
 const query = ref('')
@@ -91,6 +128,12 @@ const uploadStatus = ref('')
 const error = ref('')
 const player = ref(null)
 const selectedUploadFile = ref(null)
+const acquisitionSearchContainer = ref(null)
+const acquisitionQuery = ref('')
+const acquisitionResults = ref([])
+const acquisitionLoading = ref(false)
+const showAcquisitionPopup = ref(false)
+let acquisitionSearchDebounce = null
 
 const newMedia = ref({
   title: '',
@@ -108,6 +151,16 @@ const uploadRequest = ref({
   year: new Date().getFullYear(),
   description: ''
 })
+
+function normalizeAcquisitionResults(payload) {
+  if (Array.isArray(payload)) {
+    return payload
+  }
+  if (payload && Array.isArray(payload.searchResponses)) {
+    return payload.searchResponses
+  }
+  return []
+}
 
 async function loadMedia() {
   error.value = ''
@@ -152,6 +205,66 @@ async function runImport() {
   } catch (err) {
     importStatus.value = ''
     error.value = err.message
+  }
+}
+
+function onAcquisitionInput() {
+  const term = acquisitionQuery.value.trim()
+
+  if (acquisitionSearchDebounce) {
+    clearTimeout(acquisitionSearchDebounce)
+  }
+
+  if (!term) {
+    acquisitionResults.value = []
+    showAcquisitionPopup.value = false
+    return
+  }
+
+  acquisitionSearchDebounce = setTimeout(() => {
+    fetchAcquisitionResults(term)
+  }, 1000)
+}
+
+async function fetchAcquisitionResults(term) {
+  acquisitionLoading.value = true
+  error.value = ''
+  showAcquisitionPopup.value = true
+
+  try {
+    const response = await searchAcquisition(term)
+    acquisitionResults.value = normalizeAcquisitionResults(response)
+  } catch (err) {
+    acquisitionResults.value = []
+    error.value = err.message
+  } finally {
+    acquisitionLoading.value = false
+  }
+}
+
+function onAcquisitionFocus() {
+  if (acquisitionQuery.value.trim()) {
+    showAcquisitionPopup.value = true
+  }
+}
+
+function hideAcquisitionPopup() {
+  showAcquisitionPopup.value = false
+}
+
+function useAcquisitionResult(result) {
+  importRequest.value.title = result.title || ''
+  acquisitionQuery.value = result.title || ''
+  showAcquisitionPopup.value = false
+}
+
+function handleDocumentClick(event) {
+  if (!acquisitionSearchContainer.value) {
+    return
+  }
+
+  if (!acquisitionSearchContainer.value.contains(event.target)) {
+    hideAcquisitionPopup()
   }
 }
 
@@ -232,5 +345,15 @@ function applyCaptionTrack() {
   }
 }
 
-onMounted(loadMedia)
+onMounted(() => {
+  loadMedia()
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  if (acquisitionSearchDebounce) {
+    clearTimeout(acquisitionSearchDebounce)
+  }
+})
 </script>

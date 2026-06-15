@@ -44,6 +44,11 @@ export function importMedia(payload) {
   })
 }
 
+export function searchAcquisition(query) {
+  const suffix = query ? `?query=${encodeURIComponent(query)}` : ''
+  return request(`${API_GATEWAY}/api/acquisition/search${suffix}`)
+}
+
 export function uploadMediaFile(file, payload) {
   const formData = new FormData()
   formData.append('file', file)

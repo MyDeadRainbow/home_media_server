@@ -10,15 +10,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hms.acquisition.importmedia.ImportMediaRequest;
+import com.hms.acquisition.search.SearchResponseList;
+import com.hms.acquisition.search.TorrentSearchService;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/acquisition")
 public class MediaAcquisitionController {
 
     private final TorrentAcquisitionService torrentAcquisitionService;
+    private final TorrentSearchService torrentSearchService;
 
-    public MediaAcquisitionController(TorrentAcquisitionService torrentAcquisitionService) {
+    public MediaAcquisitionController(TorrentAcquisitionService torrentAcquisitionService, TorrentSearchService torrentSearchService) {
         this.torrentAcquisitionService = torrentAcquisitionService;
+        this.torrentSearchService = torrentSearchService;
     }
 
     @PostMapping("/importRequest")
@@ -26,4 +34,9 @@ public class MediaAcquisitionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(torrentAcquisitionService.addImportRequest(request));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<SearchResponseList> search(@RequestParam String query) {
+        return ResponseEntity.ok(torrentSearchService.searchTorrents(query));
+    }
+    
 }

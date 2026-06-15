@@ -12,6 +12,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
+import com.hms.acquisition.importmedia.magnetfinder.OneThreeThreeSevenXMagnetFinder;
+import com.hms.acquisition.importmedia.magnetfinder.PirateBayMagnetFinder;
 import com.hms.acquisition.importmedia.pipeline.ImportMediaPipeline;
 import com.hms.shared.dao.DBFileNotFoundException;
 import com.hms.shared.dao.GetConnectionException;
@@ -82,6 +84,7 @@ public class MediaImportTaskRunner implements Runnable {
                         return updatedEntry;
                     })
                     .addHandler(new PirateBayMagnetFinder())
+                    .addHandler(new OneThreeThreeSevenXMagnetFinder())
                     .addHandler(new TorrentMagnetLink())
                     .addHandler((e) -> {
                         ImportMediaEntry updatedEntry = new ImportMediaEntry(e.id(), e.title(), ImportMediaStatus.COMPLETED,
@@ -102,7 +105,7 @@ public class MediaImportTaskRunner implements Runnable {
                     })
                     .build();
 
-            ImportMediaEntry updatedEntry = pipeline.executeHandlers(entry);
+            ImportMediaEntry updatedEntry = pipeline.handle(entry);
 
             // PirateBayMagnetFinder magnetFinder = new
             // PirateBayMagnetFinder(entry.title());
