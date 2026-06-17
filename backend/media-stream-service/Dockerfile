@@ -1,3 +1,5 @@
+ARG LIBTORRENT4J_VERSION=2.1.0-39
+
 FROM maven:3-eclipse-temurin-25-alpine AS build
 WORKDIR /workspace
 
@@ -16,8 +18,18 @@ COPY shared-lib/src shared-lib/src
 COPY media-stream-service/src media-stream-service/src
 RUN mvn -B -pl media-stream-service -am clean package -DskipTests
 
-FROM eclipse-temurin:25-jre-alpine
+FROM openjdk:25-rc AS extractor
+ARG LIBTORRENT4J_VERSION
+WORKDIR /tmp
+
+COPY --from=build /root/.m2/repository/org/libtorrent4j/libtorrent4j-linux/${LIBTORRENT4J_VERSION}/libtorrent4j-linux-${LIBTORRENT4J_VERSION}.jar /tmp/libtorrent4j-linux-${LIBTORRENT4J_VERSION}.jar
+
+RUN jar xf /tmp/libtorrent4j-linux-${LIBTORRENT4J_VERSION}.jar lib/x86_64/libtorrent4j.so
+
+FROM eclipse-temurin:25-jre-noble
+
 WORKDIR /app
+COPY --from=extractor /tmp/lib/x86_64/libtorrent4j.so /app/lib/libtorrent4j.so
 COPY --from=build /workspace/media-stream-service/target/media-stream-service-0.1.0.jar app.jar
 EXPOSE 8083
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]

@@ -14,6 +14,10 @@
     <artifactId>media-stream-service</artifactId>
     <name>media-stream-service</name>
 
+    <properties>
+        <libtorrent4j.version>2.1.0-39</libtorrent4j.version>
+    </properties>
+
     <dependencies>
         <dependency>
 
@@ -50,6 +54,20 @@
             <artifactId>guava</artifactId>
             <version>33.6.0-jre</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- Core libtorrent4j wrapper -->
+        <dependency>
+            <groupId>org.libtorrent4j</groupId>
+            <artifactId>libtorrent4j</artifactId>
+            <version>${libtorrent4j.version}</version>
+        </dependency>
+
+        <!-- Native Linux binaries -->
+        <dependency>
+            <groupId>org.libtorrent4j</groupId>
+            <artifactId>libtorrent4j-linux</artifactId>
+            <version>${libtorrent4j.version}</version>
         </dependency>
     </dependencies>
 

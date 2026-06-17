@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,18 +20,6 @@ public interface SQLiteSerializable {
     public String getTableName();
 
     private void ensureTableExists() throws DBFileNotFoundException, GetConnectionException, SQLException {
-        Path dbPath = Path.of(getDbPath());
-        try {
-            Path parentDir = dbPath.getParent();
-            if (parentDir != null) {
-                Files.createDirectories(parentDir);
-            }
-            if (!Files.exists(dbPath)) {
-                Files.createFile(dbPath);
-            }
-        } catch (Exception e) {
-            throw new DBFileNotFoundException("Failed to create directories or database file: " + dbPath, e);
-        }
         try (var conn = Database.getConnection(getDbPath());
                 var stmt = conn.prepareStatement(toCreateTableStatement())) {
             stmt.execute();
@@ -76,6 +65,8 @@ public interface SQLiteSerializable {
             return "REAL";
         } else if (javaType == boolean.class || javaType == Boolean.class) {
             return "BOOLEAN";
+        } else if (javaType == Date.class) {
+            return "INTEGER";
         } else {
             throw new IllegalArgumentException("Unsupported Java type: " + javaType.getName());
         }
@@ -300,6 +291,9 @@ public interface SQLiteSerializable {
                                 Object value = rs.getObject(field.getName());
                                 if (field.getType().isEnum() && value instanceof String) {
                                     value = Enum.valueOf((Class<Enum>) field.getType(), (String) value);
+                                }
+                                if (field.getType() == Date.class && value instanceof Long) {
+                                    value = new Date((Long) value);
                                 }
                                 fieldValues.add(value);
                                 // try {

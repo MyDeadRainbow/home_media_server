@@ -13,28 +13,58 @@
 
       <div ref="acquisitionSearchContainer" class="acquisition-search">
         <label for="acquisition-search-box">Acquisition Search</label>
+        <div class="acquisition-actions">
+          <select v-model="acquisitionSortBy" aria-label="Sort acquisition results">
+            <option value="seeders">Sort by Seeders</option>
+            <option value="size">Sort by Size</option>
+          </select>
+          <button type="button" @click="startAcquisitionSearch">Search Sources</button>
+        </div>
         <div class="acquisition-search-box">
           <input
             id="acquisition-search-box"
             v-model="acquisitionQuery"
             placeholder="Search torrent sources"
-            @input="onAcquisitionInput"
             @focus="onAcquisitionFocus"
+            @keyup.enter="startAcquisitionSearch"
             @keydown.esc="hideAcquisitionPopup"
           />
 
           <div v-if="showAcquisitionPopup" class="acquisition-popup">
-            <p v-if="acquisitionLoading" class="popup-state">Searching...</p>
-            <p v-else-if="!acquisitionResults.length" class="popup-state">No results found.</p>
+            <p v-if="acquisitionLoading && !hasAnyAcquisitionResults" class="popup-state">Searching...</p>
+            <p v-else-if="!acquisitionLoading && !hasAnyAcquisitionResults" class="popup-state">No results found.</p>
 
-            <ul v-else>
-              <li v-for="(result, index) in acquisitionResults" :key="result.magnetLink || result.sourceUrl || `${result.title}-${index}`">
-                <button class="popup-result" type="button" @click="useAcquisitionResult(result)">
-                  <span class="popup-title">{{ result.title }}</span>
-                  <span class="popup-meta">{{ result.source }}</span>
-                </button>
-              </li>
-            </ul>
+            <div v-else class="group-list">
+              <section v-for="group in groupedAcquisitionResults" :key="group.source" class="result-group">
+                <h4>{{ group.source }}</h4>
+                <ul>
+                  <li v-for="(result, index) in group.results" :key="result.magnetLink || result.sourceUrl || `${result.title}-${index}`">
+                    <article class="popup-result">
+                      <div class="popup-result-main">
+                        <span class="popup-title">{{ result.title }}</span>
+                        <span class="popup-meta">{{ result.source }}</span>
+                        <span class="popup-stats">
+                          <span class="popup-stat">Size: {{ result.size || 'N/A' }}</span>
+                          <span class="popup-stat">Seeders: {{ result.seeders || 'N/A' }}</span>
+                          <span class="popup-stat">Leechers: {{ result.leechers || 'N/A' }}</span>
+                        </span>
+                      </div>
+                      <div class="popup-buttons">
+                        <button type="button" class="popup-action" @click="useAcquisitionResult(result)">Use Title</button>
+                        <button
+                          type="button"
+                          class="popup-action"
+                          @click="importSearchResult(result)"
+                          :disabled="isImportingResult(result.magnetLink)"
+                        >
+                          {{ isImportingResult(result.magnetLink) ? 'Importing...' : 'Import to Stream' }}
+                        </button>
+                      </div>
+                    </article>
+                  </li>
+                </ul>
+              </section>
+            </div>
           </div>
         </div>
       </div>
@@ -85,8 +115,15 @@
         <div v-else>
           <h3>{{ activeMedia.title }}</h3>
           <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
-            <track v-for="track in tracks" :key="track.language" kind="subtitles" :label="track.label" :src="track.url"
-              :srclang="track.language" :default="track.language === selectedCaption" />
+            <track
+              v-for="track in tracks"
+              :key="track.language"
+              kind="subtitles"
+              :label="track.label"
+              :src="track.url"
+              :srclang="track.language"
+              :default="track.language === selectedCaption"
+            />
           </video>
           <div class="caption-controls">
             <label for="caption-select">Closed Captions</label>
@@ -104,12 +141,13 @@
 </template>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import MediaCard from './components/MediaCard.vue'
 import {
   createMedia,
   importMedia,
-  searchAcquisition,
+  importStreamMedia,
+  searchAcquisitionStream,
   searchMedia,
   streamCaptionsUrl,
   streamManifest,
@@ -128,12 +166,15 @@ const uploadStatus = ref('')
 const error = ref('')
 const player = ref(null)
 const selectedUploadFile = ref(null)
+
 const acquisitionSearchContainer = ref(null)
 const acquisitionQuery = ref('')
-const acquisitionResults = ref([])
+const acquisitionResultsBySource = ref({})
 const acquisitionLoading = ref(false)
 const showAcquisitionPopup = ref(false)
-let acquisitionSearchDebounce = null
+const acquisitionSortBy = ref('seeders')
+const importInFlightByMagnet = ref({})
+let acquisitionSearchAbortController = null
 
 const newMedia = ref({
   title: '',
@@ -152,15 +193,65 @@ const uploadRequest = ref({
   description: ''
 })
 
-function normalizeAcquisitionResults(payload) {
-  if (Array.isArray(payload)) {
-    return payload
-  }
-  if (payload && Array.isArray(payload.searchResponses)) {
-    return payload.searchResponses
-  }
-  return []
+function resetAcquisitionResults() {
+  acquisitionResultsBySource.value = {}
 }
+
+function isDuplicateAcquisitionResult(result) {
+  return Object.values(acquisitionResultsBySource.value).some((group) => group.some((existing) => (
+    (result.magnetLink && result.magnetLink === existing.magnetLink)
+    || (result.sourceUrl && result.sourceUrl === existing.sourceUrl)
+  )))
+}
+
+function parseSeeders(value) {
+  const parsed = Number.parseInt(String(value || '').replace(/[^\d]/g, ''), 10)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function parseSizeToBytes(size) {
+  if (!size) {
+    return 0
+  }
+
+  const match = String(size).trim().match(/([\d.]+)\s*([kmgtp]?b)/i)
+  if (!match) {
+    return 0
+  }
+
+  const value = Number.parseFloat(match[1])
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
+  const unit = match[2].toUpperCase()
+  const multipliers = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 ** 2,
+    GB: 1024 ** 3,
+    TB: 1024 ** 4,
+    PB: 1024 ** 5
+  }
+
+  return value * (multipliers[unit] || 1)
+}
+
+function compareAcquisitionResults(left, right) {
+  if (acquisitionSortBy.value === 'size') {
+    return parseSizeToBytes(right.size) - parseSizeToBytes(left.size)
+  }
+  return parseSeeders(right.seeders) - parseSeeders(left.seeders)
+}
+
+const groupedAcquisitionResults = computed(() => Object.entries(acquisitionResultsBySource.value)
+  .map(([source, results]) => ({
+    source,
+    results: [...results].sort(compareAcquisitionResults)
+  }))
+  .sort((a, b) => a.source.localeCompare(b.source)))
+
+const hasAnyAcquisitionResults = computed(() => groupedAcquisitionResults.value.some((group) => group.results.length > 0))
 
 async function loadMedia() {
   error.value = ''
@@ -208,42 +299,69 @@ async function runImport() {
   }
 }
 
-function onAcquisitionInput() {
+function startAcquisitionSearch() {
   const term = acquisitionQuery.value.trim()
 
-  if (acquisitionSearchDebounce) {
-    clearTimeout(acquisitionSearchDebounce)
-  }
-
   if (!term) {
-    acquisitionResults.value = []
+    resetAcquisitionResults()
     showAcquisitionPopup.value = false
     return
   }
 
-  acquisitionSearchDebounce = setTimeout(() => {
-    fetchAcquisitionResults(term)
-  }, 1000)
+  fetchAcquisitionResults(term)
 }
 
 async function fetchAcquisitionResults(term) {
+  if (acquisitionSearchAbortController) {
+    acquisitionSearchAbortController.abort()
+  }
+
+  acquisitionSearchAbortController = new AbortController()
   acquisitionLoading.value = true
   error.value = ''
   showAcquisitionPopup.value = true
+  resetAcquisitionResults()
 
   try {
-    const response = await searchAcquisition(term)
-    acquisitionResults.value = normalizeAcquisitionResults(response)
+    await searchAcquisitionStream(term, {
+      signal: acquisitionSearchAbortController.signal,
+      onItem: (item) => {
+        if (!item || !item.title) {
+          return
+        }
+
+        if (!isDuplicateAcquisitionResult(item)) {
+          const source = item.source || 'Unknown Source'
+          const existingSourceItems = acquisitionResultsBySource.value[source] || []
+          acquisitionResultsBySource.value = {
+            ...acquisitionResultsBySource.value,
+            [source]: [...existingSourceItems, item]
+          }
+        }
+      },
+      onError: (message) => {
+        error.value = String(message || 'Acquisition search stream returned an error.')
+      },
+      onDone: () => {
+        acquisitionLoading.value = false
+      }
+    })
   } catch (err) {
-    acquisitionResults.value = []
+    if (err.name === 'AbortError') {
+      return
+    }
+    resetAcquisitionResults()
     error.value = err.message
   } finally {
+    if (acquisitionSearchAbortController?.signal.aborted) {
+      return
+    }
     acquisitionLoading.value = false
   }
 }
 
 function onAcquisitionFocus() {
-  if (acquisitionQuery.value.trim()) {
+  if (acquisitionQuery.value.trim() || hasAnyAcquisitionResults.value) {
     showAcquisitionPopup.value = true
   }
 }
@@ -256,6 +374,40 @@ function useAcquisitionResult(result) {
   importRequest.value.title = result.title || ''
   acquisitionQuery.value = result.title || ''
   showAcquisitionPopup.value = false
+}
+
+function isImportingResult(magnetLink) {
+  return Boolean(importInFlightByMagnet.value[magnetLink])
+}
+
+async function importSearchResult(result) {
+  if (!result?.title || !result?.magnetLink) {
+    error.value = 'Selected result is missing title or magnet link.'
+    return
+  }
+
+  importInFlightByMagnet.value = {
+    ...importInFlightByMagnet.value,
+    [result.magnetLink]: true
+  }
+  error.value = ''
+
+  try {
+    const created = await importStreamMedia({
+      title: result.title,
+      magnetLink: result.magnetLink
+    })
+
+    importStatus.value = created
+      ? `Import request created for "${result.title}".`
+      : `Import request could not be created for "${result.title}".`
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    const nextInFlight = { ...importInFlightByMagnet.value }
+    delete nextInFlight[result.magnetLink]
+    importInFlightByMagnet.value = nextInFlight
+  }
 }
 
 function handleDocumentClick(event) {
@@ -294,15 +446,6 @@ async function uploadAndCreateMedia() {
       year: uploadRequest.value.year,
       description: uploadRequest.value.description
     })
-    // uploadStatus.value = 'File uploaded. Saving metadata in catalog...'
-
-    // await createMedia({
-    //   title: uploadRequest.value.title,
-    //   type: uploadRequest.value.type,
-    //   year: uploadRequest.value.year,
-    //   description: uploadRequest.value.description,
-    //   streamUrl: uploadResult.playbackUrl
-    // })
 
     uploadStatus.value = `Upload complete: ${selectedUploadFile.value.name}`
     uploadRequest.value.title = ''
@@ -352,8 +495,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
-  if (acquisitionSearchDebounce) {
-    clearTimeout(acquisitionSearchDebounce)
+  if (acquisitionSearchAbortController) {
+    acquisitionSearchAbortController.abort()
   }
 })
 </script>

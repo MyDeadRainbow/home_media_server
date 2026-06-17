@@ -86,6 +86,30 @@
             }
         },
         {
+            "label": "Media Stream Service Compose Up (Debug)",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.yml -f compose.debug.yaml up -d --build media-stream-service",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Media Stream Service Compose Down (Debug)",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.yml -f compose.debug.yaml down media-stream-service",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
             "label": "Open Gateway Logs",
             "type": "shell",
             "command": "docker logs home_media_server-api-gateway-service-1 --tail 50 -f",

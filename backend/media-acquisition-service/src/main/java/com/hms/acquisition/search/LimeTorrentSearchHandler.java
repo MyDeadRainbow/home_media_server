@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.slf4j.Logger;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.hms.acquisition.importmedia.ImportMediaEntry;
 import com.hms.acquisition.importmedia.magnetfinder.ElementSearchScore;
@@ -19,7 +20,8 @@ import com.microsoft.playwright.Playwright.CreateOptions;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
-public class LimeTorrentSearchHandler implements Handler<SearchResponsePipelineEntry> {
+public class LimeTorrentSearchHandler
+        implements SseEmitterHandler<String> {
 
     private final Logger LOG = org.slf4j.LoggerFactory.getLogger(LimeTorrentSearchHandler.class);
 
@@ -40,13 +42,15 @@ public class LimeTorrentSearchHandler implements Handler<SearchResponsePipelineE
     private final String ORDER_VALUE = "seeders";
 
     @Override
-    public SearchResponsePipelineEntry handle(SearchResponsePipelineEntry entry) throws Exception {
-        try (Page page = entry.getBrowser().newPage();) {
+    public void handle(SseEmitter emitter, String query) throws Exception {
+        try (Playwright playwright = Playwright.create(new CreateOptions());
+                Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+                Page page = browser.newPage();) {
 
             String url = UrlBuilder.fromString(LIME_TORRENT_BASE_URL)
                     .withPath(LIME_TORRENT_SEARCH_PATH)
                     .addParameter(CATEGORY_PARAM, MOVIE_CATEGORY_VALUE)
-                    .addParameter(QUERY_PARAM, entry.getSearchResponseList().query())
+                    .addParameter(QUERY_PARAM, query)
                     .addParameter(ORDER_BY_PARAM, ORDER_BY_VALUE)
                     .addParameter(ORDER_PARAM, ORDER_VALUE)
                     .toString();
@@ -58,10 +62,10 @@ public class LimeTorrentSearchHandler implements Handler<SearchResponsePipelineE
                     break; // OK
                 case 403:
                     LOG.error("Access to LimeTorrent is forbidden. Check if the site is blocked in your region.");
-                    return null;
+                    return;
                 default:
                     LOG.error("Failed to access LimeTorrent. HTTP status: {}", response.status());
-                    return null;
+                    return;
             }
             // Wait for the search results to load
             page.waitForSelector("table.table2 > tbody.torsearch > tr");
@@ -69,28 +73,30 @@ public class LimeTorrentSearchHandler implements Handler<SearchResponsePipelineE
             // Get the list of search result entries
             List<ElementHandle> listItems = page.querySelectorAll("table.table2 > tbody.torsearch > tr");
 
-            List<SearchResponse> searchResults = listItems.stream().map(item -> {
-                try (Page magPage = entry.getBrowser().newPage();) {
+            for (ElementHandle item : listItems) {
+                try (Page magPage = browser.newPage();) {
                     String title = item.querySelector("td.tdleft > div.tt-name > a[class=openPopup]").innerText();
                     String sourceUrl = LIME_TORRENT_BASE_URL
                             + item.querySelector("td.tdleft > div.tt-name > a[class=openPopup]").getAttribute("href");
-    
+
+                    String size = item.querySelector("td.tdnormal + .tdnormal").innerText();
+                    String seeders = item.querySelector("td.tdseed").innerText();
+                    String leechers = item.querySelector("td.tdleech").innerText();
+
                     URI pageUrl = URI.create(item.querySelector("td.tdleft > div.tt-name > a[class=openPopup]")
                             .getAttribute("href"));
                     UrlBuilder urlBuilder = UrlBuilder.fromString(LIME_TORRENT_STORE_URL).withPath(pageUrl.getPath());
-    
+
                     String pageUrlString = urlBuilder.toString();
                     magPage.navigate(pageUrlString);
-    
+
                     magPage.waitForSelector("a[href*=magnet]");
                     String magnetLink = magPage.querySelector("a[href*=magnet]").getAttribute("href");
-    
-                    return new SearchResponse(title, magnetLink, "LimeTorrent", sourceUrl);
-                }
-            }).toList();
-            entry.setSearchResponseList(entry.getSearchResponseList().with(searchResults));
 
-            return entry;
+                    emitter.send(
+                            new SearchResponse(title, magnetLink, "LimeTorrent", sourceUrl, size, seeders, leechers));
+                }
+            }
         }
     }
 

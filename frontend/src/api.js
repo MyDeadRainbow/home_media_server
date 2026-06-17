@@ -44,9 +44,118 @@ export function importMedia(payload) {
   })
 }
 
+export function importStreamMedia(payload) {
+  return request(`${API_GATEWAY}/api/stream/importRequest`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+}
+
 export function searchAcquisition(query) {
   const suffix = query ? `?query=${encodeURIComponent(query)}` : ''
   return request(`${API_GATEWAY}/api/acquisition/search${suffix}`)
+}
+
+function parseSseEvent(eventChunk) {
+  const lines = eventChunk.split('\n')
+  let eventName = 'message'
+  const dataLines = []
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd()
+    if (!line || line.startsWith(':')) {
+      continue
+    }
+
+    if (line.startsWith('event:')) {
+      eventName = line.slice(6).trim() || 'message'
+      continue
+    }
+
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trimStart())
+    }
+  }
+
+  if (!dataLines.length) {
+    return null
+  }
+
+  const rawData = dataLines.join('\n')
+  let data = rawData
+
+  try {
+    data = JSON.parse(rawData)
+  } catch {
+    // Non-JSON data payloads are still valid SSE and are passed through as strings.
+  }
+
+  return { eventName, data }
+}
+
+export async function searchAcquisitionStream(query, options = {}) {
+  const { onItem, onError, onDone, signal } = options
+  const suffix = query ? `?query=${encodeURIComponent(query)}` : ''
+
+  const response = await fetch(`${API_GATEWAY}/api/acquisition/search${suffix}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'text/event-stream',
+      'X-API-Key': API_KEY
+    },
+    signal
+  })
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed: ${response.status}`)
+  }
+
+  if (!response.body) {
+    throw new Error('Streaming response body is not available.')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) {
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      const normalized = buffer.replace(/\r\n/g, '\n')
+      const events = normalized.split('\n\n')
+      buffer = events.pop() || ''
+
+      for (const eventChunk of events) {
+        const parsed = parseSseEvent(eventChunk)
+        if (!parsed) {
+          continue
+        }
+
+        if (parsed.eventName === 'error') {
+          if (onError) {
+            onError(parsed.data)
+          }
+          continue
+        }
+
+        if (onItem) {
+          onItem(parsed.data)
+        }
+      }
+    }
+
+    if (onDone) {
+      onDone()
+    }
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 export function uploadMediaFile(file, payload) {

@@ -13,7 +13,10 @@ public class StreamServiceApplication {
         if (!mediaDir.exists()) {
             mediaDir.mkdirs();
         }
-
-        SpringApplication.run(StreamServiceApplication.class, args);
+        try {
+            SpringApplication.run(StreamServiceApplication.class, args);
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
     }
 }

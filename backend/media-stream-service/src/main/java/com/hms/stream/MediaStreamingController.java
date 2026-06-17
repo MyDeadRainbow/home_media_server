@@ -1,6 +1,7 @@
 package com.hms.stream;
 
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,14 +12,23 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.hms.stream.importmedia.ImportMediaRequest;
+
+import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.RequestBody;
+
+
 @RestController
 @RequestMapping("/api/stream")
 public class MediaStreamingController {
 
     private final MediaStreamingService mediaStreamingService;
+    private final TorrentDownloadService torrentAcquisitionService;
 
-    public MediaStreamingController(MediaStreamingService mediaStreamingService) {
+    public MediaStreamingController(MediaStreamingService mediaStreamingService, TorrentDownloadService torrentAcquisitionService) {
         this.mediaStreamingService = mediaStreamingService;
+        this.torrentAcquisitionService = torrentAcquisitionService;
     }
 
     @GetMapping("/{mediaId}/manifest")
@@ -42,6 +52,11 @@ public class MediaStreamingController {
             @RequestParam(required = false) String description) {
         return ResponseEntity
                 .ok(mediaStreamingService.upload(file, new UploadMediaRequest(file, title, type, year, description)));
+    }
+    
+    @PostMapping("/importRequest")
+    public ResponseEntity<Boolean> importMediaRequest(@Valid @RequestBody ImportMediaRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(torrentAcquisitionService.addImportRequest(request));
     }
 
     @GetMapping("/files/{storageId}")

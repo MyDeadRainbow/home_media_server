@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.hms.acquisition.importmedia.ImportMediaRequest;
 import com.hms.acquisition.search.SearchResponseList;
@@ -35,8 +36,10 @@ public class MediaAcquisitionController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<SearchResponseList> search(@RequestParam String query) {
-        return ResponseEntity.ok(torrentSearchService.searchTorrents(query));
+    public SseEmitter search(@RequestParam String query) {
+        SseEmitter emitter = new SseEmitter(1000*60*2L); // 2 minutes timeout
+        torrentSearchService.searchTorrents(query, emitter);        
+        return emitter;
     }
     
 }

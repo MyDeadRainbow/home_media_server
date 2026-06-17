@@ -109,6 +109,15 @@
             "stopAll": true
         },
         {
+            "name": "Debug Media Stream Service (Docker)",
+            "preLaunchTask": "Media Stream Service Compose Up (Debug)",
+            "postDebugTask": "Media Stream Service Compose Down (Debug)",
+            "configurations": [
+                "Attach Stream Service (Docker)",
+            ],
+            "stopAll": true
+        },
+        {
             "name": "Debug Full Stack (Docker)",
             "preLaunchTask": "Compose Up (Debug)",
             "postDebugTask": "Compose Down (Debug)",
