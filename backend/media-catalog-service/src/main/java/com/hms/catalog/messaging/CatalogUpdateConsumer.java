@@ -6,6 +6,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -26,7 +27,7 @@ public class CatalogUpdateConsumer {
 
     public static final String GROUP_ID = "catalog-service";
 
-    @KafkaListener(topics = CatalogUpdate.TOPIC, groupId = GROUP_ID, containerFactory = "catalogUpdateKafkaListenerContainerFactory")
+    @KafkaListener(topics = CatalogUpdate.TOPIC, groupId = GROUP_ID, containerFactory = "catalogUpdateKafkaListenerContainerFactory", autoStartup = "true")
     public void listen(CatalogUpdate message) {
         switch (message.updateType()) {
             case CREATED -> handleMediaCreated(message);

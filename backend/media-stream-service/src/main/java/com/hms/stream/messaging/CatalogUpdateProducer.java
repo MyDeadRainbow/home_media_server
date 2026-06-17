@@ -7,6 +7,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +42,7 @@ public class CatalogUpdateProducer {
         Preconditions.checkNotNull(topic, "Topic is not initialized in CatalogUpdates");
         Preconditions.checkNotNull(kafkaTemplate, "KafkaTemplate is not initialized in CatalogUpdates");
         kafkaTemplate.send(topic, message);
+        kafkaTemplate.flush();
     }
 
     public static void postMessage(CatalogUpdate message) {

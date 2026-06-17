@@ -2,6 +2,9 @@ package com.hms.stream.importmedia;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import org.libtorrent4j.AlertListener;
@@ -18,33 +21,34 @@ import org.libtorrent4j.alerts.TorrentAlert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.hms.shared.dao.DBFileNotFoundException;
+import com.hms.shared.dao.GetConnectionException;
+import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
+import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
+import com.hms.stream.MediaRecord;
 import com.hms.stream.importmedia.pipeline.ImportMediaHandler;
+import com.hms.stream.messaging.CatalogUpdateProducer;
 
 public class TorrentMagnetLink implements ImportMediaHandler {
     private static final Logger LOG = LoggerFactory.getLogger(TorrentMagnetLink.class);
 
-    private static final Path TORRENT_DOWNLOAD_FOLDER = Path.of("torrents");
+    // private static final Path TORRENT_DOWNLOAD_FOLDER = Path.of("torrents");
+    private final Path moviesRoot = Paths.get("media", "movies");
+    private final Path seriesRoot = Paths.get("media", "series");
     private static final Path TEMP_FOLDER = Path.of("temp");
 
     public TorrentMagnetLink() {
-        try {
-            Files.createDirectories(TORRENT_DOWNLOAD_FOLDER);
-            Files.createDirectories(TEMP_FOLDER);
-        } catch (Exception e) {
-            LOG.error("Failed to create torrent directory", e);
-            return;
-        }
     }
 
     @Override
     public ImportMediaEntry handle(ImportMediaEntry entry) {
         try {
-            Files.createDirectories(TORRENT_DOWNLOAD_FOLDER);
             Files.createDirectories(TEMP_FOLDER);
         } catch (Exception e) {
             LOG.error("Failed to create torrent directory", e);
             return entry;
         }
+
         String magnetLink = entry.magnetLink();
         if (magnetLink == null || magnetLink.isEmpty()) {
             LOG.error("Magnet link is null or empty for entry: {}", entry);
@@ -60,59 +64,82 @@ public class TorrentMagnetLink implements ImportMediaHandler {
         // Will need to switch to a different torrent library or implement torrent
         // downloading in a separate service that runs on the host machine and can
         // access the torrent download directory directly.
-        final SessionManager s = new SessionManager();
-
-        final CountDownLatch signal = new CountDownLatch(1);
-
+        SessionManager s = null;
+        final CountDownLatch signal = new CountDownLatch(1);        
         final ImportMediaAlertListener listener = new ImportMediaAlertListener(entry, signal);
-        s.addListener(listener);
-
-        s.start();
-
-        byte[] magnetData = null;
-        for (int i = 0; i < 3; i++) {
-            magnetData = s.fetchMagnet(magnetLink, 30, TEMP_FOLDER.toFile());
-            if (magnetData != null) {
-                break;
-            }
-        }
-        if (magnetData == null) {
-            LOG.error("Failed to fetch magnet data after 3 attempts");
-            entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
-            try {
-                entry.update();
-            } catch (Exception e) {
-                LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", e);
-            }
-            return entry;
-        }
-
-        Path torrentDestination = null;
-
-        TorrentInfo info = new TorrentInfo(magnetData);
-        FileStorage storage = info.files();
-
-        Priority[] priorities = Priority.array(Priority.IGNORE, info.numFiles());
-        for (int i = 0; i < priorities.length; i++) {
-            String filePath = storage.filePath(i);
-            Path path = Path.of(filePath);
-            
-            if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
-                    filePath.endsWith(".avi")) {
-                priorities[i] = Priority.DEFAULT;
-            }
-        }
-        s.download(info, TORRENT_DOWNLOAD_FOLDER.toFile(), null, priorities, null,
-                TorrentFlags.SEQUENTIAL_DOWNLOAD);
-
         try {
-            signal.await();
-        } catch (InterruptedException e) {
-            LOG.error("Torrent download interrupted", e);
-            Thread.currentThread().interrupt();
+            s = new SessionManager();
+            
+            s.addListener(listener);
+            
+            s.start();
+            
+            byte[] magnetData = null;
+            for (int i = 0; i < 3; i++) {
+                magnetData = s.fetchMagnet(magnetLink, 30, TEMP_FOLDER.toFile());
+                if (magnetData != null) {
+                    break;
+                }
+            }
+            if (magnetData == null) {
+                LOG.error("Failed to fetch magnet data after 3 attempts");
+                entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                try {
+                    entry.update();
+                } catch (Exception e) {
+                    LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", e);
+                }
+                return entry;
+            }
+            
+            Path destinationFolder = switch (entry.category()) {
+                case MOVIE -> moviesRoot;
+                case SERIES -> seriesRoot;
+                default -> throw new IllegalArgumentException("Unsupported media category: " + entry.category());
+            };
+            
+            TorrentInfo info = new TorrentInfo(magnetData);
+            FileStorage storage = info.files();
+            
+            Priority[] priorities = Priority.array(Priority.IGNORE, info.numFiles());
+            for (int i = 0; i < priorities.length; i++) {
+                String filePath = storage.filePath(i);
+                Path path = Path.of(filePath);
+                
+                if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
+                filePath.endsWith(".avi")) {
+                    priorities[i] = Priority.DEFAULT;
+                    
+                    MediaRecord record = new MediaRecord(UUID.randomUUID().toString(),
+                    destinationFolder.resolve(path).toAbsolutePath().toString());
+                    
+                    try {
+                        record.insert();
+                    } catch (Exception e) {
+                        LOG.error("Failed to insert media record for file: {}", path, e);
+                    }
+                    
+                    CatalogUpdateProducer.postMessage(new CatalogUpdate(record.mediaId(), CatalogUpdateType.CREATED,
+                    entry.title(), entry.category(), null, filePath));
+                }
+            }
+            
+            s.download(info, destinationFolder.toFile(), null, priorities, null,
+            TorrentFlags.SEQUENTIAL_DOWNLOAD);
+            
+            try {
+                signal.await();
+            } catch (InterruptedException e) {
+                LOG.error("Torrent download interrupted", e);
+                Thread.currentThread().interrupt();
+            }
+            
+        } finally {
+            if (s != null) {
+                s.stop();
+            }
+            signal.countDown();
         }
-
-        s.stop();
         return listener.getUpdatedEntry();
     }
 
@@ -142,11 +169,12 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             AlertType type = alert.type();
 
             switch (type) {
-                case ADD_TORRENT:
+                case ADD_TORRENT: {
                     LOG.info("Torrent added");
                     ((AddTorrentAlert) alert).handle().resume();
                     break;
-                case BLOCK_FINISHED:
+                }
+                case BLOCK_FINISHED: {
                     BlockFinishedAlert a = (BlockFinishedAlert) alert;
                     int p = (int) (a.handle().status().progress() * 100);
                     if (p % 10 == 0 && p != lastLoggedProgress) {
@@ -154,7 +182,8 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                         lastLoggedProgress = p;
                     }
                     break;
-                case TORRENT_FINISHED:
+                }
+                case TORRENT_FINISHED: {
                     LOG.info("Torrent download finished for: {}",
                             ((org.libtorrent4j.alerts.TorrentFinishedAlert) alert).handle().getName());
                     updatedEntry = entry.withStatus(ImportMediaStatus.TORRENT_DOWNLOADED);
@@ -165,12 +194,35 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                     }
                     signal.countDown();
                     break;
+                }
+                case FILE_PROGRESS: {
+                    org.libtorrent4j.alerts.FileProgressAlert a = (org.libtorrent4j.alerts.FileProgressAlert) alert;
+                    long[] files = a.getFiles();
+                    // a.handle().torrentFile().files().filePath();
+                    // int index = a.index();
+                    // long bytesDone = a.bytesDone();
+                    // long totalBytes = a.fileSize();
+                    // int progress = (int) ((bytesDone * 100) / totalBytes);
+                    // if (progress % 10 == 0 && progress != lastLoggedProgress) {
+                    // LOG.info("File progress: {}% for file: {} in torrent: {}", progress,
+                    // a.handle().status().fileName(index), a.handle().getName());
+                    // lastLoggedProgress = progress;
+                    // }
+                    break;
+                }
+                case FILE_COMPLETED: {
+                    org.libtorrent4j.alerts.FileCompletedAlert a = (org.libtorrent4j.alerts.FileCompletedAlert) alert;
+                    // LOG.info("File completed: {} in torrent: {}",
+                    // a.handle().status().fileName(a.index()),
+                    // a.handle().getName());
+                    break;
+                }                
                 default:
                     // if (alert instanceof TorrentAlert) {
-                    //     LOG.info("Received alert: {} for torrent: {}", type,
-                    //             ((TorrentAlert<?>) alert).handle().getName());
+                    // LOG.info("Received alert: {} for torrent: {}", type,
+                    // ((TorrentAlert<?>) alert).handle().getName());
                     // } else {
-                    //     LOG.info("Received alert: {}", type);
+                    // LOG.info("Received alert: {}", type);
                     // }
                     break;
             }

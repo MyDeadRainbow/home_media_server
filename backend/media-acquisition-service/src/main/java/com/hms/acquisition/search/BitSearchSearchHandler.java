@@ -14,7 +14,7 @@ import com.microsoft.playwright.Playwright.CreateOptions;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
-public class BitSearchSearchHandler implements SseEmitterHandler<String> {
+public class BitSearchSearchHandler implements SseEmitterHandler<SearchRequest> {
 
     private final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(BitSearchSearchHandler.class);
 
@@ -30,17 +30,23 @@ public class BitSearchSearchHandler implements SseEmitterHandler<String> {
     private final String TV_SHOW_CATEGORY_VALUE = "3";
 
     @Override
-    public void handle(SseEmitter emitter, String query) throws Exception {
+    public void handle(SseEmitter emitter, SearchRequest request) throws Exception {
         try (Playwright playwright = Playwright.create(new CreateOptions());
                 Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
                 Page page = browser.newPage();) {
 
+            String categoryValue = switch (request.category()) {
+                case MOVIE -> MOVIE_CATEGORY_VALUE;
+                case SERIES -> TV_SHOW_CATEGORY_VALUE;
+                default -> throw new IllegalArgumentException("Unsupported media category: " + request.category());
+            };
+
             Response response = page.navigate(UrlBuilder.fromString(BIT_SEARCH_BASE_URL)
                     .withPath(BIT_SEARCH_SEARCH_PATH)
-                    .addParameter(QUERY_PARAM, query)
+                    .addParameter(QUERY_PARAM, request.query())
                     .addParameter(SORT_BY_PARAM, SORT_BY_VALUE)
                     .addParameter(PAGE_PARAM, "1")
-                    .addParameter(CATEGORY_PARAM, MOVIE_CATEGORY_VALUE)
+                    .addParameter(CATEGORY_PARAM, categoryValue)
                     .toString());
 
             switch (response.status()) {

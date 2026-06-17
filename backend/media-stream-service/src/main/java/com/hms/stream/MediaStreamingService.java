@@ -8,6 +8,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.hms.shared.dao.DBFileNotFoundException;
+import com.hms.shared.dao.GetConnectionException;
+import com.hms.shared.dao.SQLiteSerializable;
 import com.hms.shared.media.MediaCategory;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
@@ -20,7 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -36,6 +39,7 @@ public class MediaStreamingService {
     public MediaStreamingService() {
         try {
             Files.createDirectories(moviesRoot);
+            Files.createDirectories(seriesRoot);
         } catch (IOException e) {
             throw new IllegalStateException("Could not initialize upload directory", e);
         }
@@ -46,7 +50,25 @@ public class MediaStreamingService {
                 new CaptionTrack("en", "English", "/api/stream/" + mediaId + "/captions?lang=en"),
                 new CaptionTrack("es", "Spanish", "/api/stream/" + mediaId + "/captions?lang=es"));
 
-        String resolvedPlaybackUrl = playbackUrl == null || playbackUrl.isBlank() ? SAMPLE_PLAYBACK_URL : playbackUrl;
+        // String resolvedPlaybackUrl = playbackUrl == null || playbackUrl.isBlank() ? SAMPLE_PLAYBACK_URL : playbackUrl;
+
+        MediaRecord record;
+        
+        try {
+            record = SQLiteSerializable.getById(MediaRecord.class, mediaId);
+        } catch (Exception e) {
+            // Log the error and fall back to sample playback URL
+            System.err.println("Failed to retrieve media record from database: " + e.getMessage());
+            record = null;
+        }
+
+        String resolvedPlaybackUrl;
+        if (record != null) {
+            resolvedPlaybackUrl = "api/stream/files/" + mediaId;
+            // record.filePath();
+        } else {
+            resolvedPlaybackUrl = SAMPLE_PLAYBACK_URL;
+        }
 
         return new StreamManifestResponse(
                 mediaId,
@@ -146,19 +168,38 @@ public class MediaStreamingService {
             throw new IllegalArgumentException("storageId is required");
         }
 
-        Path exact = moviesRoot.resolve(storageId).normalize();
+        MediaRecord record;
+        try {
+            record = SQLiteSerializable.getById(MediaRecord.class, storageId);
+        } catch (Exception e) {
+            // Log the error and fall back to searching the media directories
+            System.err.println("Failed to retrieve media record from database: " + e.getMessage());
+            record = null;
+        }
+        if (record == null) {
+            throw new IllegalArgumentException("Media record not found for storageId: " + storageId);
+        }
+        Path exact = Path.of(record.filePath()).normalize();
         if (Files.exists(exact) && Files.isRegularFile(exact)) {
             return exact;
+        } else {
+            throw new IllegalArgumentException("Stored file not found for storageId: " + storageId);
         }
+        // Path exact = moviesRoot.resolve(storageId).normalize();
+        // if (Files.exists(exact) && Files.isRegularFile(exact)) {
+        //     return exact;
+        // }
 
-        try (Stream<Path> files = Files.list(moviesRoot)) {
-            return files
-                    .filter(path -> path.getFileName().toString().startsWith(storageId + "."))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException("Uploaded file not found"));
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to locate uploaded file", e);
-        }
+        // try (Stream<Path> files = Files.list(moviesRoot)) {
+        //     return files
+        //             .filter(path -> path.getFileName().toString().startsWith(storageId + "."))
+        //             .findFirst()
+        //             .orElseThrow(() -> new IllegalArgumentException("Uploaded file not found"));
+        // } catch (IOException e) {
+        //     throw new IllegalStateException("Failed to locate uploaded file", e);
+        // }
+
+
     }
 
     private Resource toResource(Path filePath) {

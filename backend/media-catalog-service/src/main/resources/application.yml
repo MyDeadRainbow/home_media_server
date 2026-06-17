@@ -4,6 +4,7 @@ server:
 spring:
   application:
     name: media-catalog-service
+  
   kafka:
     bootstrap-servers: kafka:9092
     # consumer:

@@ -12,7 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
+import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.stream.importmedia.ImportMediaRequest;
+import com.hms.stream.messaging.CatalogUpdateProducer;
 
 import jakarta.validation.Valid;
 
@@ -63,4 +66,19 @@ public class MediaStreamingController {
     public ResponseEntity<Resource> file(@PathVariable String storageId) {
         return mediaStreamingService.file(storageId);
     }
+
+    @GetMapping("/testKafka")
+    public String testKafka(@RequestParam String param) {
+        CatalogUpdate update = new CatalogUpdate(
+                java.util.UUID.randomUUID().toString(),
+                CatalogUpdateType.CREATED,
+                param,
+                null,
+                null,
+                null
+        );
+        CatalogUpdateProducer.postMessage(update);
+        return "Message sent";
+    }
+    
 }

@@ -30,7 +30,7 @@ public class MediaImportTaskRunner implements Runnable {
 
     public MediaImportTaskRunner() {
         executor = new ThreadPoolTaskExecutor();
-        executor.setVirtualThreads(true);
+        // executor.setVirtualThreads(true);
         executor.initialize();
 
         scheduler = new ThreadPoolTaskScheduler();

@@ -8,7 +8,7 @@ public interface JsonSerializable<T> {
         for (var field : this.getClass().getDeclaredFields()) {
             field.setAccessible(true);
             try {
-                Object value = field.get(this);
+                Object value = field.get(this) != null ? field.get(this) : "";
                 if (value instanceof JsonSerializable) {
                     json.add(field.getName(), ((JsonSerializable<?>) value).toJsonObject());
                 } else {

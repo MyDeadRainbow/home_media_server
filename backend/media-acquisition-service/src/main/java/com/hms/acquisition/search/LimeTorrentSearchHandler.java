@@ -6,22 +6,18 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.hms.acquisition.importmedia.ImportMediaEntry;
-import com.hms.acquisition.importmedia.magnetfinder.ElementSearchScore;
-import com.hms.acquisition.importmedia.magnetfinder.LimeTorrentMagnetFinder;
-import com.hms.shared.pipline.Handler;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
-import com.microsoft.playwright.Response;
 import com.microsoft.playwright.Playwright.CreateOptions;
+import com.microsoft.playwright.Response;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
 public class LimeTorrentSearchHandler
-        implements SseEmitterHandler<String> {
+        implements SseEmitterHandler<SearchRequest> {
 
     private final Logger LOG = org.slf4j.LoggerFactory.getLogger(LimeTorrentSearchHandler.class);
 
@@ -42,15 +38,21 @@ public class LimeTorrentSearchHandler
     private final String ORDER_VALUE = "seeders";
 
     @Override
-    public void handle(SseEmitter emitter, String query) throws Exception {
+    public void handle(SseEmitter emitter, SearchRequest request) throws Exception {
         try (Playwright playwright = Playwright.create(new CreateOptions());
                 Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
                 Page page = browser.newPage();) {
 
+            String categoryValue = switch (request.category()) {
+                case MOVIE -> MOVIE_CATEGORY_VALUE;
+                case SERIES -> TV_SHOW_CATEGORY_VALUE;
+                default -> throw new IllegalArgumentException("Unsupported media category: " + request.category());
+            };
+
             String url = UrlBuilder.fromString(LIME_TORRENT_BASE_URL)
                     .withPath(LIME_TORRENT_SEARCH_PATH)
-                    .addParameter(CATEGORY_PARAM, MOVIE_CATEGORY_VALUE)
-                    .addParameter(QUERY_PARAM, query)
+                    .addParameter(CATEGORY_PARAM, categoryValue)
+                    .addParameter(QUERY_PARAM, request.query())
                     .addParameter(ORDER_BY_PARAM, ORDER_BY_VALUE)
                     .addParameter(ORDER_PARAM, ORDER_VALUE)
                     .toString();

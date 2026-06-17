@@ -17,10 +17,16 @@ public class CatalogUpdateDeserializer implements Deserializer<CatalogUpdate> {
             CatalogUpdateType updateType = CatalogUpdateType.valueOf(json.get("updateType").getAsString());
             String mediaId = json.get("mediaId").getAsString();
             String title = json.get("title").getAsString();
-            MediaCategory mediaType = MediaCategory.valueOf(json.get("mediaType").getAsString());
+            MediaCategory mediaType = null;
+            try {
+                mediaType = MediaCategory.valueOf(json.get("mediaType").getAsString());
+            } catch (IllegalArgumentException e) {
+                // suppress for now
+            }
             Integer year = json.has("year") && !json.get("year").isJsonNull()
-                    ? Integer.valueOf(json.get("year").getAsString())
-                    : null;
+                    && !json.get("year").getAsString().isEmpty()
+                            ? Integer.valueOf(json.get("year").getAsString())
+                            : null;
             String description = json.has("description") && !json.get("description").isJsonNull()
                     ? json.get("description").getAsString()
                     : null;

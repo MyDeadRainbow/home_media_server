@@ -9,11 +9,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class TorrentSearchService {
     private final Logger LOG = LoggerFactory.getLogger(TorrentSearchService.class);
 
-    public void searchTorrents(String query, SseEmitter emitter) {
-        SseEmitterOrchestrator<String> orchestrator = SseEmitterOrchestrator
-                .<String>builder()
+    public void searchTorrents(SearchRequest request, SseEmitter emitter) {
+        SseEmitterOrchestrator<SearchRequest> orchestrator = SseEmitterOrchestrator
+                .<SearchRequest>builder()
                 .withEmitter(emitter)
-                .withData(query)
+                .withData(request)
                 .addHandler(new PirateBaySearchHandler())
                 .addHandler(new LimeTorrentSearchHandler())
                 .addHandler(new BitSearchSearchHandler())

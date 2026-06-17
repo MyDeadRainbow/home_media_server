@@ -51,8 +51,23 @@ export function importStreamMedia(payload) {
   })
 }
 
-export function searchAcquisition(query) {
-  const suffix = query ? `?query=${encodeURIComponent(query)}` : ''
+function buildAcquisitionSearchSuffix(query, category) {
+  const params = new URLSearchParams()
+
+  if (query) {
+    params.set('query', query)
+  }
+
+  if (category) {
+    params.set('category', category)
+  }
+
+  const suffix = params.toString()
+  return suffix ? `?${suffix}` : ''
+}
+
+export function searchAcquisition(query, category = 'MOVIE') {
+  const suffix = buildAcquisitionSearchSuffix(query, category)
   return request(`${API_GATEWAY}/api/acquisition/search${suffix}`)
 }
 
@@ -93,9 +108,9 @@ function parseSseEvent(eventChunk) {
   return { eventName, data }
 }
 
-export async function searchAcquisitionStream(query, options = {}) {
+export async function searchAcquisitionStream(query, category = 'MOVIE', options = {}) {
   const { onItem, onError, onDone, signal } = options
-  const suffix = query ? `?query=${encodeURIComponent(query)}` : ''
+  const suffix = buildAcquisitionSearchSuffix(query, category)
 
   const response = await fetch(`${API_GATEWAY}/api/acquisition/search${suffix}`, {
     method: 'GET',

@@ -19,6 +19,7 @@ public class TorrentDownloadService {
     public boolean addImportRequest(ImportMediaRequest request) {
         ImportMediaEntry entry = new ImportMediaEntry(
                 java.util.UUID.randomUUID().toString(),
+                request.category(),
                 request.title(),
                 ImportMediaStatus.PENDING,
                 request.magnetLink(),

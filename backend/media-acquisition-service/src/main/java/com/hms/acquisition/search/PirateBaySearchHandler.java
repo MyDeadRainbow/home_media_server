@@ -18,7 +18,7 @@ import com.microsoft.playwright.Playwright.CreateOptions;
 import io.mikael.urlbuilder.UrlBuilder;
 
 public class PirateBaySearchHandler
-        implements Handler<SearchResponsePipelineEntry>, SseEmitterHandler<String> {
+        implements Handler<SearchResponsePipelineEntry>, SseEmitterHandler<SearchRequest> {
     private final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(PirateBaySearchHandler.class);
 
     private final String PIRATE_BAY_BASE_URL = "https://thepiratebay.org";
@@ -72,15 +72,21 @@ public class PirateBaySearchHandler
     }
 
     @Override
-    public void handle(SseEmitter emitter, String query) throws Exception {
+    public void handle(SseEmitter emitter, SearchRequest request) throws Exception {
         try (Playwright playwright = Playwright.create(new CreateOptions());
                 Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
                 Page page = browser.newPage();) {
 
+            String categoryValue = switch (request.category()) {
+                case MOVIE -> HD_MOVIE_CATEGORY;
+                case SERIES -> HD_TV_SHOW_CATEGORY;
+                default -> throw new IllegalArgumentException("Unsupported media category: " + request.category());
+            };
+
             Response response = page.navigate(UrlBuilder.fromString(PIRATE_BAY_BASE_URL)
                     .withPath(PIRATE_BAY_SEARCH_PATH)
-                    .addParameter(QUERY_PARAM, query)
-                    .addParameter(CATEGORY_PARAM, HD_MOVIE_CATEGORY)
+                    .addParameter(QUERY_PARAM, request.query())
+                    .addParameter(CATEGORY_PARAM, categoryValue)
                     .toString());
 
             switch (response.status()) {

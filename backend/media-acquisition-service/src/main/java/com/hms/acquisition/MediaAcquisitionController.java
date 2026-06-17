@@ -10,9 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.hms.acquisition.importmedia.ImportMediaRequest;
+import com.hms.acquisition.search.SearchRequest;
 import com.hms.acquisition.search.SearchResponseList;
 import com.hms.acquisition.search.TorrentSearchService;
+import com.hms.shared.media.MediaCategory;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,23 +23,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequestMapping("/api/acquisition")
 public class MediaAcquisitionController {
 
-    private final TorrentAcquisitionService torrentAcquisitionService;
     private final TorrentSearchService torrentSearchService;
 
-    public MediaAcquisitionController(TorrentAcquisitionService torrentAcquisitionService, TorrentSearchService torrentSearchService) {
-        this.torrentAcquisitionService = torrentAcquisitionService;
+    public MediaAcquisitionController(TorrentSearchService torrentSearchService) {
         this.torrentSearchService = torrentSearchService;
     }
 
-    @PostMapping("/importRequest")
-    public ResponseEntity<Boolean> importMediaRequest(@Valid @RequestBody ImportMediaRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(torrentAcquisitionService.addImportRequest(request));
-    }
+    // @PostMapping("/importRequest")
+    // public ResponseEntity<Boolean> importMediaRequest(@Valid @RequestBody ImportMediaRequest request) {
+    //     return ResponseEntity.status(HttpStatus.CREATED).body(torrentAcquisitionService.addImportRequest(request));
+    // }
 
     @GetMapping("/search")
-    public SseEmitter search(@RequestParam String query) {
+    public SseEmitter search(@RequestParam String query, @RequestParam MediaCategory category) {
         SseEmitter emitter = new SseEmitter(1000*60*2L); // 2 minutes timeout
-        torrentSearchService.searchTorrents(query, emitter);        
+        torrentSearchService.searchTorrents(new SearchRequest(query, category), emitter);        
         return emitter;
     }
     

@@ -13,11 +13,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Iterables;
+
 public interface SQLiteSerializable {
 
-    public String getDbPath();
+    public abstract String getDbPath();
 
-    public String getTableName();
+    public abstract String getTableName();
 
     private void ensureTableExists() throws DBFileNotFoundException, GetConnectionException, SQLException {
         try (var conn = Database.getConnection(getDbPath());
@@ -110,24 +112,56 @@ public interface SQLiteSerializable {
                 Field[] fields = this.getClass().getDeclaredFields();
                 int index = 1;
                 for (Field field : fields) {
-                    if (!field.isAnnotationPresent(IgnoreField.class)) {
+                    if (field.isAnnotationPresent(IgnoreField.class)) {
+                        continue;
+                    }
+                    if (field.isAnnotationPresent(ChildKey.class)) {
+                        // Handle child key relationships (e.g., one-to-many)
                         field.setAccessible(true);
                         try {
                             Object value = field.get(this);
-                            if (value instanceof Enum) {
-                                value = ((Enum<?>) value).name(); // Store enum as string
+                            if (value instanceof List) {
+                                List<?> childList = (List<?>) value;
+                                for (Object child : childList) {
+                                    if (child instanceof SQLiteSerializable) {
+                                        ((SQLiteSerializable) child).insert();
+                                    } else {
+                                        throw new RuntimeException("Child objects must implement SQLiteSerializable");
+                                    }
+                                }
+                            } else {
+                                throw new RuntimeException("ChildKey fields must be of type List");
                             }
-                            pstmt.setObject(index++, value);
                         } catch (IllegalAccessException e) {
                             throw new RuntimeException(e);
                         }
                     }
+                    field.setAccessible(true);
+                    try {
+                        Object value = field.get(this);
+                        if (value instanceof Enum) {
+                            value = ((Enum<?>) value).name(); // Store enum as string
+                        }
+                        pstmt.setObject(index++, value);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+
                 }
                 pstmt.executeUpdate();
             }
         }
     }
 
+    /**
+     * This does not do anything with possible child key relationships. It assumes
+     * the entire object graph is being updated together, and that any necessary
+     * child inserts/updates will be handled separately.
+     * 
+     * @throws DBFileNotFoundException
+     * @throws GetConnectionException
+     * @throws SQLException
+     */
     public default void update() throws DBFileNotFoundException, GetConnectionException, SQLException {
         ensureTableExists();
         try (var conn = Database.getConnection(getDbPath());) {
@@ -189,12 +223,70 @@ public interface SQLiteSerializable {
         }
     }
 
+    public default void delete() throws DBFileNotFoundException, GetConnectionException, SQLException {
+        ensureTableExists();
+        try (var conn = Database.getConnection(getDbPath());) {
+            Field[] fields = this.getClass().getDeclaredFields();
+
+            for (Field field : fields) {
+                if (field.isAnnotationPresent(ChildKey.class)) {
+                    field.setAccessible(true);
+                    try {
+                        Object value = field.get(this);
+                        if (value instanceof List) {
+                            List<?> childList = (List<?>) value;
+                            for (Object child : childList) {
+                                if (child instanceof SQLiteSerializable) {
+                                    ((SQLiteSerializable) child).delete();
+                                } else {
+                                    throw new RuntimeException("Child objects must implement SQLiteSerializable");
+                                }
+                            }
+                        } else {
+                            throw new RuntimeException("ChildKey fields must be of type List");
+                        }
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            StringBuilder sql = new StringBuilder();
+            sql.append("DELETE FROM ").append(getTableName()).append(" WHERE ");
+
+            String pkFieldName = Arrays.stream(fields)
+                    .filter(f -> f.isAnnotationPresent(PrimaryKey.class))
+                    .map(Field::getName)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No primary key field found"));
+
+            sql.append(pkFieldName).append(" = ?");
+
+            try (var pstmt = conn.prepareStatement(sql.toString())) {
+                Field pkField = this.getClass().getDeclaredField(pkFieldName);
+                pkField.setAccessible(true);
+                try {
+                    Object value = pkField.get(this);
+                    if (value instanceof Enum) {
+                        value = ((Enum<?>) value).name(); // Store enum as string
+                    }
+                    pstmt.setObject(1, value);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+                pstmt.executeUpdate();
+            }
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static <T extends SQLiteSerializable> T getById(Class<T> clazz, Object id)
             throws DBFileNotFoundException, GetConnectionException, SQLException {
 
         T instance = null;
+        Constructor<?> constructor;
         try {
-            Constructor<?> constructor = clazz.getDeclaredConstructors()[0];
+            constructor = clazz.getDeclaredConstructors()[0];
             constructor.setAccessible(true);
             instance = (T) constructor.newInstance(new Object[constructor.getParameterCount()]);
         } catch (Exception e) {
@@ -216,21 +308,37 @@ public interface SQLiteSerializable {
                 try (var rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         Field[] fields = clazz.getDeclaredFields();
+                        List<Object> fieldValues = new ArrayList<>();
                         for (Field field : fields) {
-                            if (!field.isAnnotationPresent(IgnoreField.class)) {
-                                field.setAccessible(true);
-                                Object value = rs.getObject(field.getName());
+                            if (field.isAnnotationPresent(IgnoreField.class)) {
+                                continue;
+                            }
+
+                            field.setAccessible(true);
+                            Object value = null;
+                            if (field.isAnnotationPresent(ChildKey.class)) {
+                                value = SQLiteSerializable.select(field.getAnnotation(ChildKey.class).referencedClass(),
+                                        Map.of(SQLiteSerializable.getPrimaryKeyField(
+                                                field.getAnnotation(ChildKey.class).referencedClass()),
+                                                rs.getObject(field.getName())));
+                            } else {
+                                value = rs.getObject(field.getName());
                                 if (field.getType().isEnum() && value instanceof String) {
                                     value = Enum.valueOf((Class<Enum>) field.getType(), (String) value);
                                 }
-                                try {
-                                    field.set(instance, value);
-                                } catch (IllegalAccessException e) {
-                                    throw new RuntimeException(e);
+                                if (field.getType() == Date.class && value instanceof Long) {
+                                    value = new Date((Long) value);
                                 }
+                                fieldValues.add(value);
                             }
                         }
-                        return instance;
+                        T rowInstance;
+                        try {
+                            rowInstance = (T) constructor.newInstance(fieldValues.toArray(new Object[0]));
+                        } catch (Exception e) {
+                            throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
+                        }
+                        return rowInstance;
                     } else {
                         throw new DBFileNotFoundException("Record with id " + id + " not found in table " + tableName);
                     }
@@ -277,18 +385,29 @@ public interface SQLiteSerializable {
                 }
                 try (var rs = pstmt.executeQuery()) {
                     while (rs.next()) {
-                        // try {
-                        // rowInstance = (T) constructor.newInstance(new
-                        // Object[constructor.getParameterCount()]);
-                        // } catch (Exception e) {
-                        // throw new SQLException("Failed to instantiate class: " + clazz.getName(), e);
-                        // }
                         Field[] fields = clazz.getDeclaredFields();
                         List<Object> fieldValues = new ArrayList<>();
                         for (Field field : fields) {
-                            if (!field.isAnnotationPresent(IgnoreField.class)) {
+                            if (field.isAnnotationPresent(IgnoreField.class)) {
+                                continue;
+                            }
+
+                            field.setAccessible(true);
+                            Object value = null;
+                            if (field.isAnnotationPresent(ChildKey.class)) {
+                                try {
+                                    value = SQLiteSerializable.select(
+                                            field.getAnnotation(ChildKey.class).referencedClass(),
+                                            Map.of(SQLiteSerializable.getPrimaryKeyField(
+                                                    field.getAnnotation(ChildKey.class).referencedClass()),
+                                                    rs.getObject(field.getName())));
+                                    fieldValues.add(value);
+                                } catch (Exception e) {
+                                    throw new RuntimeException(e);
+                                }
+                            } else {
                                 field.setAccessible(true);
-                                Object value = rs.getObject(field.getName());
+                                value = rs.getObject(field.getName());
                                 if (field.getType().isEnum() && value instanceof String) {
                                     value = Enum.valueOf((Class<Enum>) field.getType(), (String) value);
                                 }
@@ -296,11 +415,6 @@ public interface SQLiteSerializable {
                                     value = new Date((Long) value);
                                 }
                                 fieldValues.add(value);
-                                // try {
-                                // field.set(rowInstance, value);
-                                // } catch (IllegalAccessException e) {
-                                // throw new RuntimeException(e);
-                                // }
                             }
                         }
                         T rowInstance;
@@ -316,4 +430,30 @@ public interface SQLiteSerializable {
         }
         return results;
     }
+
+    public static Field getPrimaryKeyField(Class<?> clazz) {
+        return Arrays.stream(clazz.getDeclaredFields())
+                .filter(f -> f.isAnnotationPresent(PrimaryKey.class))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No primary key field found in class " + clazz.getName()));
+    }
+
+    public static Field getFieldByName(Class<?> clazz, String fieldName) {
+        return Arrays.stream(clazz.getDeclaredFields())
+                .filter(f -> f.getName().equals(fieldName))
+                .findFirst()
+                .orElseThrow(
+                        () -> new RuntimeException("Field " + fieldName + " not found in class " + clazz.getName()));
+    }
+
+    public static Object getPrimaryKeyValue(Object instance) {
+        Field pkField = getPrimaryKeyField(instance.getClass());
+        pkField.setAccessible(true);
+        try {
+            return pkField.get(instance);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

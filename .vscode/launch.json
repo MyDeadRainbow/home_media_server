@@ -109,6 +109,15 @@
             "stopAll": true
         },
         {
+            "name": "Debug Media Catalog Service (Docker)",
+            "preLaunchTask": "Media Catalog Service Compose Up (Debug)",
+            "postDebugTask": "Media Catalog Service Compose Down (Debug)",
+            "configurations": [
+                "Attach Catalog Service (Docker)",
+            ],
+            "stopAll": true
+        },
+        {
             "name": "Debug Media Stream Service (Docker)",
             "preLaunchTask": "Media Stream Service Compose Up (Debug)",
             "postDebugTask": "Media Stream Service Compose Down (Debug)",

@@ -9,14 +9,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class StreamServiceApplication {
 
     public static void main(String[] args) {
-        File mediaDir = new File("media");
-        if (!mediaDir.exists()) {
-            mediaDir.mkdirs();
-        }
-        try {
-            SpringApplication.run(StreamServiceApplication.class, args);
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
+
+        SpringApplication.run(StreamServiceApplication.class, args);
+
     }
 }

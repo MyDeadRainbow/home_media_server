@@ -86,6 +86,30 @@
             }
         },
         {
+            "label": "Media Catalog Service Compose Up (Debug)",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.yml -f compose.debug.yaml up -d --build media-catalog-service",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Media Catalog Service Compose Down (Debug)",
+            "type": "shell",
+            "command": "docker compose -f docker-compose.yml -f compose.debug.yaml down media-catalog-service",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
             "label": "Media Stream Service Compose Up (Debug)",
             "type": "shell",
             "command": "docker compose -f docker-compose.yml -f compose.debug.yaml up -d --build media-stream-service",

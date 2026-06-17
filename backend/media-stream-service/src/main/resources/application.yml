@@ -9,23 +9,16 @@ spring:
       max-file-size: ${STREAM_MAX_FILE_SIZE:10GB}
       max-request-size: ${STREAM_MAX_REQUEST_SIZE:10GB}
       file-size-threshold: 2MB
-    
-  docker:
-    compose:
-      lifecycle-management: start_and_stop
-      start:
-        command: up
-      stop:
-        command: down
-        timeout: 10s    
+  
+
   kafka:
     bootstrap-servers: kafka:9092    
-    consumer:
-      group-id: media-stream-service
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: com.hms.shared.messaging.mediaupdates.MediaUpdateDeserializer
-    producer:      
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: com.hms.shared.messaging.mediaupdates.MediaUpdateSerializer
+    # consumer:
+    #   group-id: media-stream-service
+    #   auto-offset-reset: earliest
+    #   key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    #   value-deserializer: com.hms.shared.messaging.mediaupdates.MediaUpdateDeserializer
+    # producer:      
+    #   key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    #   value-serializer: com.hms.shared.messaging.mediaupdates.MediaUpdateSerializer
 

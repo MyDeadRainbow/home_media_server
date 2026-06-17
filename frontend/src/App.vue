@@ -14,6 +14,10 @@
       <div ref="acquisitionSearchContainer" class="acquisition-search">
         <label for="acquisition-search-box">Acquisition Search</label>
         <div class="acquisition-actions">
+          <select v-model="acquisitionCategory" aria-label="Select acquisition category">
+            <option value="MOVIE">Movies</option>
+            <option value="SERIES">Series</option>
+          </select>
           <select v-model="acquisitionSortBy" aria-label="Sort acquisition results">
             <option value="seeders">Sort by Seeders</option>
             <option value="size">Sort by Size</option>
@@ -172,6 +176,7 @@ const acquisitionQuery = ref('')
 const acquisitionResultsBySource = ref({})
 const acquisitionLoading = ref(false)
 const showAcquisitionPopup = ref(false)
+const acquisitionCategory = ref('MOVIE')
 const acquisitionSortBy = ref('seeders')
 const importInFlightByMagnet = ref({})
 let acquisitionSearchAbortController = null
@@ -301,6 +306,7 @@ async function runImport() {
 
 function startAcquisitionSearch() {
   const term = acquisitionQuery.value.trim()
+  const category = acquisitionCategory.value
 
   if (!term) {
     resetAcquisitionResults()
@@ -308,10 +314,10 @@ function startAcquisitionSearch() {
     return
   }
 
-  fetchAcquisitionResults(term)
+  fetchAcquisitionResults(term, category)
 }
 
-async function fetchAcquisitionResults(term) {
+async function fetchAcquisitionResults(term, category) {
   if (acquisitionSearchAbortController) {
     acquisitionSearchAbortController.abort()
   }
@@ -323,19 +329,24 @@ async function fetchAcquisitionResults(term) {
   resetAcquisitionResults()
 
   try {
-    await searchAcquisitionStream(term, {
+    await searchAcquisitionStream(term, category, {
       signal: acquisitionSearchAbortController.signal,
       onItem: (item) => {
         if (!item || !item.title) {
           return
         }
 
-        if (!isDuplicateAcquisitionResult(item)) {
-          const source = item.source || 'Unknown Source'
+        const searchResult = {
+          ...item,
+          category
+        }
+
+        if (!isDuplicateAcquisitionResult(searchResult)) {
+          const source = searchResult.source || 'Unknown Source'
           const existingSourceItems = acquisitionResultsBySource.value[source] || []
           acquisitionResultsBySource.value = {
             ...acquisitionResultsBySource.value,
-            [source]: [...existingSourceItems, item]
+            [source]: [...existingSourceItems, searchResult]
           }
         }
       },
@@ -395,7 +406,8 @@ async function importSearchResult(result) {
   try {
     const created = await importStreamMedia({
       title: result.title,
-      magnetLink: result.magnetLink
+      magnetLink: result.magnetLink,
+      category: result.category || acquisitionCategory.value
     })
 
     importStatus.value = created
