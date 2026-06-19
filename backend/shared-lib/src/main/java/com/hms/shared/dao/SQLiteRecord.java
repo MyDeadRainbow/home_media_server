@@ -1,25 +1,35 @@
-// package com.hms.shared.dao;
+package com.hms.shared.dao;
 
-// import java.sql.SQLException;
+import java.sql.SQLException;
 
-// public interface SQLiteRecord {
-//     public String getDbPath();
+public interface SQLiteRecord {
 
-//     public String getTableName();
+    public String getPrimaryKeyField();
 
-//     public String toCreateTableStatement();
+    public Object getPrimaryKeyValue();
+    // public String getDbPath();
 
-//     public String toInsertStatement();
+    // public String getTableName();
 
-//     public void insert() throws DBFileNotFoundException, GetConnectionException, SQLException;
+    // public String toCreateTableStatement();
 
-//     public void update() throws DBFileNotFoundException, GetConnectionException, SQLException;
+    // public String toInsertStatement();
 
-//     public default void ensureTableExists() throws DBFileNotFoundException, GetConnectionException, SQLException {
-//         try (var conn = Database.getConnection(getDbPath());) {
-//             try (var stmt = conn.createStatement()) {
-//                 stmt.execute(toCreateTableStatement());
-//             }
-//         }
-//     }
-// }
+    // public String toUpdateStatement();
+
+    // public String toDeleteStatement();
+
+    // public void insert() throws DBFileNotFoundException, GetConnectionException, SQLException;
+
+    // public void update() throws DBFileNotFoundException, GetConnectionException, SQLException;
+
+    // public void delete() throws DBFileNotFoundException, GetConnectionException, SQLException;
+
+    // public default void ensureTableExists() throws DBFileNotFoundException, GetConnectionException, SQLException {
+    //     try (var conn = Database.getConnection(getDbPath());) {
+    //         try (var stmt = conn.createStatement()) {
+    //             stmt.execute(toCreateTableStatement());
+    //         }
+    //     }
+    // }
+}

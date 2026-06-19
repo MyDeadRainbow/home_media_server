@@ -1,5 +1,6 @@
 package com.hms.catalog.messaging;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.admin.NewTopic;
@@ -16,7 +17,9 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
-import com.hms.catalog.MediaItem;
+import com.hms.catalog.media.MediaItem;
+import com.hms.catalog.media.Series;
+import com.hms.catalog.media.SeriesParser;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateDeserializer;
 
@@ -36,59 +39,71 @@ public class CatalogUpdateConsumer {
         }
     }
 
-    private void handleMediaCreated(CatalogUpdate message) {        
-        MediaItem mediaItem = new MediaItem(message.mediaId(), message.title(), message.mediaType().name(), null, null,
-                null, "api/stream/files/" + message.mediaId());
+    private void handleMediaCreated(CatalogUpdate message) {
+        // MediaItem mediaItem = new MediaItem(message.mediaId(), message.title(), message.mediaType().name(), null, null,
+        //         null, "api/stream/files/" + message.mediaId());
+        List<Series> seriesList = SeriesParser.builder()
+                .addFilePath(message.title())
+                .build()
+                .parse();
         try {
-            mediaItem.insert();
+            // new MediaItem.Dao().insert(mediaItem);            
+            seriesList.forEach(series -> {
+                try {
+                    new Series.Dao().insert(series);
+                } catch (Exception e) {
+                    LOG.error("Error inserting series: {}", series.name(), e);
+                }
+            });
         } catch (Exception e) {
             LOG.error("Error inserting media item", e);
         }
+
     }
 
     private void handleMediaUpdated(CatalogUpdate message) {
         // try {
-        //     MediaItem mediaItem = MediaItem.getById(message.mediaId());
-        //     mediaItem.setTitle(message.title());
-        //     mediaItem.setMediaType(message.mediaType().name());
-        //     mediaItem.update();
+        // MediaItem mediaItem = MediaItem.getById(message.mediaId());
+        // mediaItem.setTitle(message.title());
+        // mediaItem.setMediaType(message.mediaType().name());
+        // mediaItem.update();
         // } catch (DBFileNotFoundException e) {
-        //     LOG.warn("Media item not found for update, creating new item with id: {}", message.mediaId());
-        //     handleMediaCreated(message);
+        // LOG.warn("Media item not found for update, creating new item with id: {}",
+        // message.mediaId());
+        // handleMediaCreated(message);
         // } catch (SQLException | GetConnectionException e) {
-        //     LOG.error("Error updating media item", e);
+        // LOG.error("Error updating media item", e);
         // }
     }
 
     private void handleMediaDeleted(CatalogUpdate message) {
         // try {
-        //     MediaItem mediaItem = MediaItem.getById(message.mediaId());
-        //     mediaItem.delete();
+        // MediaItem mediaItem = MediaItem.getById(message.mediaId());
+        // mediaItem.delete();
         // } catch (DBFileNotFoundException e) {
-        //     LOG.warn("Media item not found for deletion, id: {}", message.mediaId());
+        // LOG.warn("Media item not found for deletion, id: {}", message.mediaId());
         // } catch (SQLException | GetConnectionException e) {
-        //     LOG.error("Error deleting media item", e);
+        // LOG.error("Error deleting media item", e);
         // }
     }
 }
 
 @Configuration
 class CatalogUpdateConsumerConfig {
-    
+
     @Bean
     public NewTopic catalogUpdatesTopic() {
         return new NewTopic(CatalogUpdate.TOPIC, 1, (short) 1);
     }
 
-
     @Bean
     public ConsumerFactory<String, CatalogUpdate> catalogUpdateConsumerFactory() {
         Map<String, Object> props = Map.of(
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
-            ConsumerConfig.GROUP_ID_CONFIG, CatalogUpdateConsumer.GROUP_ID,
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.StringDeserializer.class.getName(),
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, CatalogUpdateDeserializer.class.getName()
-        );
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ConsumerConfig.GROUP_ID_CONFIG, CatalogUpdateConsumer.GROUP_ID,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                org.apache.kafka.common.serialization.StringDeserializer.class.getName(),
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, CatalogUpdateDeserializer.class.getName());
         Preconditions.checkNotNull(props, "Kafka consumer properties cannot be null");
         return new DefaultKafkaConsumerFactory<>(props);
     }

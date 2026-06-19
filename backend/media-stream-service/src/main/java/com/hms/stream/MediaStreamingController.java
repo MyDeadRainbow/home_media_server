@@ -14,13 +14,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
+import com.hms.shared.sql.SqlRecord;
 import com.hms.stream.importmedia.ImportMediaRequest;
 import com.hms.stream.messaging.CatalogUpdateProducer;
 
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.RequestBody;
-
 
 @RestController
 @RequestMapping("/api/stream")
@@ -29,7 +29,8 @@ public class MediaStreamingController {
     private final MediaStreamingService mediaStreamingService;
     private final TorrentDownloadService torrentAcquisitionService;
 
-    public MediaStreamingController(MediaStreamingService mediaStreamingService, TorrentDownloadService torrentAcquisitionService) {
+    public MediaStreamingController(MediaStreamingService mediaStreamingService,
+            TorrentDownloadService torrentAcquisitionService) {
         this.mediaStreamingService = mediaStreamingService;
         this.torrentAcquisitionService = torrentAcquisitionService;
     }
@@ -56,7 +57,7 @@ public class MediaStreamingController {
         return ResponseEntity
                 .ok(mediaStreamingService.upload(file, new UploadMediaRequest(file, title, type, year, description)));
     }
-    
+
     @PostMapping("/importRequest")
     public ResponseEntity<Boolean> importMediaRequest(@Valid @RequestBody ImportMediaRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(torrentAcquisitionService.addImportRequest(request));
@@ -75,10 +76,9 @@ public class MediaStreamingController {
                 param,
                 null,
                 null,
-                null
-        );
+                null);
         CatalogUpdateProducer.postMessage(update);
         return "Message sent";
     }
-    
+
 }

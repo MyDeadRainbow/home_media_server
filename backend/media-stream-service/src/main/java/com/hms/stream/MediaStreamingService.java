@@ -1,5 +1,16 @@
 package com.hms.stream;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -8,26 +19,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.hms.shared.dao.DBFileNotFoundException;
-import com.hms.shared.dao.GetConnectionException;
-import com.hms.shared.dao.SQLiteSerializable;
 import com.hms.shared.media.MediaCategory;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.stream.messaging.CatalogUpdateProducer;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-import java.util.stream.Stream;
 
 @Service
 public class MediaStreamingService {
@@ -50,12 +45,13 @@ public class MediaStreamingService {
                 new CaptionTrack("en", "English", "/api/stream/" + mediaId + "/captions?lang=en"),
                 new CaptionTrack("es", "Spanish", "/api/stream/" + mediaId + "/captions?lang=es"));
 
-        // String resolvedPlaybackUrl = playbackUrl == null || playbackUrl.isBlank() ? SAMPLE_PLAYBACK_URL : playbackUrl;
+        // String resolvedPlaybackUrl = playbackUrl == null || playbackUrl.isBlank() ?
+        // SAMPLE_PLAYBACK_URL : playbackUrl;
 
         MediaRecord record;
-        
+
         try {
-            record = SQLiteSerializable.getById(MediaRecord.class, mediaId);
+            record = new MediaRecord.Dao().get(mediaId);
         } catch (Exception e) {
             // Log the error and fall back to sample playback URL
             System.err.println("Failed to retrieve media record from database: " + e.getMessage());
@@ -107,14 +103,15 @@ public class MediaStreamingService {
 
         MediaRecord record = new MediaRecord(mediaId, destination.toString());
         try {
-            record.insert();
+            new MediaRecord.Dao().insert(record);
 
         } catch (Exception e) {
             destination.toFile().delete(); // Cleanup the stored file if database insert fails
             throw new IllegalStateException("Failed to save media record to database", e);
         }
 
-        CatalogUpdate update = new CatalogUpdate(mediaId, CatalogUpdateType.CREATED, file.getOriginalFilename(), type, body.year(), body.description());
+        CatalogUpdate update = new CatalogUpdate(mediaId, CatalogUpdateType.CREATED, file.getOriginalFilename(), type,
+                body.year(), body.description());
         CatalogUpdateProducer.postMessage(update);
 
         return new UploadMediaResponse(
@@ -170,7 +167,7 @@ public class MediaStreamingService {
 
         MediaRecord record;
         try {
-            record = SQLiteSerializable.getById(MediaRecord.class, storageId);
+            record = new MediaRecord.Dao().get(storageId);
         } catch (Exception e) {
             // Log the error and fall back to searching the media directories
             System.err.println("Failed to retrieve media record from database: " + e.getMessage());
@@ -187,18 +184,17 @@ public class MediaStreamingService {
         }
         // Path exact = moviesRoot.resolve(storageId).normalize();
         // if (Files.exists(exact) && Files.isRegularFile(exact)) {
-        //     return exact;
+        // return exact;
         // }
 
         // try (Stream<Path> files = Files.list(moviesRoot)) {
-        //     return files
-        //             .filter(path -> path.getFileName().toString().startsWith(storageId + "."))
-        //             .findFirst()
-        //             .orElseThrow(() -> new IllegalArgumentException("Uploaded file not found"));
+        // return files
+        // .filter(path -> path.getFileName().toString().startsWith(storageId + "."))
+        // .findFirst()
+        // .orElseThrow(() -> new IllegalArgumentException("Uploaded file not found"));
         // } catch (IOException e) {
-        //     throw new IllegalStateException("Failed to locate uploaded file", e);
+        // throw new IllegalStateException("Failed to locate uploaded file", e);
         // }
-
 
     }
 

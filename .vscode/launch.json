@@ -2,6 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "java",
+            "name": "ExampleRecord",
+            "request": "launch",
+            "mainClass": "com.hms.shared.sql.ExampleRecord",
+            "projectName": "shared-lib"
+        },
+        {
             "type": "dockerfile",
             "request": "launch",
             "name": "Docker: Build",
@@ -78,7 +85,7 @@
             "request": "attach",
             "hostName": "localhost",
             "port": 5007
-        },
+        }
     ],
     "compounds": [
         {

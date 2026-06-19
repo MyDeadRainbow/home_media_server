@@ -8,19 +8,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
+public class SQLiteMap<T extends SQLiteRecord> implements Map<String, T> {
 
-    Class<T> type;
+    private final SQLiteRecordDao<T> dao;
 
-    public SQLiteMap(Class<T> type) {
-        this.type = type;
+    public SQLiteMap(SQLiteRecordDao<T> dao) {
+        this.dao = dao;
     }
 
     @Override
     public int size() {
         int size = 0;
         try {
-            size = SQLiteSerializable.select(type, Map.of()).size();
+            size = dao.select(Map.of()).size();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -35,7 +35,7 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
     @Override
     public boolean containsKey(Object key) {
         try {
-            return SQLiteSerializable.select(type, Map.of(SQLiteSerializable.getPrimaryKeyField(type), key)).size() > 0;
+            return dao.select(Map.of(dao.getPrimaryKeyField(), key)).size() > 0;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -43,14 +43,14 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
 
     @Override
     public boolean containsValue(Object value) {
-        if (!type.isInstance(value)) {
+        if (!(value instanceof SQLiteRecord)) {
             return false;
         }
-        T tValue = type.cast(value);
         try {
-            return SQLiteSerializable.select(type,
-                    Map.of(SQLiteSerializable.getPrimaryKeyField(type), SQLiteSerializable.getPrimaryKeyValue(tValue)))
-                    .size() > 0;
+            var record = (SQLiteRecord) value;
+            var primaryKeyValue = record.getPrimaryKeyValue();
+
+            return containsKey(primaryKeyValue);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -59,7 +59,7 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
     @Override
     public T get(Object key) {
         try {
-            var results = SQLiteSerializable.select(type, Map.of(SQLiteSerializable.getPrimaryKeyField(type), key));
+            var results = dao.select(Map.of(dao.getPrimaryKeyField(), key));
             if (results.size() > 0) {
                 return results.get(0);
             } else {
@@ -70,34 +70,33 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
         }
     }
 
+    public T put(T value) {
+        return put(value.getPrimaryKeyValue().toString(), value);
+    }
+
     @Override
     public T put(String key, T value) {
         try {
-            // Check if an entry with the same primary key already exists
-            var existing = SQLiteSerializable.select(type,
-                    Map.of(SQLiteSerializable.getPrimaryKeyField(type), key));
-            if (existing.size() > 0) {
-                // Update existing entry
-                value.update();
+            var existing = dao.get(key);
+            if (existing != null) {
+                dao.update(value);
+                return existing;
             } else {
-                // Insert new entry
-                value.insert();
+                dao.insert(value);
+                return null;
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return value;
     }
 
     @Override
     public T remove(Object key) {
         try {
-            var existing = SQLiteSerializable.select(type,
-                    Map.of(SQLiteSerializable.getPrimaryKeyField(type), key));
-            if (existing.size() > 0) {
-                T toRemove = existing.get(0);
-                toRemove.delete();
-                return toRemove;
+            var existing = dao.get(key);
+            if (existing != null) {
+                dao.delete(existing);
+                return existing;
             } else {
                 return null;
             }
@@ -116,9 +115,9 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
     @Override
     public void clear() {
         try {
-            var allEntries = SQLiteSerializable.select(type, Map.of());
+            var allEntries = dao.select(Map.of());
             for (T entry : allEntries) {
-                entry.delete();
+                dao.delete(entry);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -129,14 +128,14 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
     public Set<String> keySet() {
         List<T> allEntries;
         try {
-            allEntries = SQLiteSerializable.select(type, Map.of());
+            allEntries = dao.select(Map.of());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return allEntries.stream()
                 .map(entry -> {
                     try {
-                        return SQLiteSerializable.getPrimaryKeyValue(entry).toString();
+                        return dao.getPrimaryKeyValue(entry).toString();
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -147,7 +146,7 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
     @Override
     public Collection<T> values() {
         try {
-            return SQLiteSerializable.select(type, Map.of());
+            return dao.select(Map.of());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -157,14 +156,14 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
     public Set<Entry<String, T>> entrySet() {
         List<T> allEntries;
         try {
-            allEntries = SQLiteSerializable.select(type, Map.of());
+            allEntries = dao.select(Map.of());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
         return allEntries.stream()
                 .map(entry -> {
                     try {
-                        return new AbstractMap.SimpleEntry<>(SQLiteSerializable.getPrimaryKeyValue(entry).toString(),
+                        return new AbstractMap.SimpleEntry<>(dao.getPrimaryKeyValue(entry).toString(),
                                 entry);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -172,7 +171,5 @@ public class SQLiteMap<T extends SQLiteSerializable> implements Map<String, T> {
                 })
                 .collect(Collectors.toSet());
     }
-    // Implementation of Map interface methods would go here, using the
-    // SQLiteSerializable methods
 
 }

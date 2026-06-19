@@ -28,7 +28,7 @@ public class TorrentDownloadService {
             );
 
         try {
-            entry.insert();
+            new ImportMediaEntry.Dao().insert(entry);
         } catch (Exception e) {
             LOG.error("Failed to add media request", e);
             return false;

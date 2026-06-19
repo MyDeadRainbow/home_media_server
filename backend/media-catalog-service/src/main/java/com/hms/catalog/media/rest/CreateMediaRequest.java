@@ -1,4 +1,4 @@
-package com.hms.catalog;
+package com.hms.catalog.media.rest;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
