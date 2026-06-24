@@ -6,9 +6,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.hms.shared.dao.PreparedStatementValue;
-import com.hms.shared.dao.SQLiteRecord;
-import com.hms.shared.dao.SQLiteRecordDao;
+import com.hms.dao.PreparedStatementValue;
+import com.hms.dao.SQLiteRecord;
+import com.hms.dao.SQLiteRecordDao;
 import com.hms.shared.messaging.JsonSerializable;
 
 public record MediaRecord(String mediaId, String filePath)

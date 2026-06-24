@@ -6,11 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.hms.shared.dao.DBFileNotFoundException;
-import com.hms.shared.dao.Database;
-import com.hms.shared.dao.GetConnectionException;
-import com.hms.shared.dao.PreparedStatementValue;
-import com.hms.shared.dao.SQLiteRecord;
+import com.hms.dao.DBFileNotFoundException;
+import com.hms.dao.Database;
+import com.hms.dao.GetConnectionException;
+import com.hms.dao.PreparedStatementValue;
+import com.hms.dao.SQLiteRecord;
+import com.hms.dao.SQLiteRecordDao;
 
 public record MediaInfo(String mediaId, String title, String type, int year, String description, String posterUrl,
         String streamUrl) implements SQLiteRecord {
@@ -24,7 +25,12 @@ public record MediaInfo(String mediaId, String title, String type, int year, Str
         return mediaId;
     }
 
-    public static class Dao extends com.hms.shared.dao.SQLiteRecordDao<MediaInfo> {
+    public static class Dao extends com.hms.dao.SQLiteRecordDao<MediaInfo> {
+
+        @Override
+        public List<SQLiteRecordDao<?>> getDependecies() {
+            return List.of(new Episode.Dao(), new Movie.Dao(), new Season.Dao(), new Series.Dao());
+        }
 
         @Override
         public String getDbPath() {
@@ -39,6 +45,9 @@ public record MediaInfo(String mediaId, String title, String type, int year, Str
         @Override
         public void ensureTableExists() throws SQLException {
             try (var conn = Database.getConnection(getDbPath());) {
+                for (SQLiteRecordDao dao : getDependecies()) {
+                    dao.ensureTableExists();
+                }
                 try (var stmt = conn.createStatement()) {
                     stmt.execute("DROP VIEW IF EXISTS " + getTableName() + "; ");
 

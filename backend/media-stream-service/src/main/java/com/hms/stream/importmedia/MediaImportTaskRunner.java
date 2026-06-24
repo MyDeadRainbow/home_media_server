@@ -12,8 +12,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import com.hms.shared.dao.DBFileNotFoundException;
-import com.hms.shared.dao.GetConnectionException;
+import com.hms.dao.DBFileNotFoundException;
+import com.hms.dao.GetConnectionException;
 import com.hms.stream.importmedia.pipeline.ImportMediaPipeline;
 
 /**

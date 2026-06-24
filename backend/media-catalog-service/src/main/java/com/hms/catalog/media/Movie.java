@@ -4,8 +4,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
-import com.hms.shared.dao.PreparedStatementValue;
-import com.hms.shared.dao.SQLiteRecord;
+import com.hms.dao.PreparedStatementValue;
+import com.hms.dao.SQLiteRecord;
 
 public record Movie(String movieId, String name, MediaItem mediaItem) implements SQLiteRecord {
 
@@ -19,7 +19,7 @@ public record Movie(String movieId, String name, MediaItem mediaItem) implements
         return movieId;
     }
 
-    public static class Dao extends com.hms.shared.dao.SQLiteRecordDao<Movie> {
+    public static class Dao extends com.hms.dao.SQLiteRecordDao<Movie> {
 
         @Override
         public String getDbPath() {

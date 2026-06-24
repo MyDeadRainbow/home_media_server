@@ -3,21 +3,13 @@ package com.hms.catalog.media.rest;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 
 import com.hms.catalog.MediaItem;
-import com.hms.catalog.MediaItem.Dao;
-import com.hms.catalog.media.Episode;
 import com.hms.catalog.media.MediaInfo;
-import com.hms.shared.dao.DBFileNotFoundException;
-import com.hms.shared.dao.GetConnectionException;
 import com.hms.shared.media.MediaCategory;
 
 @Service

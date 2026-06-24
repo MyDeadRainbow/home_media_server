@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
-import com.hms.shared.dao.DBFileNotFoundException;
-import com.hms.shared.dao.GetConnectionException;
-import com.hms.shared.dao.PreparedStatementValue;
-import com.hms.shared.dao.SQLiteRecord;
-import com.hms.shared.dao.SQLiteRecordDao;
+import com.hms.dao.DBFileNotFoundException;
+import com.hms.dao.GetConnectionException;
+import com.hms.dao.PreparedStatementValue;
+import com.hms.dao.SQLiteRecord;
+import com.hms.dao.SQLiteRecordDao;
 
 public record Series(String seriesId, String name,
         List<Season> seasons) implements SQLiteRecord {

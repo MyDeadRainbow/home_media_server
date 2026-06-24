@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import com.hms.shared.dao.SQLiteMap;
+import com.hms.dao.SQLiteMap;
 
 public class SeriesParser {
 

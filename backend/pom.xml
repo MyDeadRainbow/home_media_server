@@ -14,6 +14,7 @@
 
     <modules>
         <module>shared-lib</module>
+        <module>sql-lib</module>
         <module>api-gateway-service</module>
         <module>media-catalog-service</module>
         <module>media-acquisition-service</module>
@@ -37,6 +38,11 @@
             <dependency>
                 <groupId>com.hms</groupId>
                 <artifactId>shared-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.hms</groupId>
+                <artifactId>sql-lib</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

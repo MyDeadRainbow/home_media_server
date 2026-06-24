@@ -21,8 +21,8 @@ import org.libtorrent4j.alerts.TorrentAlert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hms.shared.dao.DBFileNotFoundException;
-import com.hms.shared.dao.GetConnectionException;
+import com.hms.dao.DBFileNotFoundException;
+import com.hms.dao.GetConnectionException;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.stream.MediaRecord;

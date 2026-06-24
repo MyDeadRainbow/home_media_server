@@ -14,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
-import com.hms.shared.sql.SqlRecord;
 import com.hms.stream.importmedia.ImportMediaRequest;
 import com.hms.stream.messaging.CatalogUpdateProducer;
 

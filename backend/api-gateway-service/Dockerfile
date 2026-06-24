@@ -4,6 +4,7 @@ WORKDIR /workspace
 # Copy Maven descriptors first for better layer cache reuse.
 COPY pom.xml ./pom.xml
 COPY shared-lib/pom.xml shared-lib/pom.xml
+COPY sql-lib/pom.xml sql-lib/pom.xml
 COPY api-gateway-service/pom.xml api-gateway-service/pom.xml
 COPY media-catalog-service/pom.xml media-catalog-service/pom.xml
 COPY media-acquisition-service/pom.xml media-acquisition-service/pom.xml

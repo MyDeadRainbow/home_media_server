@@ -5,8 +5,8 @@ import java.sql.SQLException;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
-import com.hms.shared.dao.PreparedStatementValue;
-import com.hms.shared.dao.SQLiteRecord;
+import com.hms.dao.PreparedStatementValue;
+import com.hms.dao.SQLiteRecord;
 
 public record MediaItem(String id, String title, String type, Integer year, String description,
         String posterUrl, String streamUrl) implements SQLiteRecord {
@@ -21,7 +21,7 @@ public record MediaItem(String id, String title, String type, Integer year, Stri
         return id;
     }
 
-    public static class Dao extends com.hms.shared.dao.SQLiteRecordDao<MediaItem> {
+    public static class Dao extends com.hms.dao.SQLiteRecordDao<MediaItem> {
 
         @Override
         public String getDbPath() {
