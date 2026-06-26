@@ -49,7 +49,8 @@ public class SeriesParser {
                         .orElse(null);
 
                 if (series == null) {
-                    series = new Series(UUID.randomUUID().toString(), seriesName, new ArrayList<>());
+                    series = new Series(UUID.randomUUID().toString(), seriesName, new ArrayList<>(),
+                            new MetaData(UUID.randomUUID().toString(), null, null, null));
                     seriesMap.put(series.seriesId(), series);
                 }
 
@@ -69,7 +70,8 @@ public class SeriesParser {
                 MediaItem mediaItem = new MediaItem(entry.mediaId(), string);
 
                 Episode episode = new Episode(UUID.randomUUID().toString(), season.seasonId(), series.seriesId(),
-                        mediaItem, episodeName, episodeNumber);
+                        episodeName, episodeNumber, mediaItem,
+                        new MetaData(UUID.randomUUID().toString(), null, null, null));
                 season = season.addEpisode(episode);
                 series = series.addSeason(season);
                 seriesMap.put(series.seriesId(), series);

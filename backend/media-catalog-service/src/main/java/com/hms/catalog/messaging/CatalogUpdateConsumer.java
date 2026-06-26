@@ -17,13 +17,14 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
-import com.hms.catalog.media.MediaItem;
 import com.hms.catalog.media.Movie;
+import com.hms.catalog.media.MovieParser;
 import com.hms.catalog.media.ParseEntry;
 import com.hms.catalog.media.Series;
 import com.hms.catalog.media.SeriesParser;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateDeserializer;
+import com.hms.shared.messaging.datamining.DataMineRequest;
 
 @Service
 public class CatalogUpdateConsumer {
@@ -58,6 +59,16 @@ public class CatalogUpdateConsumer {
             seriesList.forEach(series -> {
                 try {
                     new Series.Dao().insert(series);
+                    DataMineRequestProducer.postMessage(new DataMineRequest.Series(series.seriesId(), series.name()));
+                    series.seasons().forEach(season -> {
+                        // DataMineRequestProducer.postMessage(new
+                        // DataMineRequest.Season(season.seasonId(), season.name(), series.seriesId()));
+                        season.episodes().forEach(episode -> {
+                            DataMineRequestProducer.postMessage(new DataMineRequest.Episode(
+                                    episode.media().mediaId(), episode.episodeId(), episode.name(),
+                                    episode.episodeNumber(), series.name(), season.seasonNumber()));
+                        });
+                    });
                 } catch (Exception e) {
                     LOG.error("Error inserting series: {}", series.name(), e);
                 }
@@ -68,18 +79,11 @@ public class CatalogUpdateConsumer {
     }
 
     private void handleMovieCreated(CatalogUpdate message) {
-        MediaItem movieItem = new MediaItem(
-                message.mediaId(),
-                message.title() // Placeholder for video URL
-        );
-        // Handle movie creation logic here
-        Movie movie = new Movie(
-                UUID.randomUUID().toString(),
-                message.title(),
-                movieItem // Placeholder for video URL
-        );
+        Movie movie = new MovieParser(new ParseEntry(message.mediaId(), message.title())).parse();
         try {
             new Movie.Dao().insert(movie);
+            DataMineRequestProducer
+                    .postMessage(new DataMineRequest.Movie(movie.mediaItem().mediaId(), movie.movieId(), movie.name()));
         } catch (Exception e) {
             LOG.error("Error inserting movie: {}", movie.name(), e);
         }

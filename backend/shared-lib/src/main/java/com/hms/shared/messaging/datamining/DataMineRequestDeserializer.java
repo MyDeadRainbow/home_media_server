@@ -4,21 +4,37 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hms.shared.messaging.DeserializeJsonException;
 import com.hms.shared.messaging.JsonSerializable;
 
 public class DataMineRequestDeserializer implements Deserializer<DataMineRequest> {
 
     public DataMineRequest deserialize(JsonObject jsonObject) {
         DataMineRequest request = null;
-        request = JsonSerializable.fromJsonObject(jsonObject, DataMineRequest.Episode.class);
+        try {
+            request = JsonSerializable.fromJsonObject(jsonObject, DataMineRequest.Episode.class);
+        } catch (DeserializeJsonException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         if (request != null) {
             return request;
         }
-        request = JsonSerializable.fromJsonObject(jsonObject, DataMineRequest.Movie.class);
+        try {
+            request = JsonSerializable.fromJsonObject(jsonObject, DataMineRequest.Movie.class);
+        } catch (DeserializeJsonException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         if (request != null) {
             return request;
         }
-        request = JsonSerializable.fromJsonObject(jsonObject, DataMineRequest.Series.class);
+        try {
+            request = JsonSerializable.fromJsonObject(jsonObject, DataMineRequest.Series.class);
+        } catch (DeserializeJsonException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         return request;
     }
 

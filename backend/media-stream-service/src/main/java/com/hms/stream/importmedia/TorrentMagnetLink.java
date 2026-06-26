@@ -121,6 +121,7 @@ public class TorrentMagnetLink implements ImportMediaHandler {
 
                     CatalogUpdateProducer.postMessage(new CatalogUpdate(record.mediaId(), CatalogUpdateType.CREATED,
                             path.getFileName().toString(), entry.category(), null, filePath));
+                    
                 }
             }
 
@@ -195,21 +196,21 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                     signal.countDown();
                     break;
                 }
-                case FILE_PROGRESS: {
-                    org.libtorrent4j.alerts.FileProgressAlert a = (org.libtorrent4j.alerts.FileProgressAlert) alert;
-                    long[] files = a.getFiles();
-                    // a.handle().torrentFile().files().filePath();
-                    // int index = a.index();
-                    // long bytesDone = a.bytesDone();
-                    // long totalBytes = a.fileSize();
-                    // int progress = (int) ((bytesDone * 100) / totalBytes);
-                    // if (progress % 10 == 0 && progress != lastLoggedProgress) {
-                    // LOG.info("File progress: {}% for file: {} in torrent: {}", progress,
-                    // a.handle().status().fileName(index), a.handle().getName());
-                    // lastLoggedProgress = progress;
-                    // }
-                    break;
-                }
+                // case FILE_PROGRESS: {
+                //     org.libtorrent4j.alerts.FileProgressAlert a = (org.libtorrent4j.alerts.FileProgressAlert) alert;
+                //     long[] files = a.getFiles();
+                //     // a.handle().torrentFile().files().filePath();
+                //     // int index = a.index();
+                //     // long bytesDone = a.bytesDone();
+                //     // long totalBytes = a.fileSize();
+                //     // int progress = (int) ((bytesDone * 100) / totalBytes);
+                //     // if (progress % 10 == 0 && progress != lastLoggedProgress) {
+                //     // LOG.info("File progress: {}% for file: {} in torrent: {}", progress,
+                //     // a.handle().status().fileName(index), a.handle().getName());
+                //     // lastLoggedProgress = progress;
+                //     // }
+                //     break;
+                // }
                 case FILE_COMPLETED: {
                     org.libtorrent4j.alerts.FileCompletedAlert a = (org.libtorrent4j.alerts.FileCompletedAlert) alert;
                     // LOG.info("File completed: {} in torrent: {}",

@@ -157,6 +157,12 @@
         <p v-if="!activeMedia">Select media to begin streaming.</p>
         <div v-else>
           <h3>{{ activeMedia.title }}</h3>
+          <p class="player-meta">
+            <span v-if="activeMedia.type">Type: {{ activeMedia.type }}</span>
+            <span v-if="activeMedia.releaseDate">Release: {{ formatReleaseDate(activeMedia.releaseDate) }}</span>
+            <span v-if="activeMedia.rating !== null && activeMedia.rating !== undefined">Rating: {{ formatRating(activeMedia.rating) }}</span>
+          </p>
+          <p v-if="activeMedia.plotSummary" class="player-summary">{{ activeMedia.plotSummary }}</p>
           <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
             <track
               v-for="track in tracks"
@@ -300,16 +306,43 @@ const selectedSeasonLabel = computed(() => selectedSeason.value?.name
   || 'Season')
 
 function normalizeMediaItem(item, fallbackType) {
+  const releaseDate = item.releaseDate || null
+  const numericRating = Number.parseFloat(item.rating)
+
   return {
     mediaId: item.mediaId || item.id,
     id: item.id || item.mediaId,
     title: item.title || item.name || 'Untitled',
     type: item.type || fallbackType,
-    year: item.year || 0,
-    description: item.description || '',
+    releaseDate,
+    year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : 0),
+    rating: Number.isFinite(numericRating) ? numericRating : null,
+    plotSummary: item.plotSummary || item.description || '',
+    description: item.plotSummary || item.description || '',
     posterUrl: item.posterUrl || '',
     streamUrl: item.streamUrl || item.filePath || ''
   }
+}
+
+function formatReleaseDate(value) {
+  if (!value) {
+    return ''
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value)
+  }
+
+  return parsed.toLocaleDateString()
+}
+
+function formatRating(value) {
+  const parsed = Number.parseFloat(value)
+  if (!Number.isFinite(parsed)) {
+    return 'N/A'
+  }
+  return parsed.toFixed(1)
 }
 
 async function loadLibraryHome() {

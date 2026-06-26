@@ -12,7 +12,7 @@ public class MovieParser {
     public Movie parse() {
         String name = filePath.filePath();
         name = name.replaceAll("\\.?[0-9]{3,4}p.*$", "");
-        
+
         MediaItem movieItem = new MediaItem(
                 filePath.mediaId(),
                 filePath.filePath() // Placeholder for video URL
@@ -21,9 +21,9 @@ public class MovieParser {
         Movie movie = new Movie(
                 UUID.randomUUID().toString(),
                 name,
-                movieItem // Placeholder for video URL
-        );
-        
+                movieItem, // Placeholder for video URL
+                new MetaData(UUID.randomUUID().toString(), null, null, null));
+
         return movie;
     }
 }

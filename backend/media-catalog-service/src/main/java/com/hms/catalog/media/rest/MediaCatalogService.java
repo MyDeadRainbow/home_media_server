@@ -40,7 +40,7 @@ public class MediaCatalogService {
         List<MediaInfo> mediaInfos = new ArrayList<>();
 
         try {
-            mediaInfos = new MediaInfo.Dao().search(query);
+            mediaInfos = new MediaInfo.Dao().search(normalizeQuery(query));
         } catch (SQLException e) {
             // Log the error and fall back to in-memory index
             LOG.error("Failed to query media items from database: {}", e.getMessage(), e);
@@ -134,7 +134,8 @@ public class MediaCatalogService {
     public List<MediaInfo> getEpisodes(String seriesId, String seasonId, String query) {
         List<MediaInfo> episodeList = new ArrayList<>();
         try {
-            var episodes = new com.hms.catalog.media.Episode.Dao().select(Map.of("seriesId", seriesId, "seasonId", seasonId));
+            var episodes = new com.hms.catalog.media.Episode.Dao()
+                    .select(Map.of("seriesId", seriesId, "seasonId", seasonId));
             String normalized = normalizeQuery(query);
             for (var episode : episodes) {
                 if (!normalized.isEmpty() && (episode.name() == null
@@ -146,8 +147,9 @@ public class MediaCatalogService {
                         episode.media().mediaId(),
                         episode.name(),
                         MediaCategory.SERIES.name().toLowerCase(Locale.ROOT),
-                        0,
-                        null,
+                        episode.metaData().airDate(),
+                        episode.metaData().plotSummary(),
+                        episode.metaData().rating(),
                         null,
                         episode.media().filePath()));
             }
@@ -173,8 +175,9 @@ public class MediaCatalogService {
                         movie.mediaItem().mediaId(),
                         movie.name(),
                         MediaCategory.MOVIE.name().toLowerCase(Locale.ROOT),
-                        0,
-                        null,
+                        movie.metaData().airDate(),
+                        movie.metaData().plotSummary(),
+                        movie.metaData().rating(),
                         null,
                         movie.mediaItem().filePath()));
             }

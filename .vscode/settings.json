@@ -1,5 +1,6 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.import.gradle.annotationProcessing.enabled": true
+    "java.import.gradle.annotationProcessing.enabled": true,
+    "java.debug.settings.onBuildFailureProceed": true
 }

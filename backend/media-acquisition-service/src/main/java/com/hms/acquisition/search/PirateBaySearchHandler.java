@@ -1,19 +1,17 @@
 package com.hms.acquisition.search;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.hms.shared.pipline.Handler;
-import com.hms.shared.scrape.SearchParameter;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
-import com.microsoft.playwright.Response;
 import com.microsoft.playwright.Playwright.CreateOptions;
+import com.microsoft.playwright.Response;
 
 import io.mikael.urlbuilder.UrlBuilder;
 

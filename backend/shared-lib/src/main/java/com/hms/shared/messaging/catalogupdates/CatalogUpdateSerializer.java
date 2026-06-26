@@ -2,14 +2,17 @@ package com.hms.shared.messaging.catalogupdates;
 
 import org.apache.kafka.common.serialization.Serializer;
 
-import com.google.gson.JsonObject;
+import com.hms.shared.messaging.SerializeJsonException;
 
 public class CatalogUpdateSerializer implements Serializer<CatalogUpdate> {
 
     @Override
     public byte[] serialize(String topic, CatalogUpdate data) {
-        JsonObject json = data.toJsonObject();
-        return json.toString().getBytes();
+        try {
+            return data.toJson().toString().getBytes();
+        } catch (SerializeJsonException e) {
+            throw new RuntimeException("Failed to serialize CatalogUpdate to JSON", e);
+        }
     }
     
 }

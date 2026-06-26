@@ -12,11 +12,13 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
 import com.hms.shared.messaging.datamining.DataMineRequest;
 import com.hms.shared.messaging.datamining.DataMineRequestDeserializer;
 
+@Service
 public class DataMineRequestConsumer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataMineRequestConsumer.class);

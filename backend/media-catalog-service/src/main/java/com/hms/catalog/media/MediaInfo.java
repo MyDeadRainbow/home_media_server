@@ -2,6 +2,7 @@ package com.hms.catalog.media;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -13,8 +14,8 @@ import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
 
-public record MediaInfo(String mediaId, String title, String type, int year, String description, String posterUrl,
-        String streamUrl) implements SQLiteRecord {
+public record MediaInfo(String mediaId, String title, String type, LocalDate releaseDate, String plotSummary,
+        Float rating, String posterUrl, String streamUrl) implements SQLiteRecord {
     @Override
     public String getPrimaryKeyField() {
         return "mediaId";
@@ -64,13 +65,16 @@ public record MediaInfo(String mediaId, String title, String type, int year, Str
             return "CREATE VIEW " + getTableName() + " AS "
                     + "SELECT media_items.mediaId, series.name AS seriesName, seasons.name AS seasonName, seasons.seasonNumber, "
                     + "episodes.name AS episodeName, episodes.episodeNumber, movies.name AS movieName, media_items.filePath, "
+                    + "metadata.plotSummary, metadata.rating, metadata.releaseDate, "
                     + "concat_ws('', episodes.name, movies.name) AS name, "
                     + "concat_ws(' ', series.name, seasons.name, episodes.name, movies.name) AS search "
                     + "FROM media_items "
                     + "LEFT JOIN episodes ON media_items.mediaId = episodes.mediaId "
                     + "LEFT JOIN seasons ON seasons.seasonId = episodes.seasonId "
                     + "LEFT JOIN series ON series.seriesId = episodes.seriesId "
-                    + "LEFT JOIN movies ON movies.mediaId = media_items.mediaId;";
+                    + "LEFT JOIN movies ON movies.mediaId = media_items.mediaId "
+                    + "LEFT JOIN metadata ON metadata.metaDataId = episodes.metaDataId "
+                    + "OR metadata.metaDataId = movies.metaDataId OR metadata.metaDataId = series.metaDataId;";
         }
 
         @Override
@@ -105,10 +109,15 @@ public record MediaInfo(String mediaId, String title, String type, int year, Str
             return new MediaInfo(
                     rs.getString("mediaId"),
                     rs.getString("name"),
-                    "episode",
-                    0,
-                    null,
-                    null,
+                    rs.getString("type"),
+                    rs.getObject("releaseDate") != null
+                            ? rs.getObject("releaseDate", LocalDate.class)
+                            : null,
+                    rs.getString("plotSummary"),
+                    rs.getObject("rating") != null
+                            ? rs.getFloat("rating")
+                            : null,
+                    rs.getString("posterUrl"),
                     rs.getString("filePath"));
         }
 

@@ -1,8 +1,5 @@
 package com.hms.shared.messaging.mediaupdates;
 
-import java.io.UnsupportedEncodingException;
-
-import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import com.google.gson.JsonObject;

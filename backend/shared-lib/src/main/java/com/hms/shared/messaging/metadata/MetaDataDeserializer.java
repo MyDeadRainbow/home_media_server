@@ -4,6 +4,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.hms.shared.messaging.DeserializeJsonException;
 import com.hms.shared.messaging.JsonSerializable;
 
 public class MetaDataDeserializer implements Deserializer<MetaData> {
@@ -12,16 +13,31 @@ public class MetaDataDeserializer implements Deserializer<MetaData> {
     public MetaData deserialize(String topic, byte[] data) {
         String jsonString = new String(data);
         JsonObject jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
-        
-        MetaData metaData = null;        
-        metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Episode.class);
 
-        if (metaData == null) {
-            metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Movie.class);
+        MetaData metaData = null;        
+        try {
+            metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Episode.class);
+        } catch (DeserializeJsonException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
 
         if (metaData == null) {
-            metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Series.class);
+            try {
+                metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Movie.class);
+            } catch (DeserializeJsonException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+
+        if (metaData == null) {
+            try {
+                metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Series.class);
+            } catch (DeserializeJsonException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
         return metaData;
     }
