@@ -7,8 +7,8 @@
 
     <section class="panel controls">
       <div class="search-row">
-        <input v-model="query" placeholder="Search title, type, description" @keyup.enter="loadMedia" />
-        <button @click="loadMedia">Search</button>
+        <input v-model="query" placeholder="Search media library" @keyup.enter="runLibrarySearch" />
+        <button @click="runLibrarySearch">Search</button>
       </div>
 
       <div ref="acquisitionSearchContainer" class="acquisition-search">
@@ -73,21 +73,6 @@
         </div>
       </div>
 
-      <div class="form-grid">
-        <input v-model="newMedia.title" placeholder="New media title" />
-        <select v-model="newMedia.type">
-          <option value="movie">Movie</option>
-          <option value="series">Series</option>
-        </select>
-        <input v-model.number="newMedia.year" type="number" placeholder="Year" />
-        <button @click="addMedia">Add Catalog Item</button>
-      </div>
-
-      <div class="form-grid">
-        <input v-model="importRequest.title" placeholder="Import title" />
-        <button @click="runImport">Create Import Request</button>
-      </div>
-
       <div class="upload-grid">
         <input v-model="uploadRequest.title" placeholder="Upload title" />
         <select v-model="uploadRequest.type">
@@ -107,9 +92,63 @@
 
     <main class="layout">
       <section class="panel library">
-        <h2>Media Library</h2>
-        <div class="cards">
-          <MediaCard v-for="item in media" :key="item.id" :item="item" @play="startPlayback" />
+        <div class="library-header">
+          <h2>Media Library</h2>
+          <div class="library-breadcrumbs">
+            <button v-if="libraryView === 'seasons'" type="button" class="secondary-button" @click="backToHome">Back to Library</button>
+            <button v-if="libraryView === 'episodes'" type="button" class="secondary-button" @click="backToSeasons">Back to Seasons</button>
+            <nav class="breadcrumb-path" aria-label="Media library breadcrumb">
+              <button type="button" class="breadcrumb-link" @click="backToHome">Library</button>
+              <template v-if="libraryView !== 'home'">
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">{{ selectedSeries?.name || 'Series' }}</span>
+              </template>
+              <template v-if="libraryView === 'episodes'">
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">{{ selectedSeasonLabel }}</span>
+              </template>
+            </nav>
+          </div>
+        </div>
+
+        <p v-if="libraryLoading">Loading library...</p>
+
+        <div v-else-if="libraryView === 'home'" class="library-sections">
+          <section class="library-subsection">
+            <h3>Series</h3>
+            <p v-if="!series.length" class="muted">No series found.</p>
+            <ul v-else class="entity-list">
+              <li v-for="seriesItem in series" :key="seriesItem.seriesId">
+                <button type="button" class="entity-link" @click="openSeries(seriesItem)">
+                  {{ seriesItem.name }}
+                </button>
+              </li>
+            </ul>
+          </section>
+
+          <section class="library-subsection">
+            <h3>Movies</h3>
+            <p v-if="!movies.length" class="muted">No movies found.</p>
+            <div v-else class="cards">
+              <MediaCard v-for="item in movies" :key="item.mediaId || item.id" :item="item" @play="startPlayback" />
+            </div>
+          </section>
+        </div>
+
+        <div v-else-if="libraryView === 'seasons'">
+          <p v-if="!seasons.length" class="muted">No seasons found for this series.</p>
+          <ul v-else class="entity-list">
+            <li v-for="season in seasons" :key="season.seasonId">
+              <button type="button" class="entity-link" @click="openSeason(season)">
+                {{ season.name || `Season ${season.seasonNumber}` }}
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div v-else class="cards">
+          <p v-if="!episodes.length" class="muted">No episodes found for this season.</p>
+          <MediaCard v-for="item in episodes" v-else :key="item.mediaId || item.id" :item="item" @play="startPlayback" />
         </div>
       </section>
 
@@ -148,19 +187,27 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import MediaCard from './components/MediaCard.vue'
 import {
-  createMedia,
-  importMedia,
   importStreamMedia,
   searchAcquisitionStream,
-  searchMedia,
+  searchCatalogEpisodes,
+  searchCatalogMovies,
+  searchCatalogSeasons,
+  searchCatalogSeries,
   streamCaptionsUrl,
   streamManifest,
   uploadMediaFile,
   API_GATEWAY
 } from './api'
 
-const media = ref([])
+const movies = ref([])
+const series = ref([])
+const seasons = ref([])
+const episodes = ref([])
 const query = ref('')
+const libraryView = ref('home')
+const libraryLoading = ref(false)
+const selectedSeries = ref(null)
+const selectedSeason = ref(null)
 const activeMedia = ref(null)
 const manifest = ref(null)
 const tracks = ref([])
@@ -180,16 +227,6 @@ const acquisitionCategory = ref('MOVIE')
 const acquisitionSortBy = ref('seeders')
 const importInFlightByMagnet = ref({})
 let acquisitionSearchAbortController = null
-
-const newMedia = ref({
-  title: '',
-  type: 'movie',
-  year: new Date().getFullYear()
-})
-
-const importRequest = ref({
-  title: ''
-})
 
 const uploadRequest = ref({
   title: '',
@@ -258,50 +295,124 @@ const groupedAcquisitionResults = computed(() => Object.entries(acquisitionResul
 
 const hasAnyAcquisitionResults = computed(() => groupedAcquisitionResults.value.some((group) => group.results.length > 0))
 
-async function loadMedia() {
-  error.value = ''
-  try {
-    media.value = await searchMedia(query.value)
-  } catch (err) {
-    error.value = err.message
+const selectedSeasonLabel = computed(() => selectedSeason.value?.name
+  || `Season ${selectedSeason.value?.seasonNumber || ''}`.trim()
+  || 'Season')
+
+function normalizeMediaItem(item, fallbackType) {
+  return {
+    mediaId: item.mediaId || item.id,
+    id: item.id || item.mediaId,
+    title: item.title || item.name || 'Untitled',
+    type: item.type || fallbackType,
+    year: item.year || 0,
+    description: item.description || '',
+    posterUrl: item.posterUrl || '',
+    streamUrl: item.streamUrl || item.filePath || ''
   }
 }
 
-async function addMedia() {
-  if (!newMedia.value.title) {
-    error.value = 'Title is required to add media.'
+async function loadLibraryHome() {
+  error.value = ''
+  libraryLoading.value = true
+
+  try {
+    const [seriesResults, movieResults] = await Promise.all([
+      searchCatalogSeries(query.value),
+      searchCatalogMovies(query.value)
+    ])
+
+    series.value = Array.isArray(seriesResults) ? seriesResults : []
+    movies.value = (Array.isArray(movieResults) ? movieResults : [])
+      .map((item) => normalizeMediaItem(item, 'movie'))
+  } catch (err) {
+    error.value = err.message || 'Failed to load media library.'
+  } finally {
+    libraryLoading.value = false
+  }
+}
+
+async function loadSeriesSeasons() {
+  if (!selectedSeries.value?.seriesId) {
     return
   }
 
   error.value = ''
+  libraryLoading.value = true
+
   try {
-    await createMedia(newMedia.value)
-    newMedia.value.title = ''
-    await loadMedia()
+    const result = await searchCatalogSeasons(selectedSeries.value.seriesId, query.value)
+    seasons.value = Array.isArray(result)
+      ? [...result].sort((left, right) => (left.seasonNumber || 0) - (right.seasonNumber || 0))
+      : []
   } catch (err) {
-    error.value = err.message
+    error.value = err.message || 'Failed to load seasons.'
+  } finally {
+    libraryLoading.value = false
   }
 }
 
-async function runImport() {
-  const title = importRequest.value.title.trim()
-  if (!title) {
-    error.value = 'Title is required to import media.'
+async function loadSeasonEpisodes() {
+  if (!selectedSeries.value?.seriesId || !selectedSeason.value?.seasonId) {
     return
   }
 
   error.value = ''
-  importStatus.value = 'Creating import request...'
+  libraryLoading.value = true
+
   try {
-    const created = await importMedia({ title })
-    importStatus.value = created
-      ? `Import request created for "${title}".`
-      : `Import request could not be created for "${title}".`
-    importRequest.value.title = ''
+    const result = await searchCatalogEpisodes(selectedSeries.value.seriesId, selectedSeason.value.seasonId, query.value)
+    episodes.value = (Array.isArray(result) ? result : [])
+      .map((item) => normalizeMediaItem(item, 'episode'))
   } catch (err) {
-    importStatus.value = ''
-    error.value = err.message
+    error.value = err.message || 'Failed to load episodes.'
+  } finally {
+    libraryLoading.value = false
   }
+}
+
+async function runLibrarySearch() {
+  if (libraryView.value === 'episodes') {
+    await loadSeasonEpisodes()
+    return
+  }
+
+  if (libraryView.value === 'seasons') {
+    await loadSeriesSeasons()
+    return
+  }
+
+  await loadLibraryHome()
+}
+
+async function openSeries(seriesItem) {
+  selectedSeries.value = seriesItem
+  selectedSeason.value = null
+  seasons.value = []
+  episodes.value = []
+  libraryView.value = 'seasons'
+  await loadSeriesSeasons()
+}
+
+async function openSeason(season) {
+  selectedSeason.value = season
+  episodes.value = []
+  libraryView.value = 'episodes'
+  await loadSeasonEpisodes()
+}
+
+function backToHome() {
+  libraryView.value = 'home'
+  selectedSeries.value = null
+  selectedSeason.value = null
+  seasons.value = []
+  episodes.value = []
+}
+
+function backToSeasons() {
+  libraryView.value = 'seasons'
+  selectedSeason.value = null
+  episodes.value = []
 }
 
 function startAcquisitionSearch() {
@@ -382,7 +493,7 @@ function hideAcquisitionPopup() {
 }
 
 function useAcquisitionResult(result) {
-  importRequest.value.title = result.title || ''
+  uploadRequest.value.title = result.title || ''
   acquisitionQuery.value = result.title || ''
   showAcquisitionPopup.value = false
 }
@@ -463,11 +574,15 @@ async function uploadAndCreateMedia() {
     uploadRequest.value.title = ''
     uploadRequest.value.description = ''
     selectedUploadFile.value = null
-    await loadMedia()
+    await runLibrarySearch()
   } catch (err) {
     uploadStatus.value = ''
     error.value = err.message
   }
+}
+
+function resolveMediaId(item) {
+  return item?.mediaId || item?.id
 }
 
 async function startPlayback(item) {
@@ -476,10 +591,10 @@ async function startPlayback(item) {
   error.value = ''
 
   try {
-    manifest.value = await streamManifest(item.id, item.streamUrl)
+    manifest.value = await streamManifest(resolveMediaId(item), item.streamUrl)
     tracks.value = (manifest.value.captions || []).map((track) => ({
       ...track,
-      url: streamCaptionsUrl(item.id, track.language)
+      url: streamCaptionsUrl(resolveMediaId(item), track.language)
     }))
     await nextTick()
     applyCaptionTrack()
@@ -501,7 +616,7 @@ function applyCaptionTrack() {
 }
 
 onMounted(() => {
-  loadMedia()
+  loadLibraryHome()
   document.addEventListener('click', handleDocumentClick)
 })
 

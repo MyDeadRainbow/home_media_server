@@ -2,12 +2,12 @@ package com.hms.catalog.messaging;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
 import com.hms.catalog.media.MediaItem;
+import com.hms.catalog.media.Movie;
+import com.hms.catalog.media.ParseEntry;
 import com.hms.catalog.media.Series;
 import com.hms.catalog.media.SeriesParser;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
@@ -40,14 +42,19 @@ public class CatalogUpdateConsumer {
     }
 
     private void handleMediaCreated(CatalogUpdate message) {
-        // MediaItem mediaItem = new MediaItem(message.mediaId(), message.title(), message.mediaType().name(), null, null,
-        //         null, "api/stream/files/" + message.mediaId());
+        switch (message.mediaType()) {
+            case SERIES -> handleSeriesCreated(message);
+            case MOVIE -> handleMovieCreated(message);
+            default -> LOG.warn("Received media created message with unsupported media type: {}", message.mediaType());
+        }
+    }
+
+    private void handleSeriesCreated(CatalogUpdate message) {
         List<Series> seriesList = SeriesParser.builder()
-                .addFilePath(message.title())
+                .addFilePath(new ParseEntry(message.mediaId(), message.title()))
                 .build()
                 .parse();
         try {
-            // new MediaItem.Dao().insert(mediaItem);            
             seriesList.forEach(series -> {
                 try {
                     new Series.Dao().insert(series);
@@ -56,9 +63,26 @@ public class CatalogUpdateConsumer {
                 }
             });
         } catch (Exception e) {
-            LOG.error("Error inserting media item", e);
+            LOG.error("Error inserting series", e);
         }
+    }
 
+    private void handleMovieCreated(CatalogUpdate message) {
+        MediaItem movieItem = new MediaItem(
+                message.mediaId(),
+                message.title() // Placeholder for video URL
+        );
+        // Handle movie creation logic here
+        Movie movie = new Movie(
+                UUID.randomUUID().toString(),
+                message.title(),
+                movieItem // Placeholder for video URL
+        );
+        try {
+            new Movie.Dao().insert(movie);
+        } catch (Exception e) {
+            LOG.error("Error inserting movie: {}", movie.name(), e);
+        }
     }
 
     private void handleMediaUpdated(CatalogUpdate message) {

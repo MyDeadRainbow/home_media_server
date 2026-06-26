@@ -14,9 +14,9 @@ public class SeriesParser {
     private final Pattern seriesPattern = Pattern
             .compile("^(?<seriesName>.+)\\.S(?<seasonNumber>\\d+)E(?<episodeNumber>\\d+)\\.(?<episodeName>.+)\\..+$");
 
-    private List<String> filePaths;
+    private List<ParseEntry> filePaths;
 
-    protected SeriesParser(List<String> filePaths) {
+    protected SeriesParser(List<ParseEntry> filePaths) {
         this.filePaths = filePaths;
     }
 
@@ -25,13 +25,14 @@ public class SeriesParser {
         // episode each path belongs to
         // The.Office.US.S01E01.Pilot.720p.WEBRip.2CH.x265.HEVC-PSA
 
-        // SQLiteMap<Series> seriesMap = new SQLiteMap<>(new Series.Dao());
-        // SQLiteMap<Season> seasonMap = new SQLiteMap<>(new Season.Dao());
-        // SQLiteMap<Episode> episodeMap = new SQLiteMap<>(new Episode.Dao());
+        SQLiteMap<Series> seriesMap = new SQLiteMap<>(new Series.Dao());
+        SQLiteMap<Season> seasonMap = new SQLiteMap<>(new Season.Dao());
+        SQLiteMap<Episode> episodeMap = new SQLiteMap<>(new Episode.Dao());
 
-        Map<String, Series> seriesMap = new HashMap<>();
+        // Map<String, Series> seriesMap = new HashMap<>();
 
-        for (String string : filePaths) {
+        for (ParseEntry entry : filePaths) {
+            String string = entry.filePath();
             seriesPattern.matcher(string).results().forEach(result -> {
                 String seriesName = result.group("seriesName");
                 int seasonNumber = Integer.parseInt(result.group("seasonNumber"));
@@ -65,7 +66,7 @@ public class SeriesParser {
                     seriesMap.put(series.seriesId(), series);
                 }
 
-                MediaItem mediaItem = new MediaItem(UUID.randomUUID().toString(), string);
+                MediaItem mediaItem = new MediaItem(entry.mediaId(), string);
 
                 Episode episode = new Episode(UUID.randomUUID().toString(), season.seasonId(), series.seriesId(),
                         mediaItem, episodeName, episodeNumber);
@@ -83,14 +84,17 @@ public class SeriesParser {
     }
 
     public static class Builder {
-        private List<String> filePaths = new ArrayList<>();
+        private List<ParseEntry> filePaths = new ArrayList<>();
 
-        public Builder addFilePath(String filePath) {
+        private Builder() {
+        }
+
+        public Builder addFilePath(ParseEntry filePath) {
             filePaths.add(filePath);
             return this;
         }
 
-        public Builder addFilePaths(List<String> filePaths) {
+        public Builder addFilePaths(List<ParseEntry> filePaths) {
             this.filePaths.addAll(filePaths);
             return this;
         }
@@ -99,5 +103,4 @@ public class SeriesParser {
             return new SeriesParser(filePaths);
         }
     }
-
 }

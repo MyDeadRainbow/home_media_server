@@ -32,6 +32,9 @@ public class MediaImportTaskRunner implements Runnable {
     public MediaImportTaskRunner() {
         executor = new ThreadPoolTaskExecutor();
         // executor.setVirtualThreads(true);
+        executor.setCorePoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setMaxPoolSize(10);
         executor.initialize();
 
         scheduler = new ThreadPoolTaskScheduler();
@@ -66,6 +69,11 @@ public class MediaImportTaskRunner implements Runnable {
             }
         };
         taskMap.put(entry.id(), task);
+        try {
+            new ImportMediaEntry.Dao().update(entry.withStatus(ImportMediaStatus.QUEUED));
+        } catch (SQLException e) {
+            LOG.error("Failed to update media import status to QUEUED", e);
+        }
         executor.execute(task);
     }
 

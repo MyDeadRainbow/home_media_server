@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hms.catalog.MediaItem;
 import com.hms.catalog.media.MediaInfo;
+import com.hms.catalog.media.Season;
+import com.hms.catalog.media.Series;
 import com.hms.shared.media.MediaCategory;
 
 import jakarta.validation.Valid;
@@ -34,6 +36,27 @@ public class MediaCatalogController {
                 category != null ? MediaCategory.valueOf(category.toUpperCase()) : null);
     }
 
+    @GetMapping("/series")
+    public List<Series> getSeries(
+            @RequestParam(required = false) String query) {
+        return mediaCatalogService.getSeries(query);
+    }
+
+    @GetMapping("/seasons")
+    public List<Season> getSeason(@RequestParam String seriesId, @RequestParam(required = false) String query) {
+        return mediaCatalogService.getSeason(seriesId, query);
+    }
+    
+    @GetMapping("/episodes")
+    public List<MediaInfo> getEpisodes(@RequestParam String seriesId, @RequestParam String seasonId, @RequestParam(required = false) String query) {
+        return mediaCatalogService.getEpisodes(seriesId, seasonId, query);
+    }
+
+    @GetMapping("/movies")
+    public List<MediaInfo> getMovies(@RequestParam(required = false) String query) {
+        return mediaCatalogService.getMovies(query);
+    }
+    
     // @GetMapping("/{id}")
     // public ResponseEntity<MediaItem> byId(@PathVariable String id) {
     //     return mediaCatalogService.findById(id)

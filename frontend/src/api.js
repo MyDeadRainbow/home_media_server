@@ -30,6 +30,39 @@ export function searchMedia(query) {
   return request(`${API_GATEWAY}/api/media${suffix}`)
 }
 
+function buildCatalogSuffix(params = {}) {
+  const search = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      search.set(key, value)
+    }
+  })
+
+  const suffix = search.toString()
+  return suffix ? `?${suffix}` : ''
+}
+
+export function searchCatalogSeries(query) {
+  const suffix = buildCatalogSuffix({ query })
+  return request(`${API_GATEWAY}/api/media/series${suffix}`)
+}
+
+export function searchCatalogSeasons(seriesId, query) {
+  const suffix = buildCatalogSuffix({ seriesId, query })
+  return request(`${API_GATEWAY}/api/media/seasons${suffix}`)
+}
+
+export function searchCatalogEpisodes(seriesId, seasonId, query) {
+  const suffix = buildCatalogSuffix({ seriesId, seasonId, query })
+  return request(`${API_GATEWAY}/api/media/episodes${suffix}`)
+}
+
+export function searchCatalogMovies(query) {
+  const suffix = buildCatalogSuffix({ query })
+  return request(`${API_GATEWAY}/api/media/movies${suffix}`)
+}
+
 export function createMedia(payload) {
   return request(`${API_GATEWAY}/api/media`, {
     method: 'POST',

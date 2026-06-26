@@ -3,6 +3,8 @@ package com.hms.catalog.media.rest;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -10,6 +12,9 @@ import org.springframework.stereotype.Service;
 
 import com.hms.catalog.MediaItem;
 import com.hms.catalog.media.MediaInfo;
+import com.hms.catalog.media.Movie;
+import com.hms.catalog.media.Season;
+import com.hms.catalog.media.Series;
 import com.hms.shared.media.MediaCategory;
 
 @Service
@@ -20,13 +25,13 @@ public class MediaCatalogService {
 
     public MediaCatalogService() {
         // MediaItem sample = new MediaItem(
-        //         UUID.randomUUID().toString(),
-        //         "Open Source Adventures",
-        //         "series",
-        //         2025,
-        //         "Demo entry to validate UI and stream controls.",
-        //         "https://picsum.photos/seed/hms1/320/180",
-        //         "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
+        // UUID.randomUUID().toString(),
+        // "Open Source Adventures",
+        // "series",
+        // 2025,
+        // "Demo entry to validate UI and stream controls.",
+        // "https://picsum.photos/seed/hms1/320/180",
+        // "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
         // mediaIndex.put(sample.id(), sample);
     }
 
@@ -90,7 +95,97 @@ public class MediaCatalogService {
         return item;
     }
 
-    // public Optional<MediaItem> findById(String id) {
-    //     return Optional.ofNullable(mediaIndex.get(id));
-    // }
+    public List<Series> getSeries(String query) {
+        List<Series> seriesList = new ArrayList<>();
+        try {
+            seriesList = new Series.Dao().select(Map.of());
+            String normalized = normalizeQuery(query);
+            if (!normalized.isEmpty()) {
+                seriesList = seriesList.stream()
+                        .filter(series -> series.name() != null
+                                && series.name().toLowerCase(Locale.ROOT).contains(normalized))
+                        .toList();
+            }
+        } catch (SQLException e) {
+            // Log the error and fall back to in-memory index
+            LOG.error("Failed to query series from database: {}", e.getMessage(), e);
+        }
+        return seriesList;
+    }
+
+    public List<Season> getSeason(String seriesId, String query) {
+        List<Season> seasonList = new ArrayList<>();
+        try {
+            seasonList = new Season.Dao().select(Map.of("seriesId", seriesId));
+            String normalized = normalizeQuery(query);
+            if (!normalized.isEmpty()) {
+                seasonList = seasonList.stream()
+                        .filter(season -> season.name() != null
+                                && season.name().toLowerCase(Locale.ROOT).contains(normalized))
+                        .toList();
+            }
+        } catch (SQLException e) {
+            // Log the error and fall back to in-memory index
+            LOG.error("Failed to query seasons from database: {}", e.getMessage(), e);
+        }
+        return seasonList;
+    }
+
+    public List<MediaInfo> getEpisodes(String seriesId, String seasonId, String query) {
+        List<MediaInfo> episodeList = new ArrayList<>();
+        try {
+            var episodes = new com.hms.catalog.media.Episode.Dao().select(Map.of("seriesId", seriesId, "seasonId", seasonId));
+            String normalized = normalizeQuery(query);
+            for (var episode : episodes) {
+                if (!normalized.isEmpty() && (episode.name() == null
+                        || !episode.name().toLowerCase(Locale.ROOT).contains(normalized))) {
+                    continue;
+                }
+
+                episodeList.add(new MediaInfo(
+                        episode.media().mediaId(),
+                        episode.name(),
+                        MediaCategory.SERIES.name().toLowerCase(Locale.ROOT),
+                        0,
+                        null,
+                        null,
+                        episode.media().filePath()));
+            }
+        } catch (SQLException e) {
+            // Log the error and fall back to in-memory index
+            LOG.error("Failed to query episodes from database: {}", e.getMessage(), e);
+        }
+        return episodeList;
+    }
+
+    public List<MediaInfo> getMovies(String query) {
+        List<MediaInfo> movieList = new ArrayList<>();
+        try {
+            List<Movie> movies = new Movie.Dao().select(Map.of());
+            String normalized = normalizeQuery(query);
+            for (Movie movie : movies) {
+                if (!normalized.isEmpty() && (movie.name() == null
+                        || !movie.name().toLowerCase(Locale.ROOT).contains(normalized))) {
+                    continue;
+                }
+
+                movieList.add(new MediaInfo(
+                        movie.mediaItem().mediaId(),
+                        movie.name(),
+                        MediaCategory.MOVIE.name().toLowerCase(Locale.ROOT),
+                        0,
+                        null,
+                        null,
+                        movie.mediaItem().filePath()));
+            }
+        } catch (SQLException e) {
+            // Log the error and fall back to in-memory index
+            LOG.error("Failed to query movies from database: {}", e.getMessage(), e);
+        }
+        return movieList;
+    }
+
+    private String normalizeQuery(String query) {
+        return query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+    }
 }

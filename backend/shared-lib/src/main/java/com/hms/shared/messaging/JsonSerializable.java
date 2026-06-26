@@ -22,7 +22,8 @@ public interface JsonSerializable<T> {
     }
 
     public static <T> T fromJsonObject(JsonObject json, Class<T> clazz) {
-        // use reflection to find a constructor that matches the fields in the JSON object
+        // use reflection to find a constructor that matches the fields in the JSON
+        // object
         try {
             var constructors = clazz.getConstructors();
             for (var constructor : constructors) {
@@ -32,7 +33,12 @@ public interface JsonSerializable<T> {
                 for (int i = 0; i < params.length; i++) {
                     var param = params[i];
                     if (json.has(param.getName())) {
-                        args[i] = json.get(param.getName()).getAsString();
+                        if (param.getType().isEnum()) {
+                            args[i] = Enum.valueOf((Class<Enum>) param.getType(),
+                                    json.get(param.getName()).getAsString());
+                        } else {
+                            args[i] = json.get(param.getName()).getAsString();
+                        }
                     } else {
                         matches = false;
                         break;

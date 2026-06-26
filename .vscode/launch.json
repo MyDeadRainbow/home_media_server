@@ -3,6 +3,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "DatamineMovieHandler",
+            "request": "launch",
+            "mainClass": "com.hms.acquisition.datamine.DatamineMovieHandler",
+            "projectName": "media-acquisition-service"
+        },
+        {
+            "type": "java",
             "name": "ExampleRecord",
             "request": "launch",
             "mainClass": "com.hms.shared.sql.ExampleRecord",
