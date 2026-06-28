@@ -34,10 +34,11 @@ public class SeriesParser {
         for (ParseEntry entry : filePaths) {
             String string = entry.filePath();
             seriesPattern.matcher(string).results().forEach(result -> {
-                String seriesName = result.group("seriesName");
+                String seriesName = result.group("seriesName").replaceAll("\\.", " ");
                 int seasonNumber = Integer.parseInt(result.group("seasonNumber"));
                 int episodeNumber = Integer.parseInt(result.group("episodeNumber"));
-                String episodeName = result.group("episodeName").replaceAll("\\.?[0-9]{3,4}p.*$", "");
+                String episodeName = result.group("episodeName").replaceAll("\\.?[0-9]{3,4}p.*$", "").replaceAll("\\.",
+                        " ");
 
                 if (episodeName.isEmpty()) {
                     episodeName = "Episode " + episodeNumber;

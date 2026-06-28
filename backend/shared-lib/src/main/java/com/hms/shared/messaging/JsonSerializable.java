@@ -1,9 +1,11 @@
 package com.hms.shared.messaging;
 
+import java.lang.reflect.Array;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
@@ -27,6 +29,28 @@ public interface JsonSerializable<T> {
                     case Enum<?> e -> json.addProperty(field.getName(), e.name());
                     case JsonSerializable<?> js -> json.add(field.getName(), js.toJson());
                     case null -> json.add(field.getName(), JsonNull.INSTANCE);
+                    case List<?> list -> {
+                        var jsonArray = new com.google.gson.JsonArray();
+                        for (var item : list) {
+                            if (item instanceof JsonSerializable<?>) {
+                                jsonArray.add(((JsonSerializable<?>) item).toJson());
+                            } else {
+                                jsonArray.add(item.toString());
+                            }
+                        }
+                        json.add(field.getName(), jsonArray);
+                    }
+                    case Object[] array -> {
+                        var jsonArray = new com.google.gson.JsonArray();
+                        for (var item : array) {
+                            if (item instanceof JsonSerializable<?>) {
+                                jsonArray.add(((JsonSerializable<?>) item).toJson());
+                            } else {
+                                jsonArray.add(item.toString());
+                            }
+                        }
+                        json.add(field.getName(), jsonArray);
+                    }
                     default -> json.addProperty(field.getName(), value.toString());
                 }
                 // if (value instanceof JsonSerializable) {
@@ -55,41 +79,112 @@ public interface JsonSerializable<T> {
             boolean matches = true;
             for (int i = 0; i < params.length; i++) {
                 var param = params[i];
-                if (json.has(param.getName())) {
+                String paramName = param.getName();
+                if (json.has(paramName)) {
                     switch (param.getType()) {
-                        case Class<?> c when c == String.class ->
-                            args[i] = json.get(param.getName()).getAsString();
+                        case Class<?> c when c == String.class && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = json.get(paramName).getAsString();
 
-                        case Class<?> c when c == Integer.class || c == int.class ->
-                            args[i] = json.get(param.getName()).getAsInt();
+                        case Class<?> c when (c == Integer.class || c == int.class)
+                                && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = json.get(paramName).getAsInt();
 
-                        case Class<?> c when c == Long.class || c == long.class ->
-                            args[i] = json.get(param.getName()).getAsLong();
+                        case Class<?> c when (c == Long.class || c == long.class)
+                                && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = json.get(paramName).getAsLong();
 
-                        case Class<?> c when c == Float.class || c == float.class ->
-                            args[i] = json.get(param.getName()).getAsFloat();
+                        case Class<?> c when (c == Float.class || c == float.class)
+                                && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = json.get(paramName).getAsFloat();
 
-                        case Class<?> c when c == Double.class || c == double.class ->
-                            args[i] = json.get(param.getName()).getAsDouble();
+                        case Class<?> c when (c == Double.class || c == double.class)
+                                && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = json.get(paramName).getAsDouble();
 
-                        case Class<?> c when c == Boolean.class || c == boolean.class ->
-                            args[i] = json.get(param.getName()).getAsBoolean();
+                        case Class<?> c when (c == Boolean.class || c == boolean.class)
+                                && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = json.get(paramName).getAsBoolean();
 
-                        case Class<?> c when c == LocalDate.class ->
-                            args[i] = LocalDate.parse(json.get(param.getName()).getAsString());
+                        case Class<?> c when c == LocalDate.class && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = LocalDate.parse(json.get(paramName).getAsString());
 
-                        case Class<?> c when c == LocalDateTime.class ->
-                            args[i] = LocalDateTime.parse(json.get(param.getName()).getAsString());
+                        case Class<?> c when c == LocalDateTime.class && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = LocalDateTime.parse(json.get(paramName).getAsString());
 
-                        case Class<?> c when c == Date.class ->
-                            args[i] = Date.from(LocalDateTime.parse(json.get(param.getName()).getAsString())
+                        case Class<?> c when c == Date.class && json.get(paramName).isJsonPrimitive() ->
+                            args[i] = Date.from(LocalDateTime.parse(json.get(paramName).getAsString())
                                     .atZone(ZoneId.systemDefault()).toInstant());
 
-                        case Class<?> c when c.isEnum() -> {
+                        case Class<?> c when c.isEnum() && json.get(paramName).isJsonPrimitive() -> {
                             @SuppressWarnings({ "unchecked", "rawtypes" })
-                            Object enumValue = Enum.valueOf((Class<Enum>) c, json.get(param.getName()).getAsString());
+                            Object enumValue = Enum.valueOf((Class<Enum>) c,
+                                    json.get(paramName).getAsString());
                             args[i] = enumValue;
                         }
+
+                        case Class<?> c when c == JsonObject.class && json.get(paramName).isJsonObject() -> {
+                            args[i] = json.get(paramName).getAsJsonObject();
+                        }
+
+                        case Class<?> c when JsonSerializable.class.isAssignableFrom(c)
+                                && json.get(paramName).isJsonObject() -> {
+                            @SuppressWarnings("unchecked")
+                            Object nestedObject = fromJsonObject(json.get(paramName).getAsJsonObject(),
+                                    (Class<? extends JsonSerializable<?>>) c);
+                            args[i] = nestedObject;
+                        }
+
+                        case Class<?> _ when json.get(paramName).isJsonNull() -> {
+                            args[i] = null;
+                        }
+
+                        case Class<?> c when List.class.isAssignableFrom(c) && json.get(paramName).isJsonArray() -> {
+                            // Handle List deserialization
+                            var jsonArray = json.get(paramName).getAsJsonArray();
+                            var listType = param.getParameterizedType();
+                            if (listType instanceof java.lang.reflect.ParameterizedType pt) {
+                                var itemType = (Class<?>) pt.getActualTypeArguments()[0];
+                                var list = new java.util.ArrayList<>();
+                                for (var item : jsonArray) {
+                                    if (JsonSerializable.class.isAssignableFrom(itemType)
+                                            && item.isJsonObject()) {
+                                        @SuppressWarnings("unchecked")
+                                        Object nestedItem = fromJsonObject(item.getAsJsonObject(),
+                                                (Class<? extends JsonSerializable<?>>) itemType);
+                                        list.add(nestedItem);
+                                    } else {
+                                        // Handle primitive types or other types as needed
+                                        list.add(item.toString());
+                                    }
+                                }
+                                args[i] = list;
+                            } else {
+                                throw new DeserializeJsonException(
+                                        "Failed to deserialize JSON: List type information is missing");
+                            }
+                        }
+
+                        case Class<?> c when c.isArray() && json.get(paramName).isJsonArray() -> {
+                            // Handle Array deserialization
+                            var jsonArray = json.get(paramName).getAsJsonArray();
+                            var componentType = c.getComponentType();
+                            var array = Array.newInstance(componentType, jsonArray.size());
+                            for (int j = 0; j < jsonArray.size(); j++) {
+                                var item = jsonArray.get(j);
+                                if (JsonSerializable.class.isAssignableFrom(componentType)
+                                        && item.isJsonObject()) {
+                                    @SuppressWarnings("unchecked")
+                                    Object nestedItem = fromJsonObject(item.getAsJsonObject(),
+                                            (Class<? extends JsonSerializable<?>>) componentType);
+                                    Array.set(array, j, nestedItem);
+                                } else {
+                                    // Handle primitive types or other types as needed
+                                    Array.set(array, j, item.toString());
+                                }
+                            }
+                            args[i] = array;
+                        }
+
                         default -> {
                             matches = false;
                             break;

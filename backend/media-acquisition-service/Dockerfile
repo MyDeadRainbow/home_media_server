@@ -16,14 +16,14 @@ RUN mvn -B -pl media-acquisition-service -am dependency:go-offline
 COPY shared-lib/src shared-lib/src
 COPY sql-lib/src sql-lib/src
 COPY media-acquisition-service/src media-acquisition-service/src
-RUN mvn -B -pl media-acquisition-service -am clean package -DskipTests
+RUN mvn -B -pl media-acquisition-service -am clean package
 
-FROM openjdk:25-rc AS extractor
-WORKDIR /tmp
+# FROM openjdk:25-rc AS extractor
+# WORKDIR /tmp
 
-COPY --from=build /root/.m2/repository/org/libtorrent4j/libtorrent4j-linux/2.0.5-25/libtorrent4j-linux-2.0.5-25.jar /tmp/libtorrent4j-linux-2.0.5-25.jar
+# COPY --from=build /root/.m2/repository/org/libtorrent4j/libtorrent4j-linux/2.0.5-25/libtorrent4j-linux-2.0.5-25.jar /tmp/libtorrent4j-linux-2.0.5-25.jar
 
-RUN jar xf /tmp/libtorrent4j-linux-2.0.5-25.jar lib/x86_64/libtorrent4j.so
+# RUN jar xf /tmp/libtorrent4j-linux-2.0.5-25.jar lib/x86_64/libtorrent4j.so
 
 FROM mcr.microsoft.com/playwright:v1.60.0-noble
 WORKDIR /app
@@ -55,9 +55,10 @@ ENV DISPLAY=:99
 
 
 
-COPY --from=extractor /tmp/lib/x86_64/libtorrent4j.so /app/lib/libtorrent4j.so
+# COPY --from=extractor /tmp/lib/x86_64/libtorrent4j.so /app/lib/libtorrent4j.so
 
 COPY --from=build /workspace/media-acquisition-service/target/media-acquisition-service-0.1.0.jar app.jar
 EXPOSE 8082
 
-ENTRYPOINT ["java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]
+ENTRYPOINT ["xvfb-run", "java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]
+# ENTRYPOINT ["java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]

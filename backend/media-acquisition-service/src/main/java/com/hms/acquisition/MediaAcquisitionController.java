@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.acquisition.datamine.DatamineGeminiAiHandler;
 import com.hms.acquisition.search.SearchRequest;
 import com.hms.acquisition.search.SearchResponseList;
 import com.hms.acquisition.search.TorrentSearchService;
@@ -24,9 +25,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class MediaAcquisitionController {
 
     private final TorrentSearchService torrentSearchService;
+    // private final DatamineGeminiAiHandler datamineGeminiAiHandler;
 
     public MediaAcquisitionController(TorrentSearchService torrentSearchService) {
         this.torrentSearchService = torrentSearchService;
+        // this.datamineGeminiAiHandler = datamineGeminiAiHandler;
+        // String output = datamineGeminiAiHandler.prompt("Provide me with the complete series information and every seasons and every episodes information for the tv series: The Office. Do this for every season in the series. Provide the information in a json object with the following format: {\"series\": \"seriesName\", \"synopsis\": \"officialSeriesSynopsis\", \"rating\": seriesImdbRatingFloatValue, \"seasons\": [ { \"number\": integerValue, \"firstAirDate\": \"firstEpisodeAirDate\", \"lastAirDate\": \"lastEpisodeAirDate\", \"episodes\": [ { \"episode\": \"episodeName\", \"number\": integerValue, \"synopsis\": \"officialEpisodeSynopsis\", \"rating\": episodeImdbRatingFloatValue, \"airDate\": \"episodeAirDate\", \"runtime\": runtimeInSeconds } ] } ] }");
+        // System.out.println(output);
     }
 
     // @PostMapping("/importRequest")

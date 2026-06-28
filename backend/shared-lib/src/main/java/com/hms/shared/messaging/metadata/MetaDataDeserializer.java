@@ -18,16 +18,14 @@ public class MetaDataDeserializer implements Deserializer<MetaData> {
         try {
             metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Episode.class);
         } catch (DeserializeJsonException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            // suppress exception and try next type
         }
 
         if (metaData == null) {
             try {
                 metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Movie.class);
             } catch (DeserializeJsonException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                // suppress exception and try next type
             }
         }
 
@@ -35,8 +33,7 @@ public class MetaDataDeserializer implements Deserializer<MetaData> {
             try {
                 metaData = JsonSerializable.fromJsonObject(jsonObject, MetaData.Series.class);
             } catch (DeserializeJsonException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                // suppress exception and try next type
             }
         }
         return metaData;

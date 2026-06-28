@@ -1,24 +1,16 @@
 server:
-  port: 8082
+    port: 8082
 
 spring:
-  application:
-    name: media-acquisition-service  
-  kafka:
-    bootstrap-servers: kafka:9092
-
-    # consumer:
-    #   group-id: media-acquisition-service
-    #   auto-offset-reset: earliest
-    #   key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    #   value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    # producer:
-    #   key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    #   value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
-logging:
-  level:
-    bt.peer.ScheduledPeerSource: ERROR
-    bt.peer.PeerRegistry: OFF
-    bt.net.IncomingConnectionListener: OFF
-    bt.net.DataReceivingLoop: OFF
+    ai:
+        google:            
+            genai:
+                api-key: ${GEMINI_AI_API_KEY}
+                chat:                    
+                    model: gemini-2.5-flash
+        model:
+            chat: google-genai
+    application:
+        name: media-acquisition-service
+    kafka:
+        bootstrap-servers: kafka:9092

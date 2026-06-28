@@ -18,7 +18,7 @@ RUN mvn -B -pl media-stream-service -am dependency:go-offline
 COPY shared-lib/src shared-lib/src
 COPY sql-lib/src sql-lib/src
 COPY media-stream-service/src media-stream-service/src
-RUN mvn -B -pl media-stream-service -am clean package -DskipTests
+RUN mvn -B -pl media-stream-service -am clean package
 
 FROM openjdk:25-rc AS extractor
 ARG LIBTORRENT4J_VERSION

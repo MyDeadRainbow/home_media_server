@@ -12,6 +12,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
@@ -25,22 +26,37 @@ public class DataMineRequestConsumer {
 
     public static final String GROUP_ID = "acquisition-service";
 
+    private static final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    static {
+        executor.setVirtualThreads(true);
+        executor.setCorePoolSize(1);
+        executor.setQueueCapacity(100);
+        executor.setMaxPoolSize(2);
+        executor.initialize();
+    }
+
     @KafkaListener(topics = DataMineRequest.TOPIC, groupId = GROUP_ID, containerFactory = "dataMineRequestKafkaListenerContainerFactory", autoStartup = "true")
     public void listen(DataMineRequest message) {
         LOG.info("Received DataMineRequest message: {}", message);
-        switch (message) {
-            case DataMineRequest.Episode episode -> handleEpisodeRequest(episode);
-            case DataMineRequest.Movie movie -> handleMovieRequest(movie);
-            case DataMineRequest.Series series -> handleSeriesRequest(series);
-            default -> LOG.warn("Received DataMineRequest message with unsupported type: {}", message.getClass().getName());
-        }
+
+        executor.execute(() -> {
+            switch (message) {
+                // case DataMineRequest.Episode episode -> handleEpisodeRequest(episode);
+                case DataMineRequest.Movie movie -> handleMovieRequest(movie);
+                case DataMineRequest.Series series -> handleSeriesRequest(series);
+                default ->
+                    LOG.warn("Received DataMineRequest message with unsupported type: {}",
+                            message.getClass().getName());
+            }
+        });
+
     }
 
     private void handleEpisodeRequest(DataMineRequest.Episode episode) {
         LOG.info("Handling DataMineRequest for Episode: {}", episode);
         try {
-            DatamineEpisodeHandler episodeHandler = new DatamineEpisodeHandler();
-            episodeHandler.handle(episode);
+            // DatamineEpisodeHandler episodeHandler = new DatamineEpisodeHandler();
+            // episodeHandler.handle(episode);
         } catch (Exception e) {
             LOG.error("Error handling DataMineRequest for Episode: {}", episode, e);
         }
@@ -66,7 +82,6 @@ public class DataMineRequestConsumer {
         }
     }
 }
-
 
 @Configuration
 class DataMineRequestConsumerConfig {

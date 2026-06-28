@@ -3,6 +3,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "DatamineGeminiAiHandler",
+            "request": "launch",
+            "mainClass": "com.hms.acquisition.datamine.DatamineGeminiAiHandler",
+            "projectName": "media-acquisition-service"
+        },
+        {
+            "type": "java",
+            "name": "DatamineHandler",
+            "request": "launch",
+            "mainClass": "com.hms.acquisition.datamine.DatamineHandler",
+            "projectName": "media-acquisition-service"
+        },
+        {
+            "type": "java",
             "name": "DatamineMovieHandler",
             "request": "launch",
             "mainClass": "com.hms.acquisition.datamine.DatamineMovieHandler",

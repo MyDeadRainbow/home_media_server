@@ -1,5 +1,6 @@
 package com.hms.catalog.messaging;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -59,20 +60,44 @@ public class CatalogUpdateConsumer {
             seriesList.forEach(series -> {
                 try {
                     new Series.Dao().insert(series);
-                    DataMineRequestProducer.postMessage(new DataMineRequest.Series(series.seriesId(), series.name()));
+                    List<DataMineRequest.Season> seasons = new ArrayList<>();
                     series.seasons().forEach(season -> {
-                        // DataMineRequestProducer.postMessage(new
-                        // DataMineRequest.Season(season.seasonId(), season.name(), series.seriesId()));
-                        season.episodes().forEach(episode -> {
-                            DataMineRequestProducer.postMessage(new DataMineRequest.Episode(
-                                    episode.media().mediaId(), episode.episodeId(), episode.name(),
-                                    episode.episodeNumber(), series.name(), season.seasonNumber()));
-                        });
+                        seasons.add(new DataMineRequest.Season(series.seriesId(), season.seasonNumber(),
+                                season.episodes().stream()
+                                        .map(episode -> new DataMineRequest.Episode(
+                                                episode.media().mediaId(),
+                                                episode.episodeId(),
+                                                episode.name(),
+                                                episode.episodeNumber(),
+                                                series.name(),
+                                                season.seasonNumber()))
+                                        .toList()));
                     });
+                    DataMineRequestProducer
+                            .postMessage(new DataMineRequest.Series(series.seriesId(), series.name(), seasons));
                 } catch (Exception e) {
                     LOG.error("Error inserting series: {}", series.name(), e);
                 }
             });
+
+            // seriesList.forEach(series -> {
+            // try {
+            // DataMineRequestProducer.postMessage(new
+            // DataMineRequest.Series(series.seriesId(), series.name()));
+            // series.seasons().forEach(season -> {
+            // // DataMineRequestProducer.postMessage(new
+            // // DataMineRequest.Season(season.seasonId(), season.name(),
+            // series.seriesId()));
+            // season.episodes().forEach(episode -> {
+            // DataMineRequestProducer.postMessage(new DataMineRequest.Episode(
+            // episode.media().mediaId(), episode.episodeId(), episode.name(),
+            // episode.episodeNumber(), series.name(), season.seasonNumber()));
+            // });
+            // });
+            // } catch (Exception e) {
+            // LOG.error("Error inserting series: {}", series.name(), e);
+            // }
+            // });
         } catch (Exception e) {
             LOG.error("Error inserting series", e);
         }

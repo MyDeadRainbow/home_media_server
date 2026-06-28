@@ -10,12 +10,13 @@ import com.hms.shared.messaging.metadata.MetaData;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 
-public class DatamineMovieHandler extends DatamineHandler<DataMineRequest.Movie> {
+import io.mikael.urlbuilder.UrlBuilder;
 
+public class DatamineMovieHandler extends DatamineHandler<DataMineRequest.Movie> {
 
     @Override
     protected Movie entryHandler(Page page, Movie entry) throws Exception {
-        page.waitForSelector("p[data-testid=plot] > span > span > span");
+
         ElementHandle plotElement = page.querySelector("p[data-testid=plot] > span > span > span");
         String plotSummary = plotElement.innerText();
 
@@ -34,6 +35,7 @@ public class DatamineMovieHandler extends DatamineHandler<DataMineRequest.Movie>
         LocalDate releaseDate = null;
         ElementHandle releaseDateElement = page.querySelector("li[data-testid=title-details-releasedate] > a");
         releaseDateElement.click();
+        page.waitForLoadState();
 
         page.waitForSelector("div[data-testid=sub-section-releases] > ul > li");
         List<ElementHandle> releaseDateElements = page
@@ -56,6 +58,14 @@ public class DatamineMovieHandler extends DatamineHandler<DataMineRequest.Movie>
 
         MetaDataProducer.postMessage(movieMetadata);
         return entry;
+    }
+
+    @Override
+    protected String searchUrl(Movie entry) {
+        UrlBuilder urlBuilder = UrlBuilder.fromString(IMDB_BASE_URL).withPath(SEARCH_PATH)
+                .addParameter(TITLE_PARAM, entry.imdbSearchTitle())
+                .addParameter(TITLE_TYPE_PARAM, String.join(",", TITLE_TYPE_MOVIE, TITLE_TYPE_TV_MOVIE));
+        return urlBuilder.toString();
     }
 
 }

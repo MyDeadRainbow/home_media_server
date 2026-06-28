@@ -16,7 +16,7 @@ RUN mvn -B -pl media-catalog-service -am dependency:go-offline
 COPY shared-lib/src shared-lib/src
 COPY sql-lib/src sql-lib/src
 COPY media-catalog-service/src media-catalog-service/src
-RUN mvn -B -pl media-catalog-service -am clean package -DskipTests
+RUN mvn -B -pl media-catalog-service -am clean package
 
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app

@@ -15,7 +15,7 @@ RUN mvn -B -pl api-gateway-service -am dependency:go-offline
 
 COPY shared-lib/src shared-lib/src
 COPY api-gateway-service/src api-gateway-service/src
-RUN mvn -B -pl api-gateway-service -am clean package -DskipTests
+RUN mvn -B -pl api-gateway-service -am clean package
 
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app

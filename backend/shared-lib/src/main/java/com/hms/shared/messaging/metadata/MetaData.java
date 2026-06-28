@@ -1,6 +1,7 @@
 package com.hms.shared.messaging.metadata;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import com.hms.shared.messaging.JsonSerializable;
 
@@ -24,7 +25,10 @@ public interface MetaData extends JsonSerializable<MetaData> {
     /**
      * (String seriesId, String title, String plotSummary, LocalDate firstAirDate, Float rating)
      */
-    public static record Series(String seriesId, String title, String plotSummary, LocalDate firstAirDate, Float rating)
+    public static record Series(String seriesId, String title, String plotSummary, LocalDate firstAirDate, Float rating, List<Season> seasons)
             implements MetaData {
+    }
+
+    public static record Season(String seriesId, int seasonNumber, List<Episode> episodes) implements MetaData {
     }
 }
