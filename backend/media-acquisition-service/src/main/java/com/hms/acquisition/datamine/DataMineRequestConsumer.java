@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -12,102 +13,253 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
-import com.hms.shared.messaging.datamining.DataMineRequest;
-import com.hms.shared.messaging.datamining.DataMineRequestDeserializer;
+import com.hms.shared.media.Movie;
+import com.hms.shared.media.Series;
+import com.hms.shared.media.serialize.MovieDeserializer;
+import com.hms.shared.media.serialize.SeriesDeserializer;
+import com.hms.shared.messaging.Topics;
+
+// @Service
+// public class DataMineRequestConsumer {
+
+//     private static final Logger LOG = LoggerFactory.getLogger(DataMineRequestConsumer.class);
+
+//     public static final String GROUP_ID = "acquisition-service";
+
+//     private static final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+//     static {
+//         executor.setVirtualThreads(true);
+//         executor.setCorePoolSize(1);
+//         // executor.setQueueCapacity(100);
+//         executor.setMaxPoolSize(2);
+//         executor.initialize();
+//     }
+
+//     @KafkaListener(topics = DataMineRequest.TOPIC, groupId = GROUP_ID, containerFactory = "dataMineRequestKafkaListenerContainerFactory", autoStartup = "true")
+//     public void listen(DataMineRequest message) {
+//         LOG.info("Received DataMineRequest message: {}", message);
+
+//         executor.execute(() -> {
+//             try {
+//                 switch (message) {
+//                     // case DataMineRequest.Episode episode -> handleEpisodeRequest(episode);
+//                     case DataMineRequest.Movie movie -> handleMovieRequest(movie);
+//                     case DataMineRequest.Series series -> handleSeriesRequest(series);
+//                     default ->
+//                         LOG.warn("Received DataMineRequest message with unsupported type: {}",
+//                                 message.getClass().getName());
+//                 }
+//             } catch (DatamineException e) {
+//                 LOG.error("Error processing DataMineRequest message: {}", e.getMessage(), e);
+//                 MetaDataProducer.postMessage(e.getMetaData());
+//             }
+//         });
+
+//     }
+
+//     private void handleMovieRequest(DataMineRequest.Movie movie) throws DatamineException {
+//         LOG.info("Handling DataMineRequest for Movie: {}", movie);
+//         DatamineMovieHandler movieHandler = new DatamineMovieHandler();
+//         MetaDataProducer.postMessage(movieHandler.handle(movie));
+//     }
+
+//     private void handleSeriesRequest(DataMineRequest.Series series) throws DatamineException {
+//         LOG.info("Handling DataMineRequest for Series: {}", series);
+//         DatamineSeriesHandler seriesHandler = new DatamineSeriesHandler();
+//         MetaDataProducer.postMessage(seriesHandler.handle(series));
+//     }
+// }
+
+// @Configuration
+// class DataMineRequestConsumerConfig {
+
+//     @Bean
+//     public NewTopic dataMineRequestsTopic() {
+//         return new NewTopic(DataMineRequest.TOPIC, 1, (short) 1);
+//     }
+
+//     @Bean
+//     public ConsumerFactory<String, DataMineRequest> dataMineRequestConsumerFactory() {
+//         Map<String, Object> props = Map.of(
+//                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+//                 ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
+//                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+//                 org.apache.kafka.common.serialization.StringDeserializer.class.getName(),
+//                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DataMineRequestDeserializer.class.getName());
+//         Preconditions.checkNotNull(props, "Kafka consumer properties cannot be null");
+//         return new DefaultKafkaConsumerFactory<>(props);
+//     }
+
+//     @Bean
+//     public ConcurrentKafkaListenerContainerFactory<String, DataMineRequest> dataMineRequestKafkaListenerContainerFactory() {
+//         ConcurrentKafkaListenerContainerFactory<String, DataMineRequest> factory = new ConcurrentKafkaListenerContainerFactory<>();
+//         ConsumerFactory<String, DataMineRequest> consumerFactory = dataMineRequestConsumerFactory();
+//         Preconditions.checkNotNull(consumerFactory, "Failed to create Kafka consumer factory for DataMineRequests");
+//         factory.setConsumerFactory(consumerFactory);
+//         return factory;
+//     }
+// }
 
 @Service
 public class DataMineRequestConsumer {
 
     private static final Logger LOG = LoggerFactory.getLogger(DataMineRequestConsumer.class);
 
-    public static final String GROUP_ID = "acquisition-service";
+    public static final String GROUP_ID = "catalog-service";
 
-    private static final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    static {
-        executor.setVirtualThreads(true);
-        executor.setCorePoolSize(1);
-        executor.setQueueCapacity(100);
-        executor.setMaxPoolSize(2);
-        executor.initialize();
+    @KafkaListener(topics = Topics.DATAMINE_MOVIE, groupId = GROUP_ID, containerFactory = "movieKafkaListenerContainerFactory", autoStartup = "true")
+    public void listenMovie(Movie message) {
+        // switch (message) {
+        // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
+        // case MetaData.Movie movie -> handleMovieMetaData(movie);
+        // case MetaData.Series series -> handleSeriesMetaData(series);
+        // default ->
+        // LOG.warn("Received metadata message with unsupported type: {}",
+        // message.getClass().getSimpleName());
+        // }
     }
 
-    @KafkaListener(topics = DataMineRequest.TOPIC, groupId = GROUP_ID, containerFactory = "dataMineRequestKafkaListenerContainerFactory", autoStartup = "true")
-    public void listen(DataMineRequest message) {
-        LOG.info("Received DataMineRequest message: {}", message);
-
-        executor.execute(() -> {
-            switch (message) {
-                // case DataMineRequest.Episode episode -> handleEpisodeRequest(episode);
-                case DataMineRequest.Movie movie -> handleMovieRequest(movie);
-                case DataMineRequest.Series series -> handleSeriesRequest(series);
-                default ->
-                    LOG.warn("Received DataMineRequest message with unsupported type: {}",
-                            message.getClass().getName());
-            }
-        });
-
+    @KafkaListener(topics = Topics.DATAMINE_SERIES, groupId = GROUP_ID, containerFactory = "seriesKafkaListenerContainerFactory", autoStartup = "true")
+    public void listenSeries(Series message) {
+        // switch (message) {
+        // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
+        // case MetaData.Movie movie -> handleMovieMetaData(movie);
+        // case MetaData.Series series -> handleSeriesMetaData(series);
+        // default ->
+        // LOG.warn("Received metadata message with unsupported type: {}",
+        // message.getClass().getSimpleName());
+        // }
     }
 
-    private void handleEpisodeRequest(DataMineRequest.Episode episode) {
-        LOG.info("Handling DataMineRequest for Episode: {}", episode);
-        try {
-            // DatamineEpisodeHandler episodeHandler = new DatamineEpisodeHandler();
-            // episodeHandler.handle(episode);
-        } catch (Exception e) {
-            LOG.error("Error handling DataMineRequest for Episode: {}", episode, e);
-        }
-    }
+    // private void handleEpisodeMetaData(MetaData.Episode message) {
+    // LOG.info("Received Episode MetaData: {}", message);
+    // try {
+    // Episode episode = new Episode.Dao().get(message.episodeId());
+    // com.hms.shared.media.metadata.MetaData currentMetaData = episode.metaData();
 
-    private void handleMovieRequest(DataMineRequest.Movie movie) {
-        LOG.info("Handling DataMineRequest for Movie: {}", movie);
-        try {
-            DatamineMovieHandler movieHandler = new DatamineMovieHandler();
-            movieHandler.handle(movie);
-        } catch (Exception e) {
-            LOG.error("Error handling DataMineRequest for Movie: {}", movie, e);
-        }
-    }
+    // com.hms.shared.media.metadata.MetaData updatedMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // currentMetaData.metaDataId(),
+    // message.plotSummary(),
+    // message.airDate(),
+    // message.rating());
 
-    private void handleSeriesRequest(DataMineRequest.Series series) {
-        LOG.info("Handling DataMineRequest for Series: {}", series);
-        try {
-            DatamineSeriesHandler seriesHandler = new DatamineSeriesHandler();
-            seriesHandler.handle(series);
-        } catch (Exception e) {
-            LOG.error("Error handling DataMineRequest for Series: {}", series, e);
-        }
-    }
+    // episode = episode.withMetaData(updatedMetaData);
+    // new Episode.Dao().update(episode);
+    // } catch (SQLException e) {
+    // LOG.error("Failed to retrieve episode from database: {}", e.getMessage(), e);
+    // }
+    // }
+
+    // private void handleMovieMetaData(MetaData.Movie message) {
+    // LOG.info("Received Movie MetaData: {}", message);
+    // try {
+    // Movie movie = new Movie.Dao().get(message.movieId());
+    // com.hms.shared.media.metadata.MetaData currentMetaData = movie.metaData();
+
+    // com.hms.shared.media.metadata.MetaData updatedMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // currentMetaData.metaDataId(),
+    // message.plotSummary(),
+    // message.releaseDate(),
+    // message.rating());
+
+    // movie = movie.withMetaData(updatedMetaData);
+    // new Movie.Dao().update(movie);
+    // } catch (Exception e) {
+    // LOG.error("Failed to handle Movie metadata: {}", e.getMessage(), e);
+    // }
+    // }
+
+    // private void handleSeriesMetaData(MetaData.Series message) {
+    // LOG.info("Received Series MetaData: {}", message);
+    // try {
+    // Series series = new Series.Dao().get(message.seriesId());
+    // com.hms.shared.media.metadata.MetaData currentMetaData = series.metaData();
+
+    // com.hms.shared.media.metadata.MetaData updatedMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // currentMetaData.metaDataId(),
+    // message.plotSummary(),
+    // message.firstAirDate(),
+    // message.rating());
+
+    // series = series.withMetaData(updatedMetaData);
+    // new Series.Dao().update(series);
+
+    // for (MetaData.Season season : message.seasons()) {
+    // for (MetaData.Episode episode : season.episodes()) {
+    // Episode episodeEntity = new Episode.Dao().get(episode.episodeId());
+    // com.hms.shared.media.metadata.MetaData episodeCurrentMetaData =
+    // episodeEntity.metaData();
+    // com.hms.shared.media.metadata.MetaData updatedEpisodeMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // episodeCurrentMetaData.metaDataId(),
+    // episode.plotSummary(),
+    // episode.airDate(),
+    // episode.rating());
+    // episodeEntity = episodeEntity.withMetaData(updatedEpisodeMetaData);
+    // new Episode.Dao().update(episodeEntity);
+    // }
+    // }
+    // } catch (Exception e) {
+    // LOG.error("Failed to handle Series metadata: {}", e.getMessage(), e);
+    // }
+    // }
 }
 
 @Configuration
-class DataMineRequestConsumerConfig {
+class MetaDataConsumerConfig {
 
     @Bean
-    public NewTopic dataMineRequestsTopic() {
-        return new NewTopic(DataMineRequest.TOPIC, 1, (short) 1);
+    public NewTopic datamineMovieTopic() {
+        return new NewTopic(Topics.DATAMINE_MOVIE, 1, (short) 1);
     }
 
     @Bean
-    public ConsumerFactory<String, DataMineRequest> dataMineRequestConsumerFactory() {
+    public ConsumerFactory<String, Movie> movieConsumerFactory() {
         Map<String, Object> props = Map.of(
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
                 ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
-                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                org.apache.kafka.common.serialization.StringDeserializer.class.getName(),
-                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, DataMineRequestDeserializer.class.getName());
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, MovieDeserializer.class.getName());
         Preconditions.checkNotNull(props, "Kafka consumer properties cannot be null");
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, DataMineRequest> dataMineRequestKafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, DataMineRequest> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        ConsumerFactory<String, DataMineRequest> consumerFactory = dataMineRequestConsumerFactory();
-        Preconditions.checkNotNull(consumerFactory, "Failed to create Kafka consumer factory for DataMineRequests");
+    public ConcurrentKafkaListenerContainerFactory<String, Movie> movieKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Movie> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        ConsumerFactory<String, Movie> consumerFactory = movieConsumerFactory();
+        Preconditions.checkNotNull(consumerFactory, "Failed to create Kafka consumer factory for Movie");
+        factory.setConsumerFactory(consumerFactory);
+        return factory;
+    }
+
+    @Bean
+    public NewTopic datamineSeriesTopic() {
+        return new NewTopic(Topics.DATAMINE_SERIES, 1, (short) 1);
+    }
+
+    @Bean
+    public ConsumerFactory<String, Series> seriesConsumerFactory() {
+        Map<String, Object> props = Map.of(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, SeriesDeserializer.class.getName());
+        Preconditions.checkNotNull(props, "Kafka consumer properties cannot be null");
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Series> seriesKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Series> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        ConsumerFactory<String, Series> consumerFactory = seriesConsumerFactory();
+        Preconditions.checkNotNull(consumerFactory, "Failed to create Kafka consumer factory for Series");
         factory.setConsumerFactory(consumerFactory);
         return factory;
     }

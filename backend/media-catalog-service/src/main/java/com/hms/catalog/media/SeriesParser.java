@@ -8,6 +8,13 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import com.hms.dao.SQLiteMap;
+import com.hms.dao.SQLiteRecordDao;
+import com.hms.shared.media.Episode;
+import com.hms.shared.media.MediaItem;
+import com.hms.shared.media.Season;
+import com.hms.shared.media.Series;
+import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.metadata.MetaDataStatus;
 
 public class SeriesParser {
 
@@ -30,6 +37,9 @@ public class SeriesParser {
         SQLiteMap<Episode> episodeMap = new SQLiteMap<>(new Episode.Dao());
 
         // Map<String, Series> seriesMap = new HashMap<>();
+        // SQLiteRecordDao<Series> seriesDao = new Series.Dao();
+        // SQLiteRecordDao<Season> seasonDao = new Season.Dao();
+        // SQLiteRecordDao<Episode> episodeDao = new Episode.Dao();
 
         for (ParseEntry entry : filePaths) {
             String string = entry.filePath();
@@ -45,13 +55,16 @@ public class SeriesParser {
                 }
 
                 Series series = seriesMap.values().stream()
-                        .filter(s -> s.name().equals(seriesName))
+                        .filter(s -> s.title().equals(seriesName))
                         .findFirst()
                         .orElse(null);
 
                 if (series == null) {
-                    series = new Series(UUID.randomUUID().toString(), seriesName, new ArrayList<>(),
-                            new MetaData(UUID.randomUUID().toString(), null, null, null));
+                    series = Series.create(MetaData.create(seriesName, null, null, null, MetaDataStatus.PENDING, null),
+                            new ArrayList<Season>());
+                    // new Series(UUID.randomUUID().toString(), seriesName, new ArrayList<>(),
+                    // new MetaData(UUID.randomUUID().toString(), null, null, null,
+                    // MetaDataStatus.PENDING, null));
                     seriesMap.put(series.seriesId(), series);
                 }
 
@@ -61,18 +74,24 @@ public class SeriesParser {
                         .orElse(null);
 
                 if (season == null) {
-                    season = new Season(UUID.randomUUID().toString(), series.seriesId(),
-                            seriesName + " S" + seasonNumber, seasonNumber, new ArrayList<>());
+                    season = Season.create(series.seriesId(), seasonNumber,
+                            MetaData.create(seriesName + " S" + seasonNumber, null, null, null, MetaDataStatus.PENDING,
+                                    null),
+                            new ArrayList<Episode>());
+                    // new Season(UUID.randomUUID().toString(), series.seriesId(),
+                    // seriesName + " S" + seasonNumber, seasonNumber, new ArrayList<>());
 
                     series = series.addSeason(season);
                     seriesMap.put(series.seriesId(), series);
                 }
 
-                MediaItem mediaItem = new MediaItem(entry.mediaId(), string);
+                MediaItem mediaItem = MediaItem.create(string);
 
-                Episode episode = new Episode(UUID.randomUUID().toString(), season.seasonId(), series.seriesId(),
-                        episodeName, episodeNumber, mediaItem,
-                        new MetaData(UUID.randomUUID().toString(), null, null, null));
+                Episode episode = Episode.create(season.seasonId(), series.seriesId(), episodeNumber, mediaItem,
+                        MetaData.create(episodeName, null, null, null, MetaDataStatus.PENDING, null));
+                // new Episode(UUID.randomUUID().toString(), season.seasonId(), series.seriesId(),
+                //         episodeName, episodeNumber, mediaItem,
+                //         new MetaData(UUID.randomUUID().toString(), null, null, null, MetaDataStatus.PENDING, null));
                 season = season.addEpisode(episode);
                 series = series.addSeason(season);
                 seriesMap.put(series.seriesId(), series);

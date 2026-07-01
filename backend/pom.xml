@@ -13,8 +13,8 @@
     <description>Spring Boot microservices for home media automation and streaming</description>
 
     <modules>
-        <module>shared-lib</module>
         <module>sql-lib</module>
+        <module>shared-lib</module>
         <module>api-gateway-service</module>
         <module>media-catalog-service</module>
         <module>media-acquisition-service</module>
@@ -37,12 +37,12 @@
         <dependencies>
             <dependency>
                 <groupId>com.hms</groupId>
-                <artifactId>shared-lib</artifactId>
+                <artifactId>sql-lib</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.hms</groupId>
-                <artifactId>sql-lib</artifactId>
+                <artifactId>shared-lib</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

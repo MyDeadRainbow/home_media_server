@@ -1,4 +1,4 @@
-package com.hms.catalog.media.rest;
+package com.hms.catalog.media;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -11,11 +11,12 @@ import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 
 import com.hms.catalog.MediaItem;
-import com.hms.catalog.media.MediaInfo;
-import com.hms.catalog.media.Movie;
-import com.hms.catalog.media.Season;
-import com.hms.catalog.media.Series;
+import com.hms.shared.media.Episode;
 import com.hms.shared.media.MediaCategory;
+import com.hms.shared.media.MediaInfo;
+import com.hms.shared.media.Movie;
+import com.hms.shared.media.Season;
+import com.hms.shared.media.Series;
 
 @Service
 public class MediaCatalogService {
@@ -102,8 +103,8 @@ public class MediaCatalogService {
             String normalized = normalizeQuery(query);
             if (!normalized.isEmpty()) {
                 seriesList = seriesList.stream()
-                        .filter(series -> series.name() != null
-                                && series.name().toLowerCase(Locale.ROOT).contains(normalized))
+                        .filter(series -> series.title() != null
+                                && series.title().toLowerCase(Locale.ROOT).contains(normalized))
                         .toList();
             }
         } catch (SQLException e) {
@@ -120,8 +121,8 @@ public class MediaCatalogService {
             String normalized = normalizeQuery(query);
             if (!normalized.isEmpty()) {
                 seasonList = seasonList.stream()
-                        .filter(season -> season.name() != null
-                                && season.name().toLowerCase(Locale.ROOT).contains(normalized))
+                        .filter(season -> season.title() != null
+                                && season.title().toLowerCase(Locale.ROOT).contains(normalized))
                         .toList();
             }
         } catch (SQLException e) {
@@ -134,18 +135,18 @@ public class MediaCatalogService {
     public List<MediaInfo> getEpisodes(String seriesId, String seasonId, String query) {
         List<MediaInfo> episodeList = new ArrayList<>();
         try {
-            var episodes = new com.hms.catalog.media.Episode.Dao()
+            var episodes = new Episode.Dao()
                     .select(Map.of("seriesId", seriesId, "seasonId", seasonId));
             String normalized = normalizeQuery(query);
             for (var episode : episodes) {
-                if (!normalized.isEmpty() && (episode.name() == null
-                        || !episode.name().toLowerCase(Locale.ROOT).contains(normalized))) {
+                if (!normalized.isEmpty() && (episode.title() == null
+                        || !episode.title().toLowerCase(Locale.ROOT).contains(normalized))) {
                     continue;
                 }
 
                 episodeList.add(new MediaInfo(
                         episode.media().mediaId(),
-                        episode.name(),
+                        episode.title(),
                         MediaCategory.SERIES.name().toLowerCase(Locale.ROOT),
                         episode.metaData().airDate(),
                         episode.metaData().plotSummary(),
@@ -166,14 +167,14 @@ public class MediaCatalogService {
             List<Movie> movies = new Movie.Dao().select(Map.of());
             String normalized = normalizeQuery(query);
             for (Movie movie : movies) {
-                if (!normalized.isEmpty() && (movie.name() == null
-                        || !movie.name().toLowerCase(Locale.ROOT).contains(normalized))) {
+                if (!normalized.isEmpty() && (movie.title() == null
+                        || !movie.title().toLowerCase(Locale.ROOT).contains(normalized))) {
                     continue;
                 }
 
                 movieList.add(new MediaInfo(
                         movie.mediaItem().mediaId(),
-                        movie.name(),
+                        movie.title(),
                         MediaCategory.MOVIE.name().toLowerCase(Locale.ROOT),
                         movie.metaData().airDate(),
                         movie.metaData().plotSummary(),

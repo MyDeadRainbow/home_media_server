@@ -1,8 +1,6 @@
-package com.hms.catalog.media;
+package com.hms.shared.media;
 
 import java.util.List;
-
-import com.hms.shared.media.Movie;
 
 public record MovieSeries(String name, List<Movie> movies) {
 }

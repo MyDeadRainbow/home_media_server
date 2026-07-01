@@ -18,13 +18,14 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
-import com.hms.catalog.media.Movie;
 import com.hms.catalog.media.MovieParser;
 import com.hms.catalog.media.ParseEntry;
-import com.hms.catalog.media.Series;
 import com.hms.catalog.media.SeriesParser;
+import com.hms.shared.media.Movie;
+import com.hms.shared.media.Series;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateDeserializer;
+import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 import com.hms.shared.messaging.datamining.DataMineRequest;
 
 @Service
@@ -53,30 +54,32 @@ public class CatalogUpdateConsumer {
 
     private void handleSeriesCreated(CatalogUpdate message) {
         List<Series> seriesList = SeriesParser.builder()
-                .addFilePath(new ParseEntry(message.mediaId(), message.title()))
+                .addFilePaths(message.filePaths().stream().map(r -> new ParseEntry(r.mediaId(), r.filePath())).toList())
                 .build()
                 .parse();
         try {
             seriesList.forEach(series -> {
                 try {
                     new Series.Dao().insert(series);
-                    List<DataMineRequest.Season> seasons = new ArrayList<>();
-                    series.seasons().forEach(season -> {
-                        seasons.add(new DataMineRequest.Season(series.seriesId(), season.seasonNumber(),
-                                season.episodes().stream()
-                                        .map(episode -> new DataMineRequest.Episode(
-                                                episode.media().mediaId(),
-                                                episode.episodeId(),
-                                                episode.name(),
-                                                episode.episodeNumber(),
-                                                series.name(),
-                                                season.seasonNumber()))
-                                        .toList()));
-                    });
-                    DataMineRequestProducer
-                            .postMessage(new DataMineRequest.Series(series.seriesId(), series.name(), seasons));
+                    // List<DataMineRequest.Season> seasons = new ArrayList<>();
+                    // series.seasons().forEach(season -> {
+                    // seasons.add(new DataMineRequest.Season(series.seriesId(),
+                    // season.seasonNumber(),
+                    // season.episodes().stream()
+                    // .map(episode -> new DataMineRequest.Episode(
+                    // episode.media().mediaId(),
+                    // episode.episodeId(),
+                    // episode.name(),
+                    // episode.episodeNumber(),
+                    // series.name(),
+                    // season.seasonNumber()))
+                    // .toList()));
+                    // });
+                    DataMineRequestProducer.postMessage(series);
+                    // .postMessage(new DataMineRequest.Series(series.seriesId(), series.name(),
+                    // seasons));
                 } catch (Exception e) {
-                    LOG.error("Error inserting series: {}", series.name(), e);
+                    LOG.error("Error inserting series: {}", series.title(), e);
                 }
             });
 
@@ -104,13 +107,14 @@ public class CatalogUpdateConsumer {
     }
 
     private void handleMovieCreated(CatalogUpdate message) {
-        Movie movie = new MovieParser(new ParseEntry(message.mediaId(), message.title())).parse();
+        FilePathRecord filePathRecord = message.filePaths().get(0);
+        Movie movie = new MovieParser(new ParseEntry(filePathRecord.mediaId(), filePathRecord.filePath())).parse();
         try {
             new Movie.Dao().insert(movie);
-            DataMineRequestProducer
-                    .postMessage(new DataMineRequest.Movie(movie.mediaItem().mediaId(), movie.movieId(), movie.name()));
+            DataMineRequestProducer.postMessage(movie);
+                    // .postMessage(new DataMineRequest.Movie(movie.mediaItem().mediaId(), movie.movieId(), movie.name()));
         } catch (Exception e) {
-            LOG.error("Error inserting movie: {}", movie.name(), e);
+            LOG.error("Error inserting movie: {}", movie.title(), e);
         }
     }
 

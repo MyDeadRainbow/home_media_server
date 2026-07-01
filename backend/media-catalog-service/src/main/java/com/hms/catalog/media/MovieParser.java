@@ -2,6 +2,11 @@ package com.hms.catalog.media;
 
 import java.util.UUID;
 
+import com.hms.shared.media.MediaItem;
+import com.hms.shared.media.Movie;
+import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.metadata.MetaDataStatus;
+
 public class MovieParser {
     private ParseEntry filePath;
 
@@ -18,11 +23,15 @@ public class MovieParser {
                 filePath.filePath() // Placeholder for video URL
         );
         // Handle movie creation logic here
-        Movie movie = new Movie(
-                UUID.randomUUID().toString(),
-                name,
+        Movie movie = Movie.create(
                 movieItem, // Placeholder for video URL
-                new MetaData(UUID.randomUUID().toString(), null, null, null));
+                MetaData.create(
+                        name,
+                        null,
+                        null,
+                        null,
+                        MetaDataStatus.PENDING,
+                        null));
 
         return movie;
     }

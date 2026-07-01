@@ -1,4 +1,4 @@
-package com.hms.catalog.media;
+package com.hms.shared.media;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,6 +16,7 @@ import com.hms.dao.SQLiteRecordDao;
 
 public record MediaInfo(String mediaId, String title, String type, LocalDate releaseDate, String plotSummary,
         Float rating, String posterUrl, String streamUrl) implements SQLiteRecord {
+            
     @Override
     public String getPrimaryKeyField() {
         return "mediaId";

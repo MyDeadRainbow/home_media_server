@@ -2,28 +2,36 @@ package com.hms.acquisition.datamine;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import com.hms.shared.messaging.datamining.DataMineRequest;
-import com.hms.shared.messaging.datamining.DataMineRequest.Series;
-import com.hms.shared.messaging.metadata.MetaData;
+import com.hms.acquisition.datamine.exception.DatamineException;
+import com.hms.acquisition.datamine.exception.EpisodeNotFoundException;
+import com.hms.acquisition.datamine.exception.SeasonNotFoundException;
+import com.hms.shared.media.Episode;
+import com.hms.shared.media.Season;
+import com.hms.shared.media.Series;
+import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.metadata.MetaDataStatus;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
-public class DatamineSeriesHandler extends DatamineHandler<DataMineRequest.Series> {
+public class DatamineSeriesHandler extends DatamineHandler<Series, Series> {
 
     @Override
-    protected Series entryHandler(Page page, Series entry) throws Exception {
+    protected Series entryHandler(Page page, Series entry) throws DatamineException {
+        Series series = entry;
+        MetaData seriesMetadata = entry.metaData();
 
         String plotSummary = "";
         ElementHandle plotElement = page.querySelector("p[data-testid=plot] > span > span > span");
         if (plotElement != null) {
             plotSummary = plotElement.innerText();
         }
+
+        seriesMetadata = seriesMetadata.withPlotSummary(plotSummary);
 
         LocalDate airDate = null;
 
@@ -49,6 +57,8 @@ public class DatamineSeriesHandler extends DatamineHandler<DataMineRequest.Serie
             }
         }
 
+        seriesMetadata = seriesMetadata.withAirDate(airDate);
+
         Float rating = null;
         ElementHandle ratingElement = page
                 .querySelector("span[data-testid=hero-rating-bar__aggregate-rating__score] > span");
@@ -61,16 +71,18 @@ public class DatamineSeriesHandler extends DatamineHandler<DataMineRequest.Serie
             }
         }
 
-        List<MetaData.Season> seasonsMetadata = new ArrayList<>();
-        for (DataMineRequest.Season season : entry.seasons()) {
+        seriesMetadata = seriesMetadata.withRating(rating);
 
-            List<MetaData.Episode> episodesMetadata = new ArrayList<>();
-            for (DataMineRequest.Episode episode : season.episodes()) {
+        for (Season season : entry.seasons()) {
+            if (season.seasonNumber() > seasonTabs.size()) {
+                throw new SeasonNotFoundException(
+                        "Season number " + season.seasonNumber() + " does not exist for series: "
+                                + entry.title());
+            }
 
-                if (season.seasonNumber() > seasonTabs.size()) {
-                    throw new Exception("Season number " + season.seasonNumber() + " does not exist for series: "
-                            + entry.seriesTitle());
-                }
+            for (Episode episode : season.episodes()) {
+
+                MetaData episodeMetadata = episode.metaData();
 
                 ElementHandle seasonTab = seasonTabs.get(season.seasonNumber() - 1);
                 seasonTab.click();
@@ -80,8 +92,9 @@ public class DatamineSeriesHandler extends DatamineHandler<DataMineRequest.Serie
                         .querySelectorAll("div.Carousel_scrollContainer__OHvrx > div.Carousel_item__d6t0m");
 
                 if (episode.episodeNumber() > episodeElements.size()) {
-                    throw new Exception("Episode number " + episode.episodeNumber() + " does not exist for season "
-                            + season.seasonNumber() + " of series: " + entry.seriesTitle());
+                    throw new EpisodeNotFoundException(
+                            "Episode number " + episode.episodeNumber() + " does not exist for season "
+                                    + season.seasonNumber() + " of series: " + entry.title());
                 }
 
                 ElementHandle episodeElement = episodeElements.get(episode.episodeNumber() - 1);
@@ -89,10 +102,12 @@ public class DatamineSeriesHandler extends DatamineHandler<DataMineRequest.Serie
                 ElementHandle episodeTitleElement = episodeElement
                         .querySelector("div.EpisodeRatingCard_title__7ltRw > div > a > h3.ipc-title__text");
                 String episodeTitle = episodeTitleElement.innerText();
+                episodeMetadata = episodeMetadata.withTitle(episodeTitle);
 
                 ElementHandle episodePlotElement = episodeElement
                         .querySelector("div.EpisodeRatingCard_plot__tpuIw > p");
                 String episodePlotSummary = episodePlotElement != null ? episodePlotElement.innerText() : "";
+                episodeMetadata = episodeMetadata.withPlotSummary(episodePlotSummary);
 
                 ElementHandle airDateElement = episodeElement
                         .querySelector("ul.EpisodeRatingCard_episodeInfo__2QFJU > li:nth-child(2)");
@@ -101,43 +116,40 @@ public class DatamineSeriesHandler extends DatamineHandler<DataMineRequest.Serie
                     episodeAirDate = LocalDate.parse(airDateElement.innerText(),
                             DateTimeFormatter.ofPattern("E, MMM d, yyyy", Locale.ENGLISH));
                 }
+                episodeMetadata = episodeMetadata.withAirDate(episodeAirDate);
 
                 ElementHandle epsiodeRatingElement = episodeElement
                         .querySelector("div.EpisodeRatingCard_ratings___bPTN > span > span.ipc-rating-star--rating");
                 Float episodeRating = null;
                 if (epsiodeRatingElement != null) {
                     try {
-                        rating = Float.parseFloat(epsiodeRatingElement.innerText());
+                        episodeRating = Float.parseFloat(epsiodeRatingElement.innerText());
                     } catch (NumberFormatException e) {
                         // Handle the case where the rating is not a valid float
-                        rating = null;
+                        episodeRating = null;
                     }
                 }
+                episodeMetadata = episodeMetadata.withRating(episodeRating);
 
-                MetaData.Episode episodeMetadata = new MetaData.Episode(episode.episodeId(), episodeTitle,
-                        episodePlotSummary, episodeAirDate, episodeRating);
-                episodesMetadata.add(episodeMetadata);
+                episode = episode.withMetaData(episodeMetadata);
+                season = season.replaceEpisode(episode);
+                // season
+                // seasonMetadata = seasonMetadata.addEpisode(episodeMetadata);
             }
-            MetaData.Season seasonMetadata = new MetaData.Season(season.seriesId(),
-                    season.seasonNumber(), episodesMetadata);
-            seasonsMetadata.add(seasonMetadata);
+            series = series.replaceSeason(season);
+            // seriesMetadata = seriesMetadata.addSeason(seasonMetadata);
         }
 
-        MetaData.Series seriesMetadata = new MetaData.Series(
-                entry.seriesId(),
-                entry.seriesTitle(),
-                plotSummary,
-                airDate,
-                rating,
-                seasonsMetadata);
-        MetaDataProducer.postMessage(seriesMetadata);
-        return entry;
+        seriesMetadata = seriesMetadata.withStatus(MetaDataStatus.COMPLETE).withMessage("Complete");
+        series = series.withMetaData(seriesMetadata);
+        // MetaDataProducer.postMessage(seriesMetadata);
+        return series;
     }
 
     @Override
     protected String searchUrl(Series entry) {
         UrlBuilder urlBuilder = UrlBuilder.fromString(IMDB_BASE_URL).withPath(SEARCH_PATH)
-                .addParameter(TITLE_PARAM, entry.imdbSearchTitle())
+                .addParameter(TITLE_PARAM, entry.title())
                 .addParameter(TITLE_TYPE_PARAM, String.join(",", TITLE_TYPE_SERIES, TITLE_TYPE_MINI_SERIES));
         return urlBuilder.toString();
     }

@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.hms.shared.media.MediaCategory;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
+import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 import com.hms.stream.messaging.CatalogUpdateProducer;
 
 @Service
@@ -110,8 +111,8 @@ public class MediaStreamingService {
             throw new IllegalStateException("Failed to save media record to database", e);
         }
 
-        CatalogUpdate update = new CatalogUpdate(mediaId, CatalogUpdateType.CREATED, file.getOriginalFilename(), type,
-                body.year(), body.description());
+        CatalogUpdate update = new CatalogUpdate(CatalogUpdateType.CREATED, type,
+                List.of(new FilePathRecord(mediaId, destination.toString())));
         CatalogUpdateProducer.postMessage(update);
 
         return new UploadMediaResponse(

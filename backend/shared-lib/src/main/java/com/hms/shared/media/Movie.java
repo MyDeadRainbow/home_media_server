@@ -1,13 +1,17 @@
-package com.hms.catalog.media;
+package com.hms.shared.media;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
+import java.util.UUID;
 
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
+import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.messaging.JsonSerializable;
 
-public record Movie(String movieId, String name, MediaItem mediaItem, MetaData metaData) implements SQLiteRecord {
+public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
+        implements SQLiteRecord, JsonSerializable<Movie>, Title {
 
     @Override
     public String getPrimaryKeyField() {
@@ -19,16 +23,26 @@ public record Movie(String movieId, String name, MediaItem mediaItem, MetaData m
         return movieId;
     }
 
-    public Movie withName(String newName) {
-        return new Movie(this.movieId, newName, this.mediaItem, this.metaData);
+    public static Movie create(MediaItem mediaItem, MetaData metaData) {
+        String movieId = UUID.randomUUID().toString();
+        return new Movie(movieId, mediaItem, metaData);
+    }
+
+    @Override
+    public String title() {
+        return metaData.title();
+    }
+
+    public Movie withMovieId(String newMovieId) {
+        return new Movie(newMovieId, this.mediaItem, this.metaData);
     }
 
     public Movie withMediaItem(MediaItem newMediaItem) {
-        return new Movie(this.movieId, this.name, newMediaItem, this.metaData);
+        return new Movie(this.movieId, newMediaItem, this.metaData);
     }
 
     public Movie withMetaData(MetaData newMetaData) {
-        return new Movie(this.movieId, this.name, this.mediaItem, newMetaData);
+        return new Movie(this.movieId, this.mediaItem, newMetaData);
     }
 
     public static class Dao extends com.hms.dao.SQLiteRecordDao<Movie> {
@@ -47,7 +61,6 @@ public record Movie(String movieId, String name, MediaItem mediaItem, MetaData m
         public String toCreateTableStatement() {
             return "CREATE TABLE IF NOT EXISTS movies ("
                     + "movieId TEXT PRIMARY KEY,"
-                    + "name TEXT NOT NULL,"
                     + "mediaId TEXT NOT NULL,"
                     + "metaDataId TEXT NOT NULL,"
                     + "FOREIGN KEY(mediaId) REFERENCES media_items(mediaId),"
@@ -79,15 +92,17 @@ public record Movie(String movieId, String name, MediaItem mediaItem, MetaData m
         @Override
         public PreparedStatementValue toInsertStatement(Movie record) {
             return new PreparedStatementValue(
-                    "INSERT INTO movies (movieId, name, mediaId, metaDataId) VALUES (?, ?, ?, ?);",
-                    new Object[] { record.movieId(), record.name(), record.mediaItem().mediaId(), record.metaData().metaDataId() });
+                    "INSERT INTO movies (movieId, mediaId, metaDataId) VALUES (?, ?, ?);",
+                    new Object[] { record.movieId(), record.mediaItem().mediaId(),
+                            record.metaData().metaDataId() });
         }
 
         @Override
         public PreparedStatementValue toUpdateStatement(Movie record) {
             return new PreparedStatementValue(
-                    "UPDATE movies SET name = ?, mediaId = ?, metaDataId = ? WHERE movieId = ?;",
-                    new Object[] { record.name(), record.mediaItem().mediaId(), record.metaData().metaDataId(), record.movieId() });
+                    "UPDATE movies SET mediaId = ?, metaDataId = ? WHERE movieId = ?;",
+                    new Object[] { record.mediaItem().mediaId(), record.metaData().metaDataId(),
+                            record.movieId() });
         }
 
         @Override
@@ -119,7 +134,6 @@ public record Movie(String movieId, String name, MediaItem mediaItem, MetaData m
         public Movie mapResultSetToRecord(ResultSet rs) throws SQLException {
             return new Movie(
                     rs.getString("movieId"),
-                    rs.getString("name"),
                     new MediaItem.Dao().get(rs.getString("mediaId")),
                     new MetaData.Dao().get(rs.getString("metaDataId")));
         }

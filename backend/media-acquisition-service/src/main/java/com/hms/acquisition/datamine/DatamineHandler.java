@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.hms.acquisition.datamine.exception.DatamineException;
+import com.hms.acquisition.datamine.exception.NoSearchResultException;
+import com.hms.shared.media.Title;
 import com.hms.shared.messaging.datamining.DataMineRequest;
 import com.hms.shared.pipline.Handler;
 import com.microsoft.playwright.Browser;
@@ -15,21 +18,25 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.ViewportSize;
 
-public abstract class DatamineHandler<T extends DataMineRequest> implements Handler<T> {
+public abstract class DatamineHandler<T extends Title, R> {
     // https://www.imdb.com/search/title/?title=backrooms&title_type=feature,tv_series,tv_episode
 
     public static void main(String[] args) throws Exception {
         // DatamineMovieHandler handler = new DatamineMovieHandler();
         // Movie entry = new Movie("123", "tt0111161", "The Shawshank Redemption");
-        DatamineSeriesHandler handler = new DatamineSeriesHandler();
-        DataMineRequest.Series entry = new DataMineRequest.Series("123", "The Office", List.of(
-                new DataMineRequest.Season("123", 1, List.of(
-                        new DataMineRequest.Episode("123", "tt0944947", "Pilot", 1, "The Office", 1),
-                        new DataMineRequest.Episode("123", "tt0944948", "Diversity Day", 2, "The Office", 1))),
-                new DataMineRequest.Season("123", 2, List.of(
-                        new DataMineRequest.Episode("123", "tt0944949", "The Dundies", 1, "The Office", 2),
-                        new DataMineRequest.Episode("123", "tt0944950", "Sexual Harassment", 2, "The Office", 2)))));
-        handler.handle(entry);
+        // DatamineSeriesHandler handler = new DatamineSeriesHandler();
+        // DataMineRequest.Series entry = new DataMineRequest.Series("123", "The
+        // Office", List.of(
+        // new DataMineRequest.Season("123", 1, List.of(
+        // new DataMineRequest.Episode("123", "tt0944947", "Pilot", 1, "The Office", 1),
+        // new DataMineRequest.Episode("123", "tt0944948", "Diversity Day", 2, "The
+        // Office", 1))),
+        // new DataMineRequest.Season("123", 2, List.of(
+        // new DataMineRequest.Episode("123", "tt0944949", "The Dundies", 1, "The
+        // Office", 2),
+        // new DataMineRequest.Episode("123", "tt0944950", "Sexual Harassment", 2, "The
+        // Office", 2)))));
+        // handler.handle(entry);
     }
 
     protected final String SEARCH_PATH = "search/title/";
@@ -41,11 +48,11 @@ public abstract class DatamineHandler<T extends DataMineRequest> implements Hand
     protected final String TITLE_TYPE_MINI_SERIES = "tv_miniseries";
     protected final String IMDB_BASE_URL = "https://www.imdb.com/";
 
-    @Override
+    // @Override
     /**
      * Handle with a stealth Playwright headless browser
      */
-    public T handle(T entry) throws Exception {
+    public R handle(T entry) throws DatamineException {
         try (Playwright playwright = Playwright.create();
                 Browser browser = playwright.chromium()
                         .launch(new BrowserType.LaunchOptions().setHeadless(true).setSlowMo(1000)
@@ -90,7 +97,7 @@ public abstract class DatamineHandler<T extends DataMineRequest> implements Hand
         }
     }
 
-    private T handle(Page page, T entry) throws Exception {
+    private R handle(Page page, T entry) throws DatamineException {
         // need to use the find url on imdb, then check that list of loaded reults
         // instead of trying to use the popup suggestions box
 
@@ -110,11 +117,11 @@ public abstract class DatamineHandler<T extends DataMineRequest> implements Hand
                         titleText = match.group(1);
                     }
                     return titleElement != null
-                            && titleText.toLowerCase().contains(entry.imdbSearchTitle().toLowerCase());
+                            && titleText.toLowerCase().contains(entry.title().toLowerCase());
                 })
                 .findFirst()
                 .orElseThrow(() -> {
-                    return new Exception("No matching series found for title: " + entry.imdbSearchTitle());
+                    return new NoSearchResultException("No matching series found for title: " + entry.title());
                 });
         ElementHandle linkElement = matchingResult.querySelector("a.ipc-title-link-wrapper");
         linkElement.click();
@@ -122,7 +129,7 @@ public abstract class DatamineHandler<T extends DataMineRequest> implements Hand
         return entryHandler(page, entry);
     }
 
-    protected abstract T entryHandler(Page page, T entry) throws Exception;
+    protected abstract R entryHandler(Page page, T entry) throws DatamineException;
 
     protected abstract String searchUrl(T entry);
 }

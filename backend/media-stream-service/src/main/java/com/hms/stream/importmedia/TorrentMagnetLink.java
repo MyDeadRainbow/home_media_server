@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -25,6 +27,7 @@ import com.hms.dao.DBFileNotFoundException;
 import com.hms.dao.GetConnectionException;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
+import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 import com.hms.stream.MediaRecord;
 import com.hms.stream.importmedia.pipeline.ImportMediaHandler;
 import com.hms.stream.messaging.CatalogUpdateProducer;
@@ -101,6 +104,8 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             TorrentInfo info = new TorrentInfo(magnetData);
             FileStorage storage = info.files();
 
+            List<FilePathRecord> filePathRecords = new ArrayList<>();
+
             Priority[] priorities = Priority.array(Priority.IGNORE, info.numFiles());
             for (int i = 0; i < priorities.length; i++) {
                 String filePath = storage.filePath(i);
@@ -119,11 +124,13 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                         LOG.error("Failed to insert media record for file: {}", path, e);
                     }
 
-                    CatalogUpdateProducer.postMessage(new CatalogUpdate(record.mediaId(), CatalogUpdateType.CREATED,
-                            path.getFileName().toString(), entry.category(), null, filePath));
-                    
+                    filePathRecords.add(new FilePathRecord(record.mediaId(), path.getFileName().toString()));
+
                 }
             }
+
+            CatalogUpdateProducer.postMessage(new CatalogUpdate(CatalogUpdateType.CREATED,
+                    entry.category(), filePathRecords));
 
             s.download(info, destinationFolder.toFile(), null, priorities, null,
                     TorrentFlags.SEQUENTIAL_DOWNLOAD);
@@ -197,19 +204,20 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                     break;
                 }
                 // case FILE_PROGRESS: {
-                //     org.libtorrent4j.alerts.FileProgressAlert a = (org.libtorrent4j.alerts.FileProgressAlert) alert;
-                //     long[] files = a.getFiles();
-                //     // a.handle().torrentFile().files().filePath();
-                //     // int index = a.index();
-                //     // long bytesDone = a.bytesDone();
-                //     // long totalBytes = a.fileSize();
-                //     // int progress = (int) ((bytesDone * 100) / totalBytes);
-                //     // if (progress % 10 == 0 && progress != lastLoggedProgress) {
-                //     // LOG.info("File progress: {}% for file: {} in torrent: {}", progress,
-                //     // a.handle().status().fileName(index), a.handle().getName());
-                //     // lastLoggedProgress = progress;
-                //     // }
-                //     break;
+                // org.libtorrent4j.alerts.FileProgressAlert a =
+                // (org.libtorrent4j.alerts.FileProgressAlert) alert;
+                // long[] files = a.getFiles();
+                // // a.handle().torrentFile().files().filePath();
+                // // int index = a.index();
+                // // long bytesDone = a.bytesDone();
+                // // long totalBytes = a.fileSize();
+                // // int progress = (int) ((bytesDone * 100) / totalBytes);
+                // // if (progress % 10 == 0 && progress != lastLoggedProgress) {
+                // // LOG.info("File progress: {}% for file: {} in torrent: {}", progress,
+                // // a.handle().status().fileName(index), a.handle().getName());
+                // // lastLoggedProgress = progress;
+                // // }
+                // break;
                 // }
                 case FILE_COMPLETED: {
                     org.libtorrent4j.alerts.FileCompletedAlert a = (org.libtorrent4j.alerts.FileCompletedAlert) alert;

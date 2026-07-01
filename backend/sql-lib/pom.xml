@@ -30,5 +30,6 @@
             <artifactId>classgraph</artifactId>
             <version>4.8.184</version>
         </dependency>
+
     </dependencies>
 </project>

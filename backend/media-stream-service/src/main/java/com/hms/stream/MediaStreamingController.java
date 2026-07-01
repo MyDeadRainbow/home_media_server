@@ -67,17 +67,4 @@ public class MediaStreamingController {
         return mediaStreamingService.file(storageId);
     }
 
-    @GetMapping("/testKafka")
-    public String testKafka(@RequestParam String param) {
-        CatalogUpdate update = new CatalogUpdate(
-                java.util.UUID.randomUUID().toString(),
-                CatalogUpdateType.CREATED,
-                param,
-                null,
-                null,
-                null);
-        CatalogUpdateProducer.postMessage(update);
-        return "Message sent";
-    }
-
 }

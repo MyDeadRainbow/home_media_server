@@ -9,80 +9,160 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.hms.shared.media.Episode;
+import com.hms.shared.media.MediaItem;
 import com.hms.shared.media.MediaCategory;
+import com.hms.shared.media.Movie;
+import com.hms.shared.media.Season;
+import com.hms.shared.media.Series;
+import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.metadata.MetaDataStatus;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.datamining.DataMineRequest;
-import com.hms.shared.messaging.metadata.MetaData;
+// import com.hms.shared.messaging.metadata.MetaData;
 import com.hms.shared.messaging.mediaupdates.MediaUpdate;
 import com.hms.shared.messaging.mediaupdates.MediaUpdateType;
 
 public class JsonSerializableTest {
 
+    private <T> void assertJsonRoundTrip(T original, Class<T> clazz) {
+        String json = assertDoesNotThrow(() -> ((JsonSerializable<?>) original).toJson().toString());
+        T deserialized = assertDoesNotThrow(() -> JsonSerializable.fromJson(json, clazz));
+        assertEquals(original, deserialized, "Deserialized object does not match the original");
+    }
+
+    private MetaData createMetaData(String idSuffix, String title) {
+        return new MetaData(
+                "meta-" + idSuffix,
+                title,
+                "Plot for " + title,
+                LocalDate.of(2024, 1, 10),
+                8.4f,
+                MetaDataStatus.COMPLETE,
+                "metadata ready");
+    }
+
+    private MediaItem createMediaItem(String idSuffix) {
+        return new MediaItem("media-" + idSuffix, "/library/" + idSuffix + ".mp4");
+    }
+
+    private Episode createEpisode() {
+        return new Episode(
+                "episode-1",
+                "season-1",
+                "series-1",
+                1,
+                createMediaItem("episode-1"),
+                createMetaData("episode-1", "Pilot"));
+    }
+
+    private Season createSeason() {
+        return new Season(
+                "season-1",
+                "series-1",
+                1,
+                createMetaData("season-1", "Season 1"),
+                List.of(createEpisode()));
+    }
+
+    private Series createSeries() {
+        return new Series(
+                "series-1",
+                createMetaData("series-1", "Example Series"),
+                List.of(createSeason()));
+    }
+
     @Test
     @DisplayName("Test serialization and deserialization of a CatalogUpdate object")
     public void testCatalogUpdateSerializable() {
         // Test serialization and deserialization of a CatalogUpdate object
-        CatalogUpdate original = new CatalogUpdate("media123", CatalogUpdateType.CREATED, "Test Title",
-                MediaCategory.MOVIE, 2023, "Test Description");
+        CatalogUpdate original = new CatalogUpdate(CatalogUpdateType.CREATED, MediaCategory.MOVIE,
+                List.of(new com.hms.shared.messaging.catalogupdates.FilePathRecord("media123", "/path/to/file")));
         String json = assertDoesNotThrow(() -> original.toJson().toString());
 
         CatalogUpdate deserialized = assertDoesNotThrow(() -> JsonSerializable.fromJson(json, CatalogUpdate.class));
         assertEquals(original, deserialized, "Deserialized object does not match the original");
     }
 
-    @Test
-    @DisplayName("Test serialization and deserialization of a MetaData.Episode object")
-    public void testMetaDataEpisodeSerializable() {
-        // Test serialization and deserialization of a MetaData.Episode object
-        MetaData.Episode original = new MetaData.Episode("media123", "Test Title", "Test summary", LocalDate.now(),
-                6.5f);
-        String json = assertDoesNotThrow(() -> original.toJson().toString());
+    // @Test
+    // @DisplayName("Test serialization and deserialization of a MetaData.Episode
+    // object")
+    // public void testMetaDataEpisodeSerializable() {
+    // // Test serialization and deserialization of a MetaData.Episode object
+    // MetaData.Episode original = new MetaData.Episode("media123", "Test Title",
+    // "Test summary", LocalDate.now(),
+    // 6.5f, new MetaData.Base(MetaData.Status.SUCCESS, "Episode metadata retrieved
+    // successfully"));
+    // String json = assertDoesNotThrow(() -> original.toJson().toString());
 
-        MetaData.Episode deserialized = assertDoesNotThrow(
-                () -> JsonSerializable.fromJson(json, MetaData.Episode.class));
-        assertEquals(original, deserialized, "Deserialized object does not match the original");
-    }
+    // MetaData.Episode deserialized = assertDoesNotThrow(
+    // () -> JsonSerializable.fromJson(json, MetaData.Episode.class));
+    // assertEquals(original, deserialized, "Deserialized object does not match the
+    // original");
+    // }
 
-    @Test
-    @DisplayName("Test serialization and deserialization of a MetaData.Episode object with null value")
-    public void testMetaDataEpisodeSerializableWithNullValue() {
-        // Test serialization and deserialization of a MetaData.Episode object with null
-        // value
-        MetaData.Episode original = new MetaData.Episode("media123", "Test Title", "Test summary", null, 6.5f);
-        String json = assertDoesNotThrow(() -> original.toJson().toString());
+    // @Test
+    // @DisplayName("Test serialization and deserialization of a MetaData.Episode
+    // object with null value")
+    // public void testMetaDataEpisodeSerializableWithNullValue() {
+    // // Test serialization and deserialization of a MetaData.Episode object with
+    // null
+    // // value
+    // MetaData.Episode original = new MetaData.Episode("media123", "Test Title",
+    // "Test summary", null, 6.5f,
+    // new MetaData.Base(MetaData.Status.SUCCESS, "Episode metadata retrieved
+    // successfully"));
+    // String json = assertDoesNotThrow(() -> original.toJson().toString());
 
-        MetaData.Episode deserialized = assertDoesNotThrow(
-                () -> JsonSerializable.fromJson(json, MetaData.Episode.class));
-        assertEquals(original, deserialized, "Deserialized object does not match the original");
-    }
+    // MetaData.Episode deserialized = assertDoesNotThrow(
+    // () -> JsonSerializable.fromJson(json, MetaData.Episode.class));
+    // assertEquals(original, deserialized, "Deserialized object does not match the
+    // original");
+    // }
 
-    @Test
-    @DisplayName("Test serialization and deserialization of a MetaData.Movie object")
-    public void testMetaDataMovieSerializable() {
-        // Test serialization and deserialization of a MetaData.Movie object
-        MetaData.Movie original = new MetaData.Movie("movie123", "Movie Title", "Movie summary", LocalDate.now(), 8.2f);
-        String json = assertDoesNotThrow(() -> original.toJson().toString());
+    // @Test
+    // @DisplayName("Test serialization and deserialization of a MetaData.Movie
+    // object")
+    // public void testMetaDataMovieSerializable() {
+    // // Test serialization and deserialization of a MetaData.Movie object
+    // MetaData.Movie original = new MetaData.Movie("movie123", "Movie Title",
+    // "Movie summary", LocalDate.now(), 8.2f,
+    // new MetaData.Base(MetaData.Status.SUCCESS, "Movie metadata retrieved
+    // successfully"));
+    // String json = assertDoesNotThrow(() -> original.toJson().toString());
 
-        MetaData.Movie deserialized = assertDoesNotThrow(() -> JsonSerializable.fromJson(json, MetaData.Movie.class));
-        assertEquals(original, deserialized, "Deserialized object does not match the original");
-    }
+    // MetaData.Movie deserialized = assertDoesNotThrow(() ->
+    // JsonSerializable.fromJson(json, MetaData.Movie.class));
+    // assertEquals(original, deserialized, "Deserialized object does not match the
+    // original");
+    // }
 
-    @Test
-    @DisplayName("Test serialization and deserialization of a MetaData.Series object")
-    public void testMetaDataSeriesSerializable() {
-        // Test serialization and deserialization of a MetaData.Series object
-        MetaData.Series original = new MetaData.Series("series123", "Series Title", "Series summary", LocalDate.now(),
-                7.8f, List.of(
-                        new MetaData.Season("series123", 1, List.of(
+    // @Test
+    // @DisplayName("Test serialization and deserialization of a MetaData.Series
+    // object")
+    // public void testMetaDataSeriesSerializable() {
+    // // Test serialization and deserialization of a MetaData.Series object
+    // MetaData.Series original = new MetaData.Series("series123", "Series Title",
+    // "Series summary", LocalDate.now(),
+    // 7.8f, List.of(
+    // new MetaData.Season("series123", 1, List.of(
+    // new MetaData.Episode("episode123", "Episode Title", "Episode summary",
+    // LocalDate.now(),
+    // 7.5f,
+    // new MetaData.Base(MetaData.Status.SUCCESS,
+    // "Episode metadata retrieved successfully"))),
+    // new MetaData.Base(MetaData.Status.SUCCESS, "Season metadata retrieved
+    // successfully"))),
+    // new MetaData.Base(MetaData.Status.SUCCESS, "Series metadata retrieved
+    // successfully"));
+    // String json = assertDoesNotThrow(() -> original.toJson().toString());
 
-                                new MetaData.Episode("episode123", "Episode Title", "Episode summary", LocalDate.now(),
-                                        7.5f)))));
-        String json = assertDoesNotThrow(() -> original.toJson().toString());
-
-        MetaData.Series deserialized = assertDoesNotThrow(() -> JsonSerializable.fromJson(json, MetaData.Series.class));
-        assertEquals(original, deserialized, "Deserialized object does not match the original");
-    }
+    // MetaData.Series deserialized = assertDoesNotThrow(() ->
+    // JsonSerializable.fromJson(json, MetaData.Series.class));
+    // assertEquals(original, deserialized, "Deserialized object does not match the
+    // original");
+    // }
 
     @Test
     @DisplayName("Test serialization and deserialization of a MediaUpdate object")
@@ -133,6 +213,46 @@ public class JsonSerializableTest {
         DataMineRequest.Episode deserialized = assertDoesNotThrow(
                 () -> JsonSerializable.fromJson(json, DataMineRequest.Episode.class));
         assertEquals(original, deserialized, "Deserialized object does not match the original");
+    }
+
+    @Test
+    @DisplayName("Test serialization and deserialization of a MediaItem object")
+    public void testMediaItemSerializable() {
+        assertJsonRoundTrip(createMediaItem("movie-1"), MediaItem.class);
+    }
+
+    @Test
+    @DisplayName("Test serialization and deserialization of a MetaData object")
+    public void testMetaDataSerializable() {
+        assertJsonRoundTrip(createMetaData("movie-1", "Example Movie"), MetaData.class);
+    }
+
+    @Test
+    @DisplayName("Test serialization and deserialization of a Movie object")
+    public void testMovieSerializable() {
+        Movie original = new Movie(
+                "movie-1",
+                createMediaItem("movie-1"),
+                createMetaData("movie-1", "Example Movie"));
+        assertJsonRoundTrip(original, Movie.class);
+    }
+
+    @Test
+    @DisplayName("Test serialization and deserialization of an Episode object")
+    public void testEpisodeSerializable() {
+        assertJsonRoundTrip(createEpisode(), Episode.class);
+    }
+
+    @Test
+    @DisplayName("Test serialization and deserialization of a Season object")
+    public void testSeasonSerializable() {
+        assertJsonRoundTrip(createSeason(), Season.class);
+    }
+
+    @Test
+    @DisplayName("Test serialization and deserialization of a Series object")
+    public void testSeriesSerializable() {
+        assertJsonRoundTrip(createSeries(), Series.class);
     }
 
 }

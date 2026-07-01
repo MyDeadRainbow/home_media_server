@@ -1,4 +1,4 @@
-package com.hms.catalog.media.rest;
+package com.hms.catalog.media;
 
 import java.util.List;
 
@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hms.catalog.MediaItem;
-import com.hms.catalog.media.MediaInfo;
-import com.hms.catalog.media.Season;
-import com.hms.catalog.media.Series;
 import com.hms.shared.media.MediaCategory;
+import com.hms.shared.media.MediaInfo;
+import com.hms.shared.media.Season;
+import com.hms.shared.media.Series;
 
 import jakarta.validation.Valid;
 
