@@ -99,11 +99,13 @@
 
         
         <div v-else-if="libraryScreen === 'home'" class="library-sections">
+          <h3>Search Library</h3>
           <div class="search-row">
             <input v-model="query" placeholder="Search media library" @keyup.enter="runLibrarySearch" />
             <button @click="runLibrarySearch">Search</button>
           </div>
 
+          <h3>Upload to Library</h3>
           <div class="upload-grid">
             <input v-model="uploadRequest.title" placeholder="Upload title" />
             <select v-model="uploadRequest.type">
