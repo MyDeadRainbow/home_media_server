@@ -1,5 +1,7 @@
 package com.hms.stream;
 
+import java.time.LocalDateTime;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,8 @@ public class TorrentDownloadService {
                 request.title(),
                 ImportMediaStatus.PENDING,
                 request.magnetLink(),
-                new java.sql.Date(System.currentTimeMillis()),
+                LocalDateTime.now(),
+                null,
                 null
             );
 

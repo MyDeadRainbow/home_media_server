@@ -15,8 +15,8 @@ import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
 
 public record MediaInfo(String mediaId, String title, String type, LocalDate releaseDate, String plotSummary,
-        Float rating, String posterUrl, String streamUrl) implements SQLiteRecord {
-            
+        Float rating, String streamUrl) implements SQLiteRecord {
+
     @Override
     public String getPrimaryKeyField() {
         return "mediaId";
@@ -64,18 +64,21 @@ public record MediaInfo(String mediaId, String title, String type, LocalDate rel
         @Override
         public String toCreateTableStatement() {
             return "CREATE VIEW " + getTableName() + " AS "
-                    + "SELECT media_items.mediaId, series.name AS seriesName, seasons.name AS seasonName, seasons.seasonNumber, "
-                    + "episodes.name AS episodeName, episodes.episodeNumber, movies.name AS movieName, media_items.filePath, "
-                    + "metadata.plotSummary, metadata.rating, metadata.releaseDate, "
-                    + "concat_ws('', episodes.name, movies.name) AS name, "
-                    + "concat_ws(' ', series.name, seasons.name, episodes.name, movies.name) AS search "
+                    + "SELECT media_items.mediaId, series_metadata.title AS seriesName, seasons.seasonNumber, "
+                    + "episodes_metadata.title AS episodeName, episodes.episodeNumber, movies_metadata.title AS movieName, media_items.filePath, "
+                    + "base_metadata.plotSummary, base_metadata.rating, base_metadata.airDate, "
+                    + "concat_ws('', episodes_metadata.title, movies_metadata.title) AS name, "
+                    + "concat_ws(' ', series_metadata.title, episodes_metadata.title, movies_metadata.title) AS search "
                     + "FROM media_items "
                     + "LEFT JOIN episodes ON media_items.mediaId = episodes.mediaId "
                     + "LEFT JOIN seasons ON seasons.seasonId = episodes.seasonId "
                     + "LEFT JOIN series ON series.seriesId = episodes.seriesId "
                     + "LEFT JOIN movies ON movies.mediaId = media_items.mediaId "
-                    + "LEFT JOIN metadata ON metadata.metaDataId = episodes.metaDataId "
-                    + "OR metadata.metaDataId = movies.metaDataId OR metadata.metaDataId = series.metaDataId;";
+                    + "LEFT JOIN metadata base_metadata ON base_metadata.metaDataId = series.metaDataId OR base_metadata.metaDataId = seasons.metaDataId OR base_metadata.metaDataId = episodes.metaDataId OR base_metadata.metaDataId = movies.metaDataId "
+                    + "LEFT JOIN metadata series_metadata ON series_metadata.metaDataId = series.metaDataId "
+                    + "LEFT JOIN metadata episodes_metadata ON episodes_metadata.metaDataId = episodes.metaDataId "
+                    + "LEFT JOIN metadata movies_metadata ON movies_metadata.metaDataId = movies.metaDataId"
+                    + "GROUP BY media_items.mediaId";
         }
 
         @Override
@@ -111,14 +114,13 @@ public record MediaInfo(String mediaId, String title, String type, LocalDate rel
                     rs.getString("mediaId"),
                     rs.getString("name"),
                     rs.getString("type"),
-                    rs.getObject("releaseDate") != null
-                            ? rs.getObject("releaseDate", LocalDate.class)
+                    rs.getObject("airDate") != null
+                            ? rs.getObject("airDate", LocalDate.class)
                             : null,
                     rs.getString("plotSummary"),
                     rs.getObject("rating") != null
                             ? rs.getFloat("rating")
                             : null,
-                    rs.getString("posterUrl"),
                     rs.getString("filePath"));
         }
 

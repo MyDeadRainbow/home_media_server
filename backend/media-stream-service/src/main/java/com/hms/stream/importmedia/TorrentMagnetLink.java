@@ -1,5 +1,6 @@
 package com.hms.stream.importmedia;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,10 +26,10 @@ import org.slf4j.LoggerFactory;
 
 import com.hms.dao.DBFileNotFoundException;
 import com.hms.dao.GetConnectionException;
+import com.hms.shared.media.MediaItem;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.catalogupdates.FilePathRecord;
-import com.hms.stream.MediaRecord;
 import com.hms.stream.importmedia.pipeline.ImportMediaHandler;
 import com.hms.stream.messaging.CatalogUpdateProducer;
 
@@ -36,21 +37,21 @@ public class TorrentMagnetLink implements ImportMediaHandler {
     private static final Logger LOG = LoggerFactory.getLogger(TorrentMagnetLink.class);
 
     // private static final Path TORRENT_DOWNLOAD_FOLDER = Path.of("torrents");
-    private final Path moviesRoot = Paths.get("media", "movies");
-    private final Path seriesRoot = Paths.get("media", "series");
-    private static final Path TEMP_FOLDER = Path.of("temp");
+    protected static final Path moviesRoot = Paths.get("media", "movies");
+    protected static final Path seriesRoot = Paths.get("media", "series");
+    protected static final Path TEMP_FOLDER = Path.of("temp");
 
     public TorrentMagnetLink() {
     }
 
     @Override
     public ImportMediaEntry handle(ImportMediaEntry entry) {
-        try {
-            Files.createDirectories(TEMP_FOLDER);
-        } catch (Exception e) {
-            LOG.error("Failed to create torrent directory", e);
-            return entry;
-        }
+        // try {
+        // Files.createDirectories(TEMP_FOLDER);
+        // } catch (Exception e) {
+        // LOG.error("Failed to create torrent directory", e);
+        // return entry;
+        // }
 
         String magnetLink = entry.magnetLink();
         if (magnetLink == null || magnetLink.isEmpty()) {
@@ -63,15 +64,29 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             }
             return entry;
         }
+
+        Path destinationFolder = switch (entry.category()) {
+            case MOVIE -> moviesRoot;
+            case SERIES -> seriesRoot;
+            default -> throw new IllegalArgumentException("Unsupported media category: " + entry.category());
+        };
+
+        File resumeFile = entry.resumeFile() != null ? new File(entry.resumeFile())
+                : destinationFolder.resolve("resume").resolve(entry.id() + ".resume").toFile();
+        entry = entry.withResumeFile(resumeFile.getAbsolutePath());
+        try {
+            new ImportMediaEntry.Dao().update(entry);
+        } catch (SQLException e) {
+            LOG.error("Failed to update entry with resume file path", e);
+        }
         // libtorrent4j does not work in docker container due to missing dependencies.
         // Will need to switch to a different torrent library or implement torrent
         // downloading in a separate service that runs on the host machine and can
         // access the torrent download directory directly.
-        SessionManager s = null;
         final CountDownLatch signal = new CountDownLatch(1);
         final ImportMediaAlertListener listener = new ImportMediaAlertListener(entry, signal);
-        try {
-            s = new SessionManager();
+        try (TorrentSession torrentSession = TorrentSession.getInstance()) {
+            SessionManager s = torrentSession.getSessionManager();
 
             s.addListener(listener);
 
@@ -95,12 +110,6 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                 return entry;
             }
 
-            Path destinationFolder = switch (entry.category()) {
-                case MOVIE -> moviesRoot;
-                case SERIES -> seriesRoot;
-                default -> throw new IllegalArgumentException("Unsupported media category: " + entry.category());
-            };
-
             TorrentInfo info = new TorrentInfo(magnetData);
             FileStorage storage = info.files();
 
@@ -115,11 +124,11 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                         filePath.endsWith(".avi")) {
                     priorities[i] = Priority.DEFAULT;
 
-                    MediaRecord record = new MediaRecord(UUID.randomUUID().toString(),
+                    MediaItem record = new MediaItem(UUID.randomUUID().toString(),
                             destinationFolder.resolve(path).toAbsolutePath().toString());
 
                     try {
-                        new MediaRecord.Dao().insert(record);
+                        new MediaItem.Dao().insert(record);
                     } catch (Exception e) {
                         LOG.error("Failed to insert media record for file: {}", path, e);
                     }
@@ -132,7 +141,7 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             CatalogUpdateProducer.postMessage(new CatalogUpdate(CatalogUpdateType.CREATED,
                     entry.category(), filePathRecords));
 
-            s.download(info, destinationFolder.toFile(), null, priorities, null,
+            s.download(info, destinationFolder.toFile(), resumeFile, priorities, null,
                     TorrentFlags.SEQUENTIAL_DOWNLOAD);
 
             try {
@@ -143,9 +152,6 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             }
 
         } finally {
-            if (s != null) {
-                s.stop();
-            }
             signal.countDown();
         }
         return listener.getUpdatedEntry();
@@ -179,7 +185,13 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             switch (type) {
                 case ADD_TORRENT: {
                     LOG.info("Torrent added");
-                    ((AddTorrentAlert) alert).handle().resume();
+                    updatedEntry = updatedEntry.withStatus(ImportMediaStatus.IN_PROGRESS);
+                    try {
+                        new ImportMediaEntry.Dao().update(updatedEntry);
+                    } catch (SQLException e) {
+                        LOG.error("Failed to update entry status to IN_PROGRESS", e);
+                    }
+                    // ((AddTorrentAlert) alert).handle().resume();
                     break;
                 }
                 case BLOCK_FINISHED: {
@@ -194,10 +206,10 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                 case TORRENT_FINISHED: {
                     LOG.info("Torrent download finished for: {}",
                             ((org.libtorrent4j.alerts.TorrentFinishedAlert) alert).handle().getName());
-                    updatedEntry = entry.withStatus(ImportMediaStatus.TORRENT_DOWNLOADED);
+                    updatedEntry = updatedEntry.withStatus(ImportMediaStatus.TORRENT_DOWNLOADED);
                     try {
                         new ImportMediaEntry.Dao().update(updatedEntry);
-                    } catch (Exception e) {
+                    } catch (SQLException e) {
                         LOG.error("Failed to update entry status to TORRENT_DOWNLOADED", e);
                     }
                     signal.countDown();

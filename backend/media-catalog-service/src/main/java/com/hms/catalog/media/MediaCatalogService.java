@@ -151,8 +151,9 @@ public class MediaCatalogService {
                         episode.metaData().airDate(),
                         episode.metaData().plotSummary(),
                         episode.metaData().rating(),
-                        null,
-                        episode.media().filePath()));
+                        // episode.media().filePath()
+                        "stream/files/" + episode.media().mediaId()
+                    ));
             }
         } catch (SQLException e) {
             // Log the error and fall back to in-memory index
@@ -179,8 +180,9 @@ public class MediaCatalogService {
                         movie.metaData().airDate(),
                         movie.metaData().plotSummary(),
                         movie.metaData().rating(),
-                        null,
-                        movie.mediaItem().filePath()));
+                        // movie.mediaItem().filePath()
+                        "stream/files/" + movie.mediaItem().mediaId()
+                    ));
             }
         } catch (SQLException e) {
             // Log the error and fall back to in-memory index

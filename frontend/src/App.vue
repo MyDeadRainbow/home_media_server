@@ -95,17 +95,16 @@
         <div class="library-header">
           <h2>Media Library</h2>
           <div class="library-breadcrumbs">
-            <button v-if="libraryView === 'seasons'" type="button" class="secondary-button" @click="backToHome">Back to Library</button>
-            <button v-if="libraryView === 'episodes'" type="button" class="secondary-button" @click="backToSeasons">Back to Seasons</button>
+            <button v-if="libraryScreen !== 'home'" type="button" class="secondary-button" @click="backToHome">Back to Library</button>
             <nav class="breadcrumb-path" aria-label="Media library breadcrumb">
               <button type="button" class="breadcrumb-link" @click="backToHome">Library</button>
-              <template v-if="libraryView !== 'home'">
+              <template v-if="libraryScreen === 'series'">
                 <span class="breadcrumb-separator">/</span>
-                <span class="breadcrumb-current">{{ selectedSeries?.name || 'Series' }}</span>
+                <span class="breadcrumb-current">{{ selectedSeries?.title || 'Series' }}</span>
               </template>
-              <template v-if="libraryView === 'episodes'">
+              <template v-if="libraryScreen === 'movie'">
                 <span class="breadcrumb-separator">/</span>
-                <span class="breadcrumb-current">{{ selectedSeasonLabel }}</span>
+                <span class="breadcrumb-current">{{ selectedMovie?.title || 'Movie' }}</span>
               </template>
             </nav>
           </div>
@@ -113,76 +112,147 @@
 
         <p v-if="libraryLoading">Loading library...</p>
 
-        <div v-else-if="libraryView === 'home'" class="library-sections">
+        <div v-else-if="libraryScreen === 'home'" class="library-sections">
           <section class="library-subsection">
             <h3>Series</h3>
             <p v-if="!series.length" class="muted">No series found.</p>
-            <ul v-else class="entity-list">
-              <li v-for="seriesItem in series" :key="seriesItem.seriesId">
-                <button type="button" class="entity-link" @click="openSeries(seriesItem)">
-                  {{ seriesItem.name }}
-                </button>
-              </li>
-            </ul>
+            <div v-else class="cards">
+              <MediaCard
+                v-for="item in series"
+                :key="item.seriesId || item.id"
+                :item="item"
+                action-label="Open Series"
+                @action="openSeries"
+              />
+            </div>
           </section>
 
           <section class="library-subsection">
             <h3>Movies</h3>
             <p v-if="!movies.length" class="muted">No movies found.</p>
             <div v-else class="cards">
-              <MediaCard v-for="item in movies" :key="item.mediaId || item.id" :item="item" @play="startPlayback" />
+              <MediaCard
+                v-for="item in movies"
+                :key="item.mediaId || item.id"
+                :item="item"
+                action-label="Open Movie"
+                @action="openMovie"
+              />
             </div>
           </section>
         </div>
 
-        <div v-else-if="libraryView === 'seasons'">
-          <p v-if="!seasons.length" class="muted">No seasons found for this series.</p>
-          <ul v-else class="entity-list">
-            <li v-for="season in seasons" :key="season.seasonId">
-              <button type="button" class="entity-link" @click="openSeason(season)">
-                {{ season.name || `Season ${season.seasonNumber}` }}
+        <div v-else-if="libraryScreen === 'series'" class="series-detail">
+          <section class="library-subsection">
+            <h3>Series</h3>
+            <MediaCard v-if="selectedSeries" :item="selectedSeries" :show-action="false" />
+          </section>
+
+          <section class="library-subsection">
+            <h3>Seasons</h3>
+            <p v-if="!seasons.length" class="muted">No seasons found for this series.</p>
+            <div v-else class="season-buttons">
+              <button
+                v-for="season in seasons"
+                :key="season.seasonId || season.id"
+                type="button"
+                class="secondary-button"
+                :class="{ 'season-active': selectedSeason?.seasonId === season.seasonId }"
+                @click="openSeason(season)"
+              >
+                {{ season.title || getSeasonDisplayName(season) }}
               </button>
-            </li>
-          </ul>
+            </div>
+          </section>
+
+          <section class="library-subsection">
+            <h3>Episodes</h3>
+            <p v-if="!episodes.length" class="muted">No episodes found for this season.</p>
+            <div v-else class="cards">
+              <MediaCard
+                v-for="item in episodes"
+                :key="item.mediaId || item.id"
+                :item="item"
+                action-label="Stream Episode"
+                @action="startPlayback"
+              />
+            </div>
+          </section>
+
+          <section class="panel player inline-player">
+            <h2>Stream Window</h2>
+            <p v-if="!activeMedia">Select an episode to begin streaming.</p>
+            <div v-else>
+              <h3>{{ activeMedia.title }}</h3>
+              <p class="player-meta">
+                <span v-if="activeMedia.type">Type: {{ activeMedia.type }}</span>
+                <span v-if="activeMedia.releaseDate">Release: {{ formatReleaseDate(activeMedia.releaseDate) }}</span>
+                <span v-if="activeMedia.rating !== null && activeMedia.rating !== undefined">Rating: {{ formatRating(activeMedia.rating) }}</span>
+              </p>
+              <p v-if="activeMedia.plotSummary" class="player-summary">{{ activeMedia.plotSummary }}</p>
+              <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
+                <track
+                  v-for="track in tracks"
+                  :key="track.language"
+                  kind="subtitles"
+                  :label="track.label"
+                  :src="track.url"
+                  :srclang="track.language"
+                  :default="track.language === selectedCaption"
+                />
+              </video>
+              <div class="caption-controls">
+                <label for="caption-select">Closed Captions</label>
+                <select id="caption-select" v-model="selectedCaption" @change="applyCaptionTrack">
+                  <option value="off">Off</option>
+                  <option v-for="track in tracks" :key="track.language" :value="track.language">
+                    {{ track.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </section>
         </div>
 
-        <div v-else class="cards">
-          <p v-if="!episodes.length" class="muted">No episodes found for this season.</p>
-          <MediaCard v-for="item in episodes" v-else :key="item.mediaId || item.id" :item="item" @play="startPlayback" />
-        </div>
-      </section>
+        <div v-else class="movie-detail">
+          <section class="library-subsection">
+            <h3>Movie</h3>
+            <MediaCard v-if="selectedMovie" :item="selectedMovie" action-label="Stream Movie" @action="startPlayback" />
+          </section>
 
-      <section class="panel player">
-        <h2>Stream Window</h2>
-        <p v-if="!activeMedia">Select media to begin streaming.</p>
-        <div v-else>
-          <h3>{{ activeMedia.title }}</h3>
-          <p class="player-meta">
-            <span v-if="activeMedia.type">Type: {{ activeMedia.type }}</span>
-            <span v-if="activeMedia.releaseDate">Release: {{ formatReleaseDate(activeMedia.releaseDate) }}</span>
-            <span v-if="activeMedia.rating !== null && activeMedia.rating !== undefined">Rating: {{ formatRating(activeMedia.rating) }}</span>
-          </p>
-          <p v-if="activeMedia.plotSummary" class="player-summary">{{ activeMedia.plotSummary }}</p>
-          <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
-            <track
-              v-for="track in tracks"
-              :key="track.language"
-              kind="subtitles"
-              :label="track.label"
-              :src="track.url"
-              :srclang="track.language"
-              :default="track.language === selectedCaption"
-            />
-          </video>
-          <div class="caption-controls">
-            <label for="caption-select">Closed Captions</label>
-            <select id="caption-select" v-model="selectedCaption" @change="applyCaptionTrack">
-              <option value="off">Off</option>
-              <option v-for="track in tracks" :key="track.language" :value="track.language">
-                {{ track.label }}
-              </option>
-            </select>
-          </div>
+          <section class="panel player inline-player">
+            <h2>Stream Window</h2>
+            <p v-if="!activeMedia">Select this movie to begin streaming.</p>
+            <div v-else>
+              <h3>{{ activeMedia.title }}</h3>
+              <p class="player-meta">
+                <span v-if="activeMedia.type">Type: {{ activeMedia.type }}</span>
+                <span v-if="activeMedia.releaseDate">Release: {{ formatReleaseDate(activeMedia.releaseDate) }}</span>
+                <span v-if="activeMedia.rating !== null && activeMedia.rating !== undefined">Rating: {{ formatRating(activeMedia.rating) }}</span>
+              </p>
+              <p v-if="activeMedia.plotSummary" class="player-summary">{{ activeMedia.plotSummary }}</p>
+              <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
+                <track
+                  v-for="track in tracks"
+                  :key="track.language"
+                  kind="subtitles"
+                  :label="track.label"
+                  :src="track.url"
+                  :srclang="track.language"
+                  :default="track.language === selectedCaption"
+                />
+              </video>
+              <div class="caption-controls">
+                <label for="caption-select">Closed Captions</label>
+                <select id="caption-select" v-model="selectedCaption" @change="applyCaptionTrack">
+                  <option value="off">Off</option>
+                  <option v-for="track in tracks" :key="track.language" :value="track.language">
+                    {{ track.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </section>
         </div>
       </section>
     </main>
@@ -210,10 +280,11 @@ const series = ref([])
 const seasons = ref([])
 const episodes = ref([])
 const query = ref('')
-const libraryView = ref('home')
+const libraryScreen = ref('home')
 const libraryLoading = ref(false)
 const selectedSeries = ref(null)
 const selectedSeason = ref(null)
+const selectedMovie = ref(null)
 const activeMedia = ref(null)
 const manifest = ref(null)
 const tracks = ref([])
@@ -301,25 +372,94 @@ const groupedAcquisitionResults = computed(() => Object.entries(acquisitionResul
 
 const hasAnyAcquisitionResults = computed(() => groupedAcquisitionResults.value.some((group) => group.results.length > 0))
 
-const selectedSeasonLabel = computed(() => selectedSeason.value?.name
-  || `Season ${selectedSeason.value?.seasonNumber || ''}`.trim()
-  || 'Season')
+function getSeriesDisplayName(seriesItem) {
+  return seriesItem?.metaData?.title
+    || seriesItem?.metadata?.title
+    || seriesItem?.name
+    || 'Series'
+}
+
+function getSeasonDisplayName(season) {
+  return season?.metaData?.title
+    || season?.metadata?.title
+    || season?.name
+    || `Season ${season?.seasonNumber || ''}`.trim()
+    || 'Season'
+}
+
+function pickMetaBlock(item) {
+  return item?.metaData || item?.metadata || item?.meta || {}
+}
+
+function normalizeSeriesItem(item) {
+  const metadata = pickMetaBlock(item)
+  const releaseDate = metadata.firstAirDate || metadata.releaseDate || item.releaseDate || null
+  const numericRating = Number.parseFloat(metadata.rating ?? item.rating)
+
+  return {
+    id: item.id || item.seriesId,
+    mediaId: item.mediaId || item.seriesId || item.id,
+    seriesId: item.seriesId || item.id,
+    type: item.type || 'series',
+    title: metadata.title || item.title || item.name || 'Series',
+    plotSummary: metadata.plotSummary || item.plotSummary || item.description || '',
+    description: metadata.plotSummary || item.plotSummary || item.description || '',
+    releaseDate,
+    year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : 0),
+    rating: Number.isFinite(numericRating) ? numericRating : null,
+    posterUrl: metadata.posterUrl || item.posterUrl || '',
+    streamUrl: item.streamUrl || item.filePath || ''
+  }
+}
+
+function normalizeSeasonItem(item, parentSeries) {
+  const metadata = pickMetaBlock(item)
+  return {
+    ...item,
+    id: item.id || item.seasonId,
+    seasonId: item.seasonId || item.id,
+    seriesId: item.seriesId || parentSeries?.seriesId,
+    type: 'season',
+    title: metadata.title || item.title || item.name || getSeasonDisplayName(item),
+    plotSummary: metadata.plotSummary || item.plotSummary || '',
+    description: metadata.plotSummary || item.plotSummary || '',
+    seasonName: metadata.title || item.name || getSeasonDisplayName(item),
+    seasonNumber: item.seasonNumber,
+    releaseDate: metadata.releaseDate || metadata.firstAirDate || item.releaseDate || null,
+    rating: Number.isFinite(Number.parseFloat(metadata.rating ?? item.rating))
+      ? Number.parseFloat(metadata.rating ?? item.rating)
+      : null,
+    posterUrl: metadata.posterUrl || item.posterUrl || '',
+    streamUrl: item.streamUrl || item.filePath || ''
+  }
+}
 
 function normalizeMediaItem(item, fallbackType) {
-  const releaseDate = item.releaseDate || null
-  const numericRating = Number.parseFloat(item.rating)
+  const metadata = pickMetaBlock(item)
+  const releaseDate = metadata.releaseDate
+    || metadata.airDate
+    || metadata.firstAirDate
+    || item.releaseDate
+    || null
+  const numericRating = Number.parseFloat(metadata.rating ?? item.rating)
 
   return {
     mediaId: item.mediaId || item.id,
     id: item.id || item.mediaId,
-    title: item.title || item.name || 'Untitled',
+    seriesId: item.seriesId || null,
+    seasonId: item.seasonId || null,
+    title: metadata.title || item.title || item.name || 'Untitled',
     type: item.type || fallbackType,
+    seriesName: item.seriesName || item.series || null,
+    seasonName: item.seasonName || null,
+    seasonNumber: item.seasonNumber ?? null,
+    episodeNumber: item.episodeNumber ?? null,
     releaseDate,
     year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : 0),
     rating: Number.isFinite(numericRating) ? numericRating : null,
-    plotSummary: item.plotSummary || item.description || '',
-    description: item.plotSummary || item.description || '',
-    posterUrl: item.posterUrl || '',
+    plotSummary: metadata.plotSummary || item.plotSummary || item.description || '',
+    description: metadata.plotSummary || item.plotSummary || item.description || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || '',
     streamUrl: item.streamUrl || item.filePath || ''
   }
 }
@@ -355,7 +495,8 @@ async function loadLibraryHome() {
       searchCatalogMovies(query.value)
     ])
 
-    series.value = Array.isArray(seriesResults) ? seriesResults : []
+    series.value = (Array.isArray(seriesResults) ? seriesResults : [])
+      .map((item) => normalizeSeriesItem(item))
     movies.value = (Array.isArray(movieResults) ? movieResults : [])
       .map((item) => normalizeMediaItem(item, 'movie'))
   } catch (err) {
@@ -376,8 +517,15 @@ async function loadSeriesSeasons() {
   try {
     const result = await searchCatalogSeasons(selectedSeries.value.seriesId, query.value)
     seasons.value = Array.isArray(result)
-      ? [...result].sort((left, right) => (left.seasonNumber || 0) - (right.seasonNumber || 0))
+      ? [...result]
+        .map((season) => normalizeSeasonItem(season, selectedSeries.value))
+        .sort((left, right) => (left.seasonNumber || 0) - (right.seasonNumber || 0))
       : []
+
+    if (!selectedSeason.value && seasons.value.length) {
+      selectedSeason.value = seasons.value[0]
+      await loadSeasonEpisodes()
+    }
   } catch (err) {
     error.value = err.message || 'Failed to load seasons.'
   } finally {
@@ -405,13 +553,20 @@ async function loadSeasonEpisodes() {
 }
 
 async function runLibrarySearch() {
-  if (libraryView.value === 'episodes') {
-    await loadSeasonEpisodes()
+  if (libraryScreen.value === 'series') {
+    await loadSeriesSeasons()
+    if (selectedSeason.value) {
+      await loadSeasonEpisodes()
+    }
     return
   }
 
-  if (libraryView.value === 'seasons') {
-    await loadSeriesSeasons()
+  if (libraryScreen.value === 'movie') {
+    await loadLibraryHome()
+    if (selectedMovie.value) {
+      const refreshed = movies.value.find((item) => item.mediaId === selectedMovie.value.mediaId)
+      selectedMovie.value = refreshed || selectedMovie.value
+    }
     return
   }
 
@@ -419,33 +574,46 @@ async function runLibrarySearch() {
 }
 
 async function openSeries(seriesItem) {
-  selectedSeries.value = seriesItem
+  selectedSeries.value = normalizeSeriesItem(seriesItem)
   selectedSeason.value = null
+  selectedMovie.value = null
   seasons.value = []
   episodes.value = []
-  libraryView.value = 'seasons'
+  activeMedia.value = null
+  manifest.value = null
+  tracks.value = []
+  libraryScreen.value = 'series'
   await loadSeriesSeasons()
 }
 
-async function openSeason(season) {
-  selectedSeason.value = season
-  episodes.value = []
-  libraryView.value = 'episodes'
-  await loadSeasonEpisodes()
-}
-
-function backToHome() {
-  libraryView.value = 'home'
+function openMovie(movieItem) {
+  selectedMovie.value = normalizeMediaItem(movieItem, 'movie')
   selectedSeries.value = null
   selectedSeason.value = null
   seasons.value = []
   episodes.value = []
+  activeMedia.value = null
+  manifest.value = null
+  tracks.value = []
+  libraryScreen.value = 'movie'
 }
 
-function backToSeasons() {
-  libraryView.value = 'seasons'
-  selectedSeason.value = null
+async function openSeason(season) {
+  selectedSeason.value = normalizeSeasonItem(season, selectedSeries.value)
   episodes.value = []
+  await loadSeasonEpisodes()
+}
+
+function backToHome() {
+  libraryScreen.value = 'home'
+  selectedSeries.value = null
+  selectedSeason.value = null
+  selectedMovie.value = null
+  seasons.value = []
+  episodes.value = []
+  activeMedia.value = null
+  manifest.value = null
+  tracks.value = []
 }
 
 function startAcquisitionSearch() {

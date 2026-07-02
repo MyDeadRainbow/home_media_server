@@ -85,7 +85,7 @@ public class SeriesParser {
                     seriesMap.put(series.seriesId(), series);
                 }
 
-                MediaItem mediaItem = MediaItem.create(string);
+                MediaItem mediaItem = new MediaItem(entry.mediaId(), string);
 
                 Episode episode = Episode.create(season.seasonId(), series.seriesId(), episodeNumber, mediaItem,
                         MetaData.create(episodeName, null, null, null, MetaDataStatus.PENDING, null));

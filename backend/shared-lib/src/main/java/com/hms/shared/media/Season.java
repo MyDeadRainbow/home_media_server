@@ -114,6 +114,7 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
 
         @Override
         public void insert(Season record) throws SQLException {
+            new MetaData.Dao().insert(record.metaData());
             super.insert(record);
             for (Episode episode : record.episodes()) {
                 new Episode.Dao().insert(episode);
@@ -129,6 +130,7 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
 
         @Override
         public void update(Season record) throws SQLException {
+            new MetaData.Dao().update(record.metaData());
             super.update(record);
             for (Episode episode : record.episodes()) {
                 new Episode.Dao().update(episode);
@@ -147,6 +149,7 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
             for (Episode episode : record.episodes()) {
                 new Episode.Dao().delete(episode);
             }
+            new MetaData.Dao().delete(record.metaData());
             super.delete(record);
         }
 

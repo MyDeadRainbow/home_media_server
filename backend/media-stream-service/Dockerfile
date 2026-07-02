@@ -1,4 +1,4 @@
-ARG LIBTORRENT4J_VERSION=2.0.6-26
+ARG LIBTORRENT4J_VERSION=2.1.0-39
 
 FROM maven:3-eclipse-temurin-25-alpine AS build
 WORKDIR /workspace

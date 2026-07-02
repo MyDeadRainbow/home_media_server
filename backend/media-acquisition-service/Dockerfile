@@ -60,5 +60,5 @@ ENV DISPLAY=:99
 COPY --from=build /workspace/media-acquisition-service/target/media-acquisition-service-0.1.0.jar app.jar
 EXPOSE 8082
 
-ENTRYPOINT ["xvfb-run", "java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]
-# ENTRYPOINT ["java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]
+# ENTRYPOINT ["xvfb-run", "java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-Djava.library.path=/app/lib", "-jar", "/app/app.jar"]

@@ -2,7 +2,7 @@ package com.hms.shared.media.serialize;
 
 import org.apache.kafka.common.serialization.Deserializer;
 
-import com.hms.annotated.sql.media.Series;
+import com.hms.shared.media.Series;
 import com.hms.shared.messaging.DeserializeJsonException;
 import com.hms.shared.messaging.JsonSerializable;
 

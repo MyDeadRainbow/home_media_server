@@ -65,12 +65,12 @@ public interface JsonSerializable<T> {
         return json;
     }
 
-    public static <T> T fromJson(String json, Class<T> clazz) throws DeserializeJsonException {
+    public static <T extends JsonSerializable<?>> T fromJson(String json, Class<T> clazz) throws DeserializeJsonException {
         JsonObject jsonObject = JsonParser.parseString(json).getAsJsonObject();
         return fromJsonObject(jsonObject, clazz);
     }
 
-    public static <T> T fromJsonObject(JsonObject json, Class<T> clazz) throws DeserializeJsonException {
+    public static <T extends JsonSerializable<?>> T fromJsonObject(JsonObject json, Class<T> clazz) throws DeserializeJsonException {
         // use reflection to find a constructor that matches the fields in the JSON
         var constructors = clazz.getConstructors();
         for (var constructor : constructors) {

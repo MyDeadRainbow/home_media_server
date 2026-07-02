@@ -15,7 +15,7 @@
     <name>media-stream-service</name>
 
     <properties>
-        <libtorrent4j.version>2.0.6-26</libtorrent4j.version>
+        <libtorrent4j.version>2.1.0-39</libtorrent4j.version>
     </properties>
 
     <dependencies>

@@ -34,6 +34,12 @@ public class MetaDataConsumer {
 
     @KafkaListener(topics = Topics.METADATA_MOVIE, groupId = GROUP_ID, containerFactory = "movieKafkaListenerContainerFactory", autoStartup = "true")
     public void listenMovie(Movie message) {
+        try {
+            new Movie.Dao().update(message);
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         // switch (message) {
         //     case MetaData.Episode episode -> handleEpisodeMetaData(episode);
         //     case MetaData.Movie movie -> handleMovieMetaData(movie);
@@ -45,6 +51,12 @@ public class MetaDataConsumer {
 
     @KafkaListener(topics = Topics.METADATA_SERIES, groupId = GROUP_ID, containerFactory = "seriesKafkaListenerContainerFactory", autoStartup = "true")
     public void listenSeries(Series message) {
+        try {
+            new Series.Dao().update(message);
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         // switch (message) {
         //     case MetaData.Episode episode -> handleEpisodeMetaData(episode);
         //     case MetaData.Movie movie -> handleMovieMetaData(movie);

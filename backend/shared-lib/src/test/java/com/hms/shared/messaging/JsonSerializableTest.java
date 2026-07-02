@@ -26,7 +26,7 @@ import com.hms.shared.messaging.mediaupdates.MediaUpdateType;
 
 public class JsonSerializableTest {
 
-    private <T> void assertJsonRoundTrip(T original, Class<T> clazz) {
+    private <T extends JsonSerializable<?>> void assertJsonRoundTrip(T original, Class<T> clazz) {
         String json = assertDoesNotThrow(() -> ((JsonSerializable<?>) original).toJson().toString());
         T deserialized = assertDoesNotThrow(() -> JsonSerializable.fromJson(json, clazz));
         assertEquals(original, deserialized, "Deserialized object does not match the original");

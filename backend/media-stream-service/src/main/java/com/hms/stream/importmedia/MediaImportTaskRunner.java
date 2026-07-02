@@ -40,6 +40,19 @@ public class MediaImportTaskRunner implements Runnable {
         scheduler = new ThreadPoolTaskScheduler();
         scheduler.initialize();
         scheduler.scheduleAtFixedRate(this, Duration.ofSeconds(1));
+        init();
+    }
+
+    private void init() {
+        try {
+            var dao = new ImportMediaEntry.Dao();
+            dao.select(Map.of("status", ImportMediaStatus.IN_PROGRESS.name()))
+                    .stream()
+                    .sorted((e1, e2) -> e1.createdAt().compareTo(e2.createdAt()))
+                    .forEach(this::addProcessingTask);
+        } catch (SQLException e) {
+            LOG.error("Error while processing media import tasks", e);
+        }
     }
 
     @Override
@@ -48,9 +61,9 @@ public class MediaImportTaskRunner implements Runnable {
             var dao = new ImportMediaEntry.Dao();
             dao.select(Map.of("status", ImportMediaStatus.PENDING.name()))
                     .stream()
+                    .filter(e -> !taskMap.containsKey(e.id()))
                     .sorted((e1, e2) -> e1.createdAt().compareTo(e2.createdAt()))
-                    .findFirst()
-                    .ifPresent(this::addProcessingTask);
+                    .forEach(this::addProcessingTask);
         } catch (SQLException e) {
             LOG.error("Error while processing media import tasks", e);
         }
@@ -88,11 +101,11 @@ public class MediaImportTaskRunner implements Runnable {
     private void processImport(ImportMediaEntry entry) {
         var dao = new ImportMediaEntry.Dao();
         ImportMediaPipeline pipeline = ImportMediaPipeline.builder()
-                .addHandler((e) -> {
-                    ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.IN_PROGRESS);
-                    dao.update(updatedEntry);
-                    return updatedEntry;
-                })
+                // .addHandler((e) -> {
+                //     ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.IN_PROGRESS);
+                //     dao.update(updatedEntry);
+                //     return updatedEntry;
+                // })
                 .addHandler(new TorrentMagnetLink())
                 .addHandler((e) -> {
                     ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.COMPLETED);
@@ -112,4 +125,42 @@ public class MediaImportTaskRunner implements Runnable {
 
         ImportMediaEntry updatedEntry = pipeline.handle(entry);
     }
+
+    // private void addResumeTask(ImportMediaEntry entry) {
+    //     if (taskMap.containsKey(entry.id())) {
+    //         LOG.info("Task for entry {} is already running. Skipping.", entry.id());
+    //         return;
+    //     }
+    //     Runnable task = () -> {
+    //         try {
+    //             processImport(entry);
+    //         } finally {
+    //             taskMap.remove(entry.id());
+    //         }
+    //     };
+    //     taskMap.put(entry.id(), task);
+    // }
+
+    // private void processResume(ImportMediaEntry entry) {
+    //     var dao = new ImportMediaEntry.Dao();
+    //     ImportMediaPipeline pipeline = ImportMediaPipeline.builder()
+    //             .addHandler(new TorrentMagnetLink())
+    //             .addHandler((e) -> {
+    //                 ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.COMPLETED);
+    //                 dao.update(updatedEntry);
+    //                 return updatedEntry;
+    //             })
+    //             .onError((ent, ex) -> {
+    //                 LOG.error("Error processing media import for entry: " + ent.id(), ex);
+    //                 ImportMediaEntry updatedEntry = ent.withStatus(ImportMediaStatus.FAILED);
+    //                 try {
+    //                     dao.update(updatedEntry);
+    //                 } catch (SQLException e1) {
+    //                     LOG.error("Failed to update media import status to FAILED", e1);
+    //                 }
+    //             })
+    //             .build();
+
+    //     ImportMediaEntry updatedEntry = pipeline.handle(entry);
+    // }
 }

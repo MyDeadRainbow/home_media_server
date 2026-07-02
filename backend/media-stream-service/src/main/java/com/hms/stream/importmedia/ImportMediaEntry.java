@@ -3,6 +3,7 @@ package com.hms.stream.importmedia;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import com.google.common.base.Preconditions;
@@ -12,22 +13,27 @@ import com.hms.dao.SQLiteRecordDao;
 import com.hms.shared.media.MediaCategory;
 
 public record ImportMediaEntry(String id, MediaCategory category, String title, ImportMediaStatus status,
-        String magnetLink, Date createdAt, String torrentFolderPath)
+        String magnetLink, LocalDateTime createdAt, String torrentFolderPath, String resumeFile)
         implements SQLiteRecord {
 
     ImportMediaEntry withStatus(ImportMediaStatus newStatus) {
         return new ImportMediaEntry(this.id, this.category, this.title, newStatus, this.magnetLink, this.createdAt,
-                this.torrentFolderPath);
+                this.torrentFolderPath, this.resumeFile);
     }
 
     ImportMediaEntry withMagnetLink(String newMagnetLink) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, newMagnetLink, this.createdAt,
-                this.torrentFolderPath);
+                this.torrentFolderPath, this.resumeFile);
     }
 
     ImportMediaEntry withTorrentFolderPath(String newTorrentFolderPath) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                newTorrentFolderPath);
+                newTorrentFolderPath, this.resumeFile);
+    }
+
+    ImportMediaEntry withResumeFile(String newResumeFile) {
+        return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
+                this.torrentFolderPath, newResumeFile);
     }
 
     @Override
@@ -60,25 +66,26 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
                     + "title TEXT NOT NULL,"
                     + "status TEXT NOT NULL,"
                     + "magnetLink TEXT,"
-                    + "createdAt DATE NOT NULL,"
-                    + "torrentFolderPath TEXT"
+                    + "createdAt TEXT NOT NULL,"
+                    + "torrentFolderPath TEXT,"
+                    + "resumeFile TEXT"
                     + ");";
         }
 
         @Override
         public PreparedStatementValue toInsertStatement(ImportMediaEntry record) {
             return new PreparedStatementValue(
-                    "INSERT INTO import_media_entries (id, category, title, status, magnetLink, createdAt, torrentFolderPath) VALUES (?, ?, ?, ?, ?, ?, ?);",
+                    "INSERT INTO import_media_entries (id, category, title, status, magnetLink, createdAt, torrentFolderPath, resumeFile) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
                     new Object[] { record.id(), record.category(), record.title(), record.status(), record.magnetLink(),
-                            record.createdAt(), record.torrentFolderPath() });
+                            record.createdAt(), record.torrentFolderPath(), record.resumeFile() });
         }
 
         @Override
         public PreparedStatementValue toUpdateStatement(ImportMediaEntry record) {
             return new PreparedStatementValue(
-                    "UPDATE import_media_entries SET category = ?, title = ?, status = ?, magnetLink = ?, createdAt = ?, torrentFolderPath = ? WHERE id = ?;",
+                    "UPDATE import_media_entries SET category = ?, title = ?, status = ?, magnetLink = ?, createdAt = ?, torrentFolderPath = ?, resumeFile = ? WHERE id = ?;",
                     new Object[] { record.category(), record.title(), record.status(), record.magnetLink(),
-                            record.createdAt(), record.torrentFolderPath(), record.id() });
+                            record.createdAt(), record.torrentFolderPath(), record.resumeFile(), record.id() });
         }
 
         @Override
@@ -114,8 +121,9 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
                     rs.getString("title"),
                     ImportMediaStatus.valueOf(rs.getString("status")),
                     rs.getString("magnetLink"),
-                    rs.getDate("createdAt"),
-                    rs.getString("torrentFolderPath")
+                    LocalDateTime.parse(rs.getString("createdAt")),
+                    rs.getString("torrentFolderPath"),
+                    rs.getString("resumeFile")
             );
         }
 

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.hms.shared.media.MediaCategory;
+import com.hms.shared.media.MediaItem;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.catalogupdates.FilePathRecord;
@@ -49,10 +50,10 @@ public class MediaStreamingService {
         // String resolvedPlaybackUrl = playbackUrl == null || playbackUrl.isBlank() ?
         // SAMPLE_PLAYBACK_URL : playbackUrl;
 
-        MediaRecord record;
+        MediaItem record;
 
         try {
-            record = new MediaRecord.Dao().get(mediaId);
+            record = new MediaItem.Dao().get(mediaId);
         } catch (Exception e) {
             // Log the error and fall back to sample playback URL
             System.err.println("Failed to retrieve media record from database: " + e.getMessage());
@@ -102,9 +103,9 @@ public class MediaStreamingService {
             throw new IllegalStateException("Failed to store uploaded file", e);
         }
 
-        MediaRecord record = new MediaRecord(mediaId, destination.toString());
+        MediaItem record = new MediaItem(mediaId, destination.toString());
         try {
-            new MediaRecord.Dao().insert(record);
+            new MediaItem.Dao().insert(record);
 
         } catch (Exception e) {
             destination.toFile().delete(); // Cleanup the stored file if database insert fails
@@ -166,9 +167,9 @@ public class MediaStreamingService {
             throw new IllegalArgumentException("storageId is required");
         }
 
-        MediaRecord record;
+        MediaItem record;
         try {
-            record = new MediaRecord.Dao().get(storageId);
+            record = new MediaItem.Dao().get(storageId);
         } catch (Exception e) {
             // Log the error and fall back to searching the media directories
             System.err.println("Failed to retrieve media record from database: " + e.getMessage());
