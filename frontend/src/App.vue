@@ -6,13 +6,10 @@
     </header>
 
     <section class="panel controls">
-      <div class="search-row">
-        <input v-model="query" placeholder="Search media library" @keyup.enter="runLibrarySearch" />
-        <button @click="runLibrarySearch">Search</button>
+      <div class="controls-header">
+          <h2>Search Torrents</h2>
       </div>
-
       <div ref="acquisitionSearchContainer" class="acquisition-search">
-        <label for="acquisition-search-box">Acquisition Search</label>
         <div class="acquisition-actions">
           <select v-model="acquisitionCategory" aria-label="Select acquisition category">
             <option value="MOVIE">Movies</option>
@@ -73,18 +70,6 @@
         </div>
       </div>
 
-      <div class="upload-grid">
-        <input v-model="uploadRequest.title" placeholder="Upload title" />
-        <select v-model="uploadRequest.type">
-          <option value="movie">Movie</option>
-          <option value="series">Series</option>
-        </select>
-        <input v-model.number="uploadRequest.year" type="number" placeholder="Year" />
-        <input v-model="uploadRequest.description" placeholder="Description" />
-        <input type="file" accept="video/*" @change="onUploadFileSelected" />
-        <button @click="uploadAndCreateMedia">Upload Video + Add Catalog Item</button>
-      </div>
-
       <p v-if="importStatus" class="status">{{ importStatus }}</p>
       <p v-if="uploadStatus" class="status">{{ uploadStatus }}</p>
       <p v-if="error" class="error">{{ error }}</p>
@@ -112,7 +97,25 @@
 
         <p v-if="libraryLoading">Loading library...</p>
 
+        
         <div v-else-if="libraryScreen === 'home'" class="library-sections">
+          <div class="search-row">
+            <input v-model="query" placeholder="Search media library" @keyup.enter="runLibrarySearch" />
+            <button @click="runLibrarySearch">Search</button>
+          </div>
+
+          <div class="upload-grid">
+            <input v-model="uploadRequest.title" placeholder="Upload title" />
+            <select v-model="uploadRequest.type">
+              <option value="movie">Movie</option>
+              <option value="series">Series</option>
+            </select>
+            <input v-model.number="uploadRequest.year" type="number" placeholder="Year" />
+            <input v-model="uploadRequest.description" placeholder="Description" />
+            <input type="file" accept="video/*" @change="onUploadFileSelected" />
+            <button @click="uploadAndCreateMedia">Upload</button>
+          </div>
+
           <section class="library-subsection">
             <h3>Series</h3>
             <p v-if="!series.length" class="muted">No series found.</p>
@@ -190,7 +193,7 @@
                 <span v-if="activeMedia.rating !== null && activeMedia.rating !== undefined">Rating: {{ formatRating(activeMedia.rating) }}</span>
               </p>
               <p v-if="activeMedia.plotSummary" class="player-summary">{{ activeMedia.plotSummary }}</p>
-              <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
+              <video ref="player" controls preload="metadata" :src="resolveMediaUrl(manifest?.playbackUrl || activeMedia.streamUrl)">
                 <track
                   v-for="track in tracks"
                   :key="track.language"
@@ -231,7 +234,7 @@
                 <span v-if="activeMedia.rating !== null && activeMedia.rating !== undefined">Rating: {{ formatRating(activeMedia.rating) }}</span>
               </p>
               <p v-if="activeMedia.plotSummary" class="player-summary">{{ activeMedia.plotSummary }}</p>
-              <video ref="player" controls preload="metadata" :src="`${API_GATEWAY}/${manifest?.playbackUrl || activeMedia.streamUrl}`">
+              <video ref="player" controls preload="metadata" :src="resolveMediaUrl(manifest?.playbackUrl || activeMedia.streamUrl)">
                 <track
                   v-for="track in tracks"
                   :key="track.language"
