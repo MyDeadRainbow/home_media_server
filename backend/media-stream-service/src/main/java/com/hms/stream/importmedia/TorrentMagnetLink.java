@@ -4,17 +4,22 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledFuture;
 
+import org.libtorrent4j.AddTorrentParams;
 import org.libtorrent4j.AlertListener;
 import org.libtorrent4j.FileStorage;
 import org.libtorrent4j.Priority;
 import org.libtorrent4j.SessionManager;
 import org.libtorrent4j.TorrentFlags;
+import org.libtorrent4j.TorrentHandle;
 import org.libtorrent4j.TorrentInfo;
 import org.libtorrent4j.alerts.AddTorrentAlert;
 import org.libtorrent4j.alerts.Alert;
@@ -23,6 +28,7 @@ import org.libtorrent4j.alerts.BlockFinishedAlert;
 import org.libtorrent4j.alerts.TorrentAlert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.hms.dao.DBFileNotFoundException;
 import com.hms.dao.GetConnectionException;
@@ -41,7 +47,13 @@ public class TorrentMagnetLink implements ImportMediaHandler {
     protected static final Path seriesRoot = Paths.get("media", "series");
     protected static final Path TEMP_FOLDER = Path.of("temp");
 
+    private final ThreadPoolTaskScheduler scheduler;
+
     public TorrentMagnetLink() {
+        scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setVirtualThreads(true);
+        scheduler.initialize();
     }
 
     @Override
@@ -71,26 +83,17 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             default -> throw new IllegalArgumentException("Unsupported media category: " + entry.category());
         };
 
-        File resumeFile = entry.resumeFile() != null ? new File(entry.resumeFile())
-                : destinationFolder.resolve("resume").resolve(entry.id() + ".resume").toFile();
-        entry = entry.withResumeFile(resumeFile.getAbsolutePath());
-        try {
-            new ImportMediaEntry.Dao().update(entry);
-        } catch (SQLException e) {
-            LOG.error("Failed to update entry with resume file path", e);
-        }
         // libtorrent4j does not work in docker container due to missing dependencies.
         // Will need to switch to a different torrent library or implement torrent
         // downloading in a separate service that runs on the host machine and can
         // access the torrent download directory directly.
         final CountDownLatch signal = new CountDownLatch(1);
-        final ImportMediaAlertListener listener = new ImportMediaAlertListener(entry, signal);
+
+        
+        ImportMediaAlertListener listener = null;
+        ScheduledFuture<?> saveResumeDataTask = null;
         try (TorrentSession torrentSession = TorrentSession.getInstance()) {
             SessionManager s = torrentSession.getSessionManager();
-
-            s.addListener(listener);
-
-            s.start();
 
             byte[] magnetData = null;
             for (int i = 0; i < 3; i++) {
@@ -110,11 +113,35 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                 return entry;
             }
 
+            File resumeFile = entry.resumeFile() != null ? new File(entry.resumeFile())
+                    : destinationFolder.resolve("resume").resolve(entry.id() + ".resume").toFile();
+            try {
+                Files.createDirectories(resumeFile.getParentFile().toPath());
+                if (!resumeFile.exists()) {
+                    resumeFile.createNewFile();
+                }
+            } catch (Exception e) {
+                LOG.error("Failed to create resume file directory", e);
+            }
+            entry = entry.withResumeFile(resumeFile.getAbsolutePath());
+            try {
+                new ImportMediaEntry.Dao().update(entry);
+            } catch (SQLException e) {
+                LOG.error("Failed to update entry with resume file path", e);
+            }
+
+            // Add an alert listener to handle torrent events after all updates to the entry
+            // have been made to ensure that the entry is in a consistent state before
+            // processing any alerts.
+            listener = new ImportMediaAlertListener(entry, signal);
+            s.addListener(listener);
+
             TorrentInfo info = new TorrentInfo(magnetData);
             FileStorage storage = info.files();
 
             List<FilePathRecord> filePathRecords = new ArrayList<>();
 
+            boolean hasTopPriorityFile = false;
             Priority[] priorities = Priority.array(Priority.IGNORE, info.numFiles());
             for (int i = 0; i < priorities.length; i++) {
                 String filePath = storage.filePath(i);
@@ -122,7 +149,8 @@ public class TorrentMagnetLink implements ImportMediaHandler {
 
                 if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
                         filePath.endsWith(".avi")) {
-                    priorities[i] = Priority.DEFAULT;
+                    priorities[i] = hasTopPriorityFile ? Priority.DEFAULT : Priority.TOP_PRIORITY;
+                    hasTopPriorityFile = true;
 
                     MediaItem record = new MediaItem(UUID.randomUUID().toString(),
                             destinationFolder.resolve(path).toAbsolutePath().toString());
@@ -138,11 +166,18 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                 }
             }
 
-            CatalogUpdateProducer.postMessage(new CatalogUpdate(CatalogUpdateType.CREATED,
-                    entry.category(), filePathRecords));
+            if (entry.status() == ImportMediaStatus.PENDING) {
+                CatalogUpdateProducer.postMessage(new CatalogUpdate(CatalogUpdateType.CREATED,
+                        entry.category(), filePathRecords));
+            }
 
             s.download(info, destinationFolder.toFile(), resumeFile, priorities, null,
                     TorrentFlags.SEQUENTIAL_DOWNLOAD);
+            TorrentHandle handle = s.find(info.infoHash());
+
+            saveResumeDataTask = scheduler.scheduleAtFixedRate(() -> {
+                handle.saveResumeData();
+            }, Duration.ofSeconds(1));
 
             try {
                 signal.await();
@@ -153,8 +188,14 @@ public class TorrentMagnetLink implements ImportMediaHandler {
 
         } finally {
             signal.countDown();
+            if (saveResumeDataTask != null) {
+                saveResumeDataTask.cancel(true);
+            }
+            if (listener != null) {
+                TorrentSession.getInstance().getSessionManager().removeListener(listener);
+            }
         }
-        return listener.getUpdatedEntry();
+        return listener != null ? listener.getUpdatedEntry() : entry;
     }
 
     class ImportMediaAlertListener implements AlertListener {
@@ -176,6 +217,12 @@ public class TorrentMagnetLink implements ImportMediaHandler {
         @Override
         public int[] types() {
             return null; // Listen to all alert types
+        }
+
+        private void updatePriorities(TorrentHandle handle, Priority[] priorities) {
+            for (int i = 0; i < priorities.length; i++) {
+                handle.filePriority(i, priorities[i]);
+            }
         }
 
         @Override
@@ -215,6 +262,18 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                     signal.countDown();
                     break;
                 }
+                case SAVE_RESUME_DATA: {
+                    var a = (org.libtorrent4j.alerts.SaveResumeDataAlert) alert;
+                    byte[] resumeData = AddTorrentParams.writeResumeDataBuf(a.params());
+                    File resumeFile = new File(entry.resumeFile());
+                    try {
+                        Files.write(resumeFile.toPath(), resumeData, StandardOpenOption.CREATE,
+                                StandardOpenOption.TRUNCATE_EXISTING);
+                    } catch (Exception e) {
+                        LOG.error("Failed to write resume data to file: {}", resumeFile.getAbsolutePath(), e);
+                    }
+                    break;
+                }
                 // case FILE_PROGRESS: {
                 // org.libtorrent4j.alerts.FileProgressAlert a =
                 // (org.libtorrent4j.alerts.FileProgressAlert) alert;
@@ -233,9 +292,22 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                 // }
                 case FILE_COMPLETED: {
                     org.libtorrent4j.alerts.FileCompletedAlert a = (org.libtorrent4j.alerts.FileCompletedAlert) alert;
-                    // LOG.info("File completed: {} in torrent: {}",
-                    // a.handle().status().fileName(a.index()),
-                    // a.handle().getName());
+                    int index = a.index();
+                    FileStorage storage = a.handle().torrentFile().files();
+                    Priority[] priorities = Priority.array(Priority.IGNORE, storage.numFiles());
+
+                    for (int i = 0; i < priorities.length; i++) {
+                        String filePath = storage.filePath(i);
+                        if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
+                                filePath.endsWith(".avi")) {
+                            if (index + 1 != i) {
+                                priorities[i] = Priority.DEFAULT;
+                            } else {
+                                priorities[i] = Priority.TOP_PRIORITY;
+                            }
+                        }
+                    }
+                    updatePriorities(a.handle(), priorities);
                     break;
                 }
                 default:

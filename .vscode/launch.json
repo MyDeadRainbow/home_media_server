@@ -168,6 +168,33 @@
             "stopAll": true
         },
         {
+            "name": "Hot-Update Debug Catalog",
+            "preLaunchTask": "Hot Update Backend: Catalog",
+            // "postDebugTask": "Compose Down (Debug)",
+            "configurations": [
+                "Attach Catalog Service (Docker)",
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Hot-Update Debug Acquisition",
+            "preLaunchTask": "Hot Update Backend: Acquisition",
+            // "postDebugTask": "Compose Down (Debug)",
+            "configurations": [
+                "Attach Acquisition Service (Docker)",
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Hot-Update Debug Stream",
+            "preLaunchTask": "Hot Update Backend: Stream",
+            // "postDebugTask": "Compose Down (Debug)",
+            "configurations": [
+                "Attach Stream Service (Docker)",
+            ],
+            "stopAll": true
+        },
+        {
             "name": "Hot-Update Debug Backend (Docker)",
             "preLaunchTask": "Hot Update Backend: All Services",
             // "postDebugTask": "Compose Down (Debug)",
