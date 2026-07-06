@@ -125,42 +125,4 @@ public class MediaImportTaskRunner implements Runnable {
 
         ImportMediaEntry updatedEntry = pipeline.handle(entry);
     }
-
-    // private void addResumeTask(ImportMediaEntry entry) {
-    //     if (taskMap.containsKey(entry.id())) {
-    //         LOG.info("Task for entry {} is already running. Skipping.", entry.id());
-    //         return;
-    //     }
-    //     Runnable task = () -> {
-    //         try {
-    //             processImport(entry);
-    //         } finally {
-    //             taskMap.remove(entry.id());
-    //         }
-    //     };
-    //     taskMap.put(entry.id(), task);
-    // }
-
-    // private void processResume(ImportMediaEntry entry) {
-    //     var dao = new ImportMediaEntry.Dao();
-    //     ImportMediaPipeline pipeline = ImportMediaPipeline.builder()
-    //             .addHandler(new TorrentMagnetLink())
-    //             .addHandler((e) -> {
-    //                 ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.COMPLETED);
-    //                 dao.update(updatedEntry);
-    //                 return updatedEntry;
-    //             })
-    //             .onError((ent, ex) -> {
-    //                 LOG.error("Error processing media import for entry: " + ent.id(), ex);
-    //                 ImportMediaEntry updatedEntry = ent.withStatus(ImportMediaStatus.FAILED);
-    //                 try {
-    //                     dao.update(updatedEntry);
-    //                 } catch (SQLException e1) {
-    //                     LOG.error("Failed to update media import status to FAILED", e1);
-    //                 }
-    //             })
-    //             .build();
-
-    //     ImportMediaEntry updatedEntry = pipeline.handle(entry);
-    // }
 }

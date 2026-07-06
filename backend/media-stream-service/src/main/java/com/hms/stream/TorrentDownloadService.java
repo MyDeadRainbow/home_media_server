@@ -27,6 +27,7 @@ public class TorrentDownloadService {
                 request.magnetLink(),
                 LocalDateTime.now(),
                 null,
+                null,
                 null
             );
 

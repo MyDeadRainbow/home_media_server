@@ -1,9 +1,9 @@
 package com.hms.stream.importmedia;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.libtorrent4j.SessionManager;
+import com.frostwire.jlibtorrent.SessionManager;
+
 
 public class TorrentSession implements AutoCloseable {
     private static final TorrentSession INSTANCE = new TorrentSession();

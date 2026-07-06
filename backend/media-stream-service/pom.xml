@@ -23,7 +23,7 @@
             <groupId>com.hms</groupId>
             <artifactId>shared-lib</artifactId>
         </dependency>
-        
+
         <dependency>
             <groupId>com.hms</groupId>
             <artifactId>sql-lib</artifactId>
@@ -62,17 +62,33 @@
         </dependency>
 
         <!-- Core libtorrent4j wrapper -->
-        <dependency>
+        <!-- <dependency>
             <groupId>org.libtorrent4j</groupId>
             <artifactId>libtorrent4j</artifactId>
             <version>${libtorrent4j.version}</version>
-        </dependency>
+        </dependency> -->
 
         <!-- Native Linux binaries -->
-        <dependency>
+        <!-- <dependency>
             <groupId>org.libtorrent4j</groupId>
             <artifactId>libtorrent4j-linux</artifactId>
             <version>${libtorrent4j.version}</version>
+        </dependency> -->
+
+        <!-- Source: https://mvnrepository.com/artifact/com.frostwire/jlibtorrent -->
+        <dependency>
+            <groupId>com.frostwire</groupId>
+            <artifactId>jlibtorrent</artifactId>
+            <version>1.2.0.18</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- Source: https://mvnrepository.com/artifact/com.frostwire/jlibtorrent-linux -->
+        <dependency>
+            <groupId>com.frostwire</groupId>
+            <artifactId>jlibtorrent-linux</artifactId>
+            <version>1.2.0.18</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
