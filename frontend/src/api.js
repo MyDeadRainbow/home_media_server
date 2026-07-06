@@ -25,6 +25,28 @@ const mockSeries = [
       rating: 7.9,
       posterUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80'
     }
+  },
+  {
+    seriesId: 'series-midnight',
+    type: 'series',
+    metaData: {
+      title: 'Midnight Circuit',
+      plotSummary: 'A high-stakes drama about a team rebuilding a city through code, courage, and impossible deadlines.',
+      releaseDate: '2022-09-08',
+      rating: 8.1,
+      posterUrl: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=800&q=80'
+    }
+  },
+  {
+    seriesId: 'series-lantern',
+    type: 'series',
+    metaData: {
+      title: 'Lantern House',
+      plotSummary: 'A warm mystery about family secrets and the strange lights that guide a small neighborhood home.',
+      releaseDate: '2024-01-12',
+      rating: 7.8,
+      posterUrl: 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=800&q=80'
+    }
   }
 ]
 
@@ -49,6 +71,28 @@ const mockMovies = [
       releaseDate: '2023-11-02',
       rating: 8.2,
       posterUrl: 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=800&q=80'
+    }
+  },
+  {
+    mediaId: 'movie-salt',
+    type: 'movie',
+    metaData: {
+      title: 'Salt and Static',
+      plotSummary: 'A lonely engineer discovers a hidden signal that changes the way she sees her hometown.',
+      releaseDate: '2021-04-17',
+      rating: 7.4,
+      posterUrl: 'https://images.unsplash.com/photo-1517602302552-471fe67acf66?auto=format&fit=crop&w=800&q=80'
+    }
+  },
+  {
+    mediaId: 'movie-ember',
+    type: 'movie',
+    metaData: {
+      title: 'Ember River',
+      plotSummary: 'Two siblings follow a river of light through an abandoned city to find their lost mother.',
+      releaseDate: '2022-12-03',
+      rating: 8.0,
+      posterUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=800&q=80'
     }
   }
 ]
@@ -134,12 +178,84 @@ const mockEpisodes = {
           rating: 8.3,
           posterUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=80'
         }
+      },
+      {
+        mediaId: 'ep-aurora-3',
+        id: 'ep-aurora-3',
+        seriesId: 'series-aurora',
+        seasonId: 'season-1',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season One',
+        seasonNumber: 1,
+        episodeNumber: 3,
+        type: 'episode',
+        metaData: {
+          title: 'Signal Bloom',
+          plotSummary: 'A burst of power reshapes the city and the family’s plans.',
+          releaseDate: '2019-03-29',
+          rating: 8.0,
+          posterUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-4',
+        id: 'ep-aurora-4',
+        seriesId: 'series-aurora',
+        seasonId: 'season-1',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season One',
+        seasonNumber: 1,
+        episodeNumber: 4,
+        type: 'episode',
+        metaData: {
+          title: 'The Quiet Grid',
+          plotSummary: 'The city goes still as a hidden network begins to wake.',
+          releaseDate: '2019-04-05',
+          rating: 8.2,
+          posterUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-5',
+        id: 'ep-aurora-5',
+        seriesId: 'series-aurora',
+        seasonId: 'season-1',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season One',
+        seasonNumber: 1,
+        episodeNumber: 5,
+        type: 'episode',
+        metaData: {
+          title: 'Blackout Parade',
+          plotSummary: 'An annual celebration slips into darkness and reveals old secrets.',
+          releaseDate: '2019-04-12',
+          rating: 8.4,
+          posterUrl: 'https://images.unsplash.com/photo-1517602302552-471fe67acf66?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-6',
+        id: 'ep-aurora-6',
+        seriesId: 'series-aurora',
+        seasonId: 'season-1',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season One',
+        seasonNumber: 1,
+        episodeNumber: 6,
+        type: 'episode',
+        metaData: {
+          title: 'The Last Beacon',
+          plotSummary: 'The family chooses between escape and staying to protect their home.',
+          releaseDate: '2019-04-19',
+          rating: 8.5,
+          posterUrl: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=800&q=80'
+        }
       }
     ],
     'season-2': [
       {
-        mediaId: 'ep-aurora-3',
-        id: 'ep-aurora-3',
+        mediaId: 'ep-aurora-7',
+        id: 'ep-aurora-7',
         seriesId: 'series-aurora',
         seasonId: 'season-2',
         seriesName: 'Aurora Nights',
@@ -153,6 +269,96 @@ const mockEpisodes = {
           releaseDate: '2020-01-09',
           rating: 8.6,
           posterUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-8',
+        id: 'ep-aurora-8',
+        seriesId: 'series-aurora',
+        seasonId: 'season-2',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season Two',
+        seasonNumber: 2,
+        episodeNumber: 2,
+        type: 'episode',
+        metaData: {
+          title: 'Northern Exit',
+          plotSummary: 'The family follows a path north when the city begins to fracture.',
+          releaseDate: '2020-01-16',
+          rating: 8.3,
+          posterUrl: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-9',
+        id: 'ep-aurora-9',
+        seriesId: 'series-aurora',
+        seasonId: 'season-2',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season Two',
+        seasonNumber: 2,
+        episodeNumber: 3,
+        type: 'episode',
+        metaData: {
+          title: 'The River of Stars',
+          plotSummary: 'A river of light reveals a forgotten route beneath the ice.',
+          releaseDate: '2020-01-23',
+          rating: 8.7,
+          posterUrl: 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-10',
+        id: 'ep-aurora-10',
+        seriesId: 'series-aurora',
+        seasonId: 'season-2',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season Two',
+        seasonNumber: 2,
+        episodeNumber: 4,
+        type: 'episode',
+        metaData: {
+          title: 'Homecoming Circuit',
+          plotSummary: 'Old friends and new enemies gather around a single signal.',
+          releaseDate: '2020-01-30',
+          rating: 8.4,
+          posterUrl: 'https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-11',
+        id: 'ep-aurora-11',
+        seriesId: 'series-aurora',
+        seasonId: 'season-2',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season Two',
+        seasonNumber: 2,
+        episodeNumber: 5,
+        type: 'episode',
+        metaData: {
+          title: 'Under Violet Skies',
+          plotSummary: 'The city’s last refuge opens to a sky full of impossible color.',
+          releaseDate: '2020-02-06',
+          rating: 8.8,
+          posterUrl: 'https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?auto=format&fit=crop&w=800&q=80'
+        }
+      },
+      {
+        mediaId: 'ep-aurora-12',
+        id: 'ep-aurora-12',
+        seriesId: 'series-aurora',
+        seasonId: 'season-2',
+        seriesName: 'Aurora Nights',
+        seasonName: 'Season Two',
+        seasonNumber: 2,
+        episodeNumber: 6,
+        type: 'episode',
+        metaData: {
+          title: 'The New Dawn',
+          plotSummary: 'The lights finally settle as a new future begins to appear.',
+          releaseDate: '2020-02-13',
+          rating: 8.9,
+          posterUrl: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=800&q=80'
         }
       }
     ]
@@ -378,14 +584,25 @@ function buildAcquisitionSearchSuffix(query, category) {
   return suffix ? `?${suffix}` : ''
 }
 
+function getMockAcquisitionResults(query, category = 'MOVIE') {
+  const filtered = mockAcquisitionResults.filter((item) => {
+    if (category && item.category !== category) {
+      return false
+    }
+    return matchesQuery(item, query)
+  })
+
+  if (filtered.length) {
+    return cloneData(filtered)
+  }
+
+  const fallbackCategoryItems = mockAcquisitionResults.filter((item) => !category || item.category === category)
+  return cloneData(fallbackCategoryItems.slice(0, 3))
+}
+
 export function searchAcquisition(query, category = 'MOVIE') {
   if (shouldUseMockData()) {
-    return Promise.resolve(cloneData(mockAcquisitionResults.filter((item) => {
-      if (category && item.category !== category) {
-        return false
-      }
-      return matchesQuery(item, query)
-    })))
+    return Promise.resolve(getMockAcquisitionResults(query, category))
   }
 
   const suffix = buildAcquisitionSearchSuffix(query, category)
@@ -431,13 +648,8 @@ function parseSseEvent(eventChunk) {
 
 export async function searchAcquisitionStream(query, category = 'MOVIE', options = {}) {
   if (shouldUseMockData()) {
-    const { onItem, onError, onDone, signal } = options
-    const filtered = mockAcquisitionResults.filter((item) => {
-      if (category && item.category !== category) {
-        return false
-      }
-      return matchesQuery(item, query)
-    })
+    const { onItem, onDone, signal } = options
+    const filtered = getMockAcquisitionResults(query, category)
 
     for (const item of filtered) {
       if (signal?.aborted) {
@@ -448,10 +660,6 @@ export async function searchAcquisitionStream(query, category = 'MOVIE', options
 
     if (signal?.aborted) {
       return
-    }
-
-    if (onError) {
-      onError?.(null)
     }
 
     if (onDone) {
