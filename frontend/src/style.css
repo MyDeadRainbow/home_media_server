@@ -81,6 +81,33 @@ select::picker-icon {
   box-shadow: 0 14px 28px rgba(34, 31, 25, 0.08);
 }
 
+.controls {
+  margin-top: 1.2rem;
+}
+
+.search-row,
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.form-grid {
+  grid-template-columns: 1.3fr 0.7fr 0.5fr auto;
+}
+
+.acquisition-search-box {
+  position: relative;
+}
+
+.acquisition-search label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 h2 {
   margin: 0;
   margin-bottom: 1.5rem;
