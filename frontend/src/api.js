@@ -1,5 +1,5 @@
-export const API_GATEWAY = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
-export const API_KEY = import.meta.env.VITE_API_KEY || 'dev-local-key'
+export const API_GATEWAY = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+export const API_KEY = import.meta.env.VITE_GATEWAY_API_KEY || 'dev-local-key'
 
 async function request(url, options = {}) {
   const hasFormDataBody = typeof FormData !== 'undefined' && options.body instanceof FormData

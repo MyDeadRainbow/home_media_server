@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -56,6 +57,9 @@ public class CatalogUpdateProducer {
 @Configuration
 class CatalogUpdateProducerConfig {
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String kafkaBootstrapServers;
+
     @Bean
     public NewTopic catalogUpdatesTopic() {
         return new NewTopic(CatalogUpdate.TOPIC, 1, (short) 1);
@@ -64,7 +68,7 @@ class CatalogUpdateProducerConfig {
     @Bean
     public ProducerFactory<String, CatalogUpdate> catalogUpdateProducerFactory() {
         Map<String, Object> configProps = Map.of(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CatalogUpdateSerializer.class.getName());
         Preconditions.checkNotNull(configProps, "Failed to create Kafka producer configuration for CatalogUpdates");

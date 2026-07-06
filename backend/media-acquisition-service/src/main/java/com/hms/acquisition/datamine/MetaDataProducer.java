@@ -6,6 +6,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -76,6 +77,9 @@ public class MetaDataProducer {
 @Configuration
 class MetaDataProducerConfig {
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String kafkaBootstrapServers;
+
     @Bean
     public NewTopic metaDataMovieTopic() {
         return new NewTopic(Topics.METADATA_MOVIE, 1, (short) 1);
@@ -84,7 +88,7 @@ class MetaDataProducerConfig {
     @Bean
     public ProducerFactory<String, Movie> movieProducerFactory() {
         Map<String, Object> configProps = Map.of(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, MovieSerializer.class.getName());
         Preconditions.checkNotNull(configProps, "Failed to create Kafka producer configuration for Movie");
@@ -106,7 +110,7 @@ class MetaDataProducerConfig {
     @Bean
     public ProducerFactory<String, Series> seriesProducerFactory() {
         Map<String, Object> configProps = Map.of(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, SeriesSerializer.class.getName());
         Preconditions.checkNotNull(configProps, "Failed to create Kafka producer configuration for Series");

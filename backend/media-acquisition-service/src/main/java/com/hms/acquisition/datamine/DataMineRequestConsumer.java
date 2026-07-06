@@ -7,6 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -229,6 +230,9 @@ public class DataMineRequestConsumer {
 @Configuration
 class MetaDataConsumerConfig {
 
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String kafkaBootstrapServers;
+
     @Bean
     public NewTopic datamineMovieTopic() {
         return new NewTopic(Topics.DATAMINE_MOVIE, 1, (short) 1);
@@ -237,7 +241,7 @@ class MetaDataConsumerConfig {
     @Bean
     public ConsumerFactory<String, Movie> movieConsumerFactory() {
         Map<String, Object> props = Map.of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, MovieDeserializer.class.getName());
@@ -262,7 +266,7 @@ class MetaDataConsumerConfig {
     @Bean
     public ConsumerFactory<String, Series> seriesConsumerFactory() {
         Map<String, Object> props = Map.of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092",
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, SeriesDeserializer.class.getName());

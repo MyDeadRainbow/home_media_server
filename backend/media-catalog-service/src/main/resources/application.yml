@@ -1,12 +1,12 @@
 server:
-  port: 8081
+  port: ${MEDIA_CATALOG_SERVICE_PORT:8081}
 
 spring:
   application:
     name: media-catalog-service
   
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: kafka:${KAFKA_PORT:9092}
     # consumer:
     #   group-id: media-catalog-service
     #   auto-offset-reset: earliest
