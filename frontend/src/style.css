@@ -1,3 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Crafty+Girls&family=Gilda+Display&family=Noto+Serif+Display:ital,wght@0,100..900;1,100..900&display=swap');
+@font-face {
+    font-family: 'Glacial Indifference';
+    src: url('fonts/GlacialIndifference-Regular.otf') format('otf');
+    font-weight: normal;
+    font-style: normal;
+}
+
 :root {
   --bg-1: #F4F4F4;
   --bg-2: #BF9D78;
@@ -14,7 +22,8 @@
 
 body {
   margin: 0;
-  font-family: Manrope, sans-serif;
+  font-family: 'Glacial Indifference', sans-serif;
+  font-size: 1rem;
   color: var(--ink);
   background:
     radial-gradient(circle at 10% 10%, #BF9D78, transparent 40%),
@@ -33,7 +42,7 @@ body {
   margin: 0;
   margin-top: 2rem;
   font-size: clamp(2rem, 5vw, 3.6rem);
-  font-family: Fraunces, serif;
+  font-family: 'Noto Serif Display', serif;
   letter-spacing: 0.02em;
   text-align: center;
 }
@@ -42,6 +51,26 @@ body {
   margin-top: 0.5rem;
   margin-bottom: 4rem;
   text-align: center;
+  font-family: 'Glacial Indifference', sans-serif;
+  font-size: 1.4rem;
+}
+
+/* Opt into the fully styleable select system */
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+/* Style the main button box */
+select {
+  background-color: #fff;
+  color: #3D3937;
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+/* Modify the arrow */
+select::picker-icon {
+  color: #3D3937;
 }
 
 .panel {
@@ -52,9 +81,45 @@ body {
   box-shadow: 0 14px 28px rgba(34, 31, 25, 0.08);
 }
 
+.controls {
+  margin-top: 1.2rem;
+}
+
+.search-row,
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.form-grid {
+  grid-template-columns: 1.3fr 0.7fr 0.5fr auto;
+}
+
+.acquisition-search-box {
+  position: relative;
+}
+
+.acquisition-search label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 h2 {
   margin: 0;
   margin-bottom: 1.5rem;
+  font-family: 'Glacial Indifference', sans-serif;
+  font-size: 1.4rem;
+}
+
+h3 {
+  margin: 0;
+  margin-bottom: 1.5rem;
+  font-family: 'Glacial Indifference', sans-serif;
+  font-size: 1.2rem;
 }
 
 /* Panel: Controls*/
@@ -232,14 +297,13 @@ button:hover {
 .library-header {
   display: flex;
   justify-content: space-between;
-  gap: 4rem;
   align-items: flex-start;
 }
 
 .library-breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 2rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -327,14 +391,13 @@ button:hover {
 
 .library-subsection h3 {
   margin: 0 0 0.5rem;
-  font-family: Fraunces, serif;
 }
 
 .entity-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
+  display: flex;
   gap: 0.45rem;
 }
 
@@ -349,8 +412,9 @@ button:hover {
 }
 
 .cards {
-  display: grid;
-  gap: 0.8rem;
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
 }
 
 .season-buttons {
