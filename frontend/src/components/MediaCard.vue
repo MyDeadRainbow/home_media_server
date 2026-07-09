@@ -1,8 +1,6 @@
 <template>
   <article class="media-card">
-    <div class="poster-frame">
-      <img class="poster" :src="item.posterUrl || fallbackPoster" :alt="item.title" />
-    </div>
+    <img class="poster" :src="item.posterUrl || fallbackPoster" :alt="item.title" />
     <div class="content">
       <div class="meta-row">
         <span class="type">{{ displayType }}</span>
