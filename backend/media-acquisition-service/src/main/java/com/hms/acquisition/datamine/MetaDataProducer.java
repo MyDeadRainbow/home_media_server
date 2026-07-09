@@ -88,6 +88,7 @@ class MetaDataProducerConfig {
     @Bean
     public ProducerFactory<String, Movie> movieProducerFactory() {
         Map<String, Object> configProps = Map.of(
+                ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 104857600,
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, MovieSerializer.class.getName());
@@ -110,6 +111,7 @@ class MetaDataProducerConfig {
     @Bean
     public ProducerFactory<String, Series> seriesProducerFactory() {
         Map<String, Object> configProps = Map.of(
+                ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 104857600,
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, SeriesSerializer.class.getName());
