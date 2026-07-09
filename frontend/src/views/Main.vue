@@ -7,35 +7,10 @@
 
     <section class="panel controls">
       <div class="controls-header">
-          <h2>Search Torrents</h2>
+        <h2>Search Torrents</h2>
       </div>
-      <div ref="acquisitionSearchContainer" class="acquisition-search">
-        <div class="acquisition-actions">
-          <select v-model="acquisitionCategory" aria-label="Select acquisition category">
-            <option value="MOVIE">Movies</option>
-            <option value="SERIES">Series</option>
-          </select>
-          <select v-model="acquisitionSortBy" aria-label="Sort acquisition results">
-            <option value="seeders">Sort by Seeders</option>
-            <option value="size">Sort by Size</option>
-          </select>
-        </div>
-        
-        <div class="acquisition-search-box">
-          <input
-            id="acquisition-search-box"
-            v-model="acquisitionQuery"
-            placeholder="Search torrent sources"
-            @input="onTyping"
-            @keyup.enter="startAcquisitionSearch"
-          />
-          <button type="button" @click="startAcquisitionSearch">Search Sources</button>
-        </div>
-      </div>
-
-      <p v-if="importStatus" class="status">{{ importStatus }}</p>
-      <p v-if="uploadStatus" class="status">{{ uploadStatus }}</p>
-      <p v-if="error" class="error">{{ error }}</p>
+      <p class="muted">Torrent search now runs from a dedicated page.</p>
+      <button type="button" @click="openTorrentSearchPage">Open Search Page</button>
     </section>
 
     <main class="layout">
@@ -57,6 +32,9 @@
             </nav>
           </div>
         </div>
+
+        <p v-if="uploadStatus" class="status">{{ uploadStatus }}</p>
+        <p v-if="error" class="error">{{ error }}</p>
 
         <p v-if="libraryLoading">Loading library...</p>
 
@@ -229,12 +207,10 @@
 
 <!-- JavaScript -->
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MediaCard from '../components/MediaCard.vue'
 import {
-  importStreamMedia,
-  searchAcquisitionStream,
   searchCatalogEpisodes,
   searchCatalogMovies,
   searchCatalogSeasons,
@@ -259,22 +235,11 @@ const activeMedia = ref(null)
 const manifest = ref(null)
 const tracks = ref([])
 const selectedCaption = ref('off')
-const importStatus = ref('')
 const uploadStatus = ref('')
 const error = ref('')
 const player = ref(null)
 const selectedUploadFile = ref(null)
 const router = useRouter()
-
-const acquisitionSearchContainer = ref(null)
-const acquisitionQuery = ref('')
-const acquisitionResultsBySource = ref({})
-const acquisitionLoading = ref(false)
-const showAcquisitionPopup = ref(false)
-const acquisitionCategory = ref('MOVIE')
-const acquisitionSortBy = ref('seeders')
-const importInFlightByMagnet = ref({})
-let acquisitionSearchAbortController = null
 
 const uploadRequest = ref({
   title: '',
@@ -282,66 +247,6 @@ const uploadRequest = ref({
   year: new Date().getFullYear(),
   description: ''
 })
-
-function resetAcquisitionResults() {
-  acquisitionResultsBySource.value = {}
-}
-
-function isDuplicateAcquisitionResult(result) {
-  return Object.values(acquisitionResultsBySource.value).some((group) => group.some((existing) => (
-    (result.magnetLink && result.magnetLink === existing.magnetLink)
-    || (result.sourceUrl && result.sourceUrl === existing.sourceUrl)
-  )))
-}
-
-function parseSeeders(value) {
-  const parsed = Number.parseInt(String(value || '').replace(/[^\d]/g, ''), 10)
-  return Number.isFinite(parsed) ? parsed : 0
-}
-
-function parseSizeToBytes(size) {
-  if (!size) {
-    return 0
-  }
-
-  const match = String(size).trim().match(/([\d.]+)\s*([kmgtp]?b)/i)
-  if (!match) {
-    return 0
-  }
-
-  const value = Number.parseFloat(match[1])
-  if (!Number.isFinite(value)) {
-    return 0
-  }
-
-  const unit = match[2].toUpperCase()
-  const multipliers = {
-    B: 1,
-    KB: 1024,
-    MB: 1024 ** 2,
-    GB: 1024 ** 3,
-    TB: 1024 ** 4,
-    PB: 1024 ** 5
-  }
-
-  return value * (multipliers[unit] || 1)
-}
-
-function compareAcquisitionResults(left, right) {
-  if (acquisitionSortBy.value === 'size') {
-    return parseSizeToBytes(right.size) - parseSizeToBytes(left.size)
-  }
-  return parseSeeders(right.seeders) - parseSeeders(left.seeders)
-}
-
-const groupedAcquisitionResults = computed(() => Object.entries(acquisitionResultsBySource.value)
-  .map(([source, results]) => ({
-    source,
-    results: [...results].sort(compareAcquisitionResults)
-  }))
-  .sort((a, b) => a.source.localeCompare(b.source)))
-
-const hasAnyAcquisitionResults = computed(() => groupedAcquisitionResults.value.some((group) => group.results.length > 0))
 
 function getSeriesDisplayName(seriesItem) {
   return seriesItem?.metaData?.title
@@ -590,145 +495,8 @@ function backToHome() {
   tracks.value = []
 }
 
-function onTyping() {
-  const term = acquisitionQuery.value.trim()
-  const category = acquisitionCategory.value
-
-  if (!term) {
-    resetAcquisitionResults()
-    showAcquisitionPopup.value = false
-    return
-  }
-
-  // live search
-  fetchAcquisitionResults(term, category)
-}
-
-function startAcquisitionSearch() {
-  const term = acquisitionQuery.value.trim()
-  const category = acquisitionCategory.value
-
-  if (!term) return
-
-  const url = `/search?q=${encodeURIComponent(term)}&category=${encodeURIComponent(category)}`
-  window.open(url, '_blank')
-}
-
-async function fetchAcquisitionResults(term, category) {
-  if (acquisitionSearchAbortController) {
-    acquisitionSearchAbortController.abort()
-  }
-
-  acquisitionSearchAbortController = new AbortController()
-  acquisitionLoading.value = true
-  error.value = ''
-  showAcquisitionPopup.value = true
-  resetAcquisitionResults()
-
-  try {
-    await searchAcquisitionStream(term, category, {
-      signal: acquisitionSearchAbortController.signal,
-      onItem: (item) => {
-        if (!item || !item.title) {
-          return
-        }
-
-        const searchResult = {
-          ...item,
-          category
-        }
-
-        if (!isDuplicateAcquisitionResult(searchResult)) {
-          const source = searchResult.source || 'Unknown Source'
-          const existingSourceItems = acquisitionResultsBySource.value[source] || []
-          acquisitionResultsBySource.value = {
-            ...acquisitionResultsBySource.value,
-            [source]: [...existingSourceItems, searchResult]
-          }
-        }
-      },
-      onError: (message) => {
-        if (message) {
-          error.value = String(message)
-        }
-      },
-      onDone: () => {
-        acquisitionLoading.value = false
-      }
-    })
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      return
-    }
-    resetAcquisitionResults()
-    error.value = err.message
-  } finally {
-    if (acquisitionSearchAbortController?.signal.aborted) {
-      return
-    }
-    acquisitionLoading.value = false
-  }
-}
-
-function onAcquisitionFocus() {
-  if (acquisitionQuery.value.trim() || hasAnyAcquisitionResults.value) {
-    showAcquisitionPopup.value = true
-  }
-}
-
-function hideAcquisitionPopup() {
-  showAcquisitionPopup.value = false
-}
-
-function useAcquisitionResult(result) {
-  uploadRequest.value.title = result.title || ''
-  acquisitionQuery.value = result.title || ''
-  showAcquisitionPopup.value = false
-}
-
-function isImportingResult(magnetLink) {
-  return Boolean(importInFlightByMagnet.value[magnetLink])
-}
-
-async function importSearchResult(result) {
-  if (!result?.title || !result?.magnetLink) {
-    error.value = 'Selected result is missing title or magnet link.'
-    return
-  }
-
-  importInFlightByMagnet.value = {
-    ...importInFlightByMagnet.value,
-    [result.magnetLink]: true
-  }
-  error.value = ''
-
-  try {
-    const created = await importStreamMedia({
-      title: result.title,
-      magnetLink: result.magnetLink,
-      category: result.category || acquisitionCategory.value
-    })
-
-    importStatus.value = created
-      ? `Import request created for "${result.title}".`
-      : `Import request could not be created for "${result.title}".`
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    const nextInFlight = { ...importInFlightByMagnet.value }
-    delete nextInFlight[result.magnetLink]
-    importInFlightByMagnet.value = nextInFlight
-  }
-}
-
-function handleDocumentClick(event) {
-  if (!acquisitionSearchContainer.value) {
-    return
-  }
-
-  if (!acquisitionSearchContainer.value.contains(event.target)) {
-    hideAcquisitionPopup()
-  }
+function openTorrentSearchPage() {
+  router.push({ path: '/search' })
 }
 
 function onUploadFileSelected(event) {
@@ -805,13 +573,5 @@ function applyCaptionTrack() {
 
 onMounted(() => {
   loadLibraryHome()
-  document.addEventListener('click', handleDocumentClick)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleDocumentClick)
-  if (acquisitionSearchAbortController) {
-    acquisitionSearchAbortController.abort()
-  }
 })
 </script>

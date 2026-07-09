@@ -1,7 +1,7 @@
 <template>
   <article class="media-card">
     <div class="poster-frame">
-      <img class="poster" :src="item.posterUrl || fallbackPoster" :alt="item.title" />
+      <img class="poster" :src="posterSource" :alt="item.title" />
     </div>
     <div class="content">
       <div class="meta-row">
@@ -41,6 +41,57 @@ const emit = defineEmits(['action', 'play'])
 function emitAction() {
   emit('action', props.item)
   emit('play', props.item)
+}
+
+function detectBase64ImageMime(base64) {
+  if (base64.startsWith('/9j/')) {
+    return 'image/jpeg'
+  }
+
+  if (base64.startsWith('iVBOR')) {
+    return 'image/png'
+  }
+
+  if (base64.startsWith('R0lGOD')) {
+    return 'image/gif'
+  }
+
+  if (base64.startsWith('UklGR')) {
+    return 'image/webp'
+  }
+
+  return 'image/jpeg'
+}
+
+function normalizePosterSrc(value) {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  const raw = String(value).trim()
+  if (!raw) {
+    return ''
+  }
+
+  if (
+    raw.startsWith('data:image/')
+    || /^https?:\/\//i.test(raw)
+    || raw.startsWith('/')
+    || raw.startsWith('./')
+    || raw.startsWith('../')
+    || raw.startsWith('blob:')
+  ) {
+    return raw
+  }
+
+  const base64Payload = raw.replace(/\s+/g, '')
+  const looksLikeBase64 = /^[A-Za-z0-9+/=]+$/.test(base64Payload)
+
+  if (!looksLikeBase64 || base64Payload.length < 32) {
+    return raw
+  }
+
+  return `data:${detectBase64ImageMime(base64Payload)};base64,${base64Payload}`
 }
 
 const displayType = computed(() => {
@@ -123,6 +174,11 @@ const releaseYear = computed(() => {
   }
 
   return 'N/A'
+})
+
+const posterSource = computed(() => {
+  const normalized = normalizePosterSrc(props.item.poster.imageData)
+  return normalized || fallbackPoster
 })
 
 const fallbackPoster = 'https://picsum.photos/seed/fallback/320/180'

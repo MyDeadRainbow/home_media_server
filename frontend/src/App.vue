@@ -5,6 +5,7 @@
         </div>
         <ul class="nav-links">
             <li><a @click="navigateToHome">Home</a></li>
+          <li><a @click="navigateToSearch">Search Torrents</a></li>
             <li><a @click="">Series</a></li>
             <li><a @click="">Movies</a></li>
             <li><a @click="navigateToProfile">Profile</a></li>
@@ -21,6 +22,12 @@ const router = useRouter()
 function navigateToHome (){
    router.push({
     path: `/`
+  })
+}
+
+function navigateToSearch (){
+   router.push({
+    path: `/search`
   })
 }
 
