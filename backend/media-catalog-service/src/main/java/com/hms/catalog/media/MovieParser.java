@@ -31,7 +31,9 @@ public class MovieParser {
                         null,
                         null,
                         MetaDataStatus.PENDING,
-                        null));
+                        null),
+                null // Placeholder for poster
+        );
 
         return movie;
     }

@@ -9,7 +9,7 @@ import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.shared.messaging.JsonSerializable;
 
-public record MediaItem(String mediaId, String filePath) implements SQLiteRecord, JsonSerializable<MediaItem> {
+public record MediaItem(String mediaId, String filePath) implements SQLiteRecord, JsonSerializable {
 
     @Override
     public String getPrimaryKeyField() {

@@ -17,6 +17,7 @@ import com.hms.shared.media.Season;
 import com.hms.shared.media.Series;
 import com.hms.shared.media.metadata.MetaData;
 import com.hms.shared.media.metadata.MetaDataStatus;
+import com.hms.shared.media.poster.Poster;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.datamining.DataMineRequest;
@@ -26,8 +27,8 @@ import com.hms.shared.messaging.mediaupdates.MediaUpdateType;
 
 public class JsonSerializableTest {
 
-    private <T extends JsonSerializable<?>> void assertJsonRoundTrip(T original, Class<T> clazz) {
-        String json = assertDoesNotThrow(() -> ((JsonSerializable<?>) original).toJson().toString());
+    private <T extends JsonSerializable> void assertJsonRoundTrip(T original, Class<T> clazz) {
+        String json = assertDoesNotThrow(() -> ((JsonSerializable) original).toJson().toString());
         T deserialized = assertDoesNotThrow(() -> JsonSerializable.fromJson(json, clazz));
         assertEquals(original, deserialized, "Deserialized object does not match the original");
     }
@@ -47,6 +48,10 @@ public class JsonSerializableTest {
         return new MediaItem("media-" + idSuffix, "/library/" + idSuffix + ".mp4");
     }
 
+    private Poster createPoster(String idSuffix) {
+        return new Poster("poster-" + idSuffix, new byte[] { 0x01, 0x02, 0x03 });
+    }
+
     private Episode createEpisode() {
         return new Episode(
                 "episode-1",
@@ -54,7 +59,8 @@ public class JsonSerializableTest {
                 "series-1",
                 1,
                 createMediaItem("episode-1"),
-                createMetaData("episode-1", "Pilot"));
+                createMetaData("episode-1", "Pilot"),
+                createPoster("episode-1"));
     }
 
     private Season createSeason() {
@@ -63,6 +69,7 @@ public class JsonSerializableTest {
                 "series-1",
                 1,
                 createMetaData("season-1", "Season 1"),
+                createPoster("season-1"),
                 List.of(createEpisode()));
     }
 
@@ -70,6 +77,7 @@ public class JsonSerializableTest {
         return new Series(
                 "series-1",
                 createMetaData("series-1", "Example Series"),
+                createPoster("series-1"),
                 List.of(createSeason()));
     }
 
@@ -233,7 +241,8 @@ public class JsonSerializableTest {
         Movie original = new Movie(
                 "movie-1",
                 createMediaItem("movie-1"),
-                createMetaData("movie-1", "Example Movie"));
+                createMetaData("movie-1", "Example Movie"),
+                createPoster("movie-1"));
         assertJsonRoundTrip(original, Movie.class);
     }
 

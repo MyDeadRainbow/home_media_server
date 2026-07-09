@@ -8,10 +8,11 @@ import java.util.UUID;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.poster.Poster;
 import com.hms.shared.messaging.JsonSerializable;
 
-public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
-        implements SQLiteRecord, JsonSerializable<Movie>, Title {
+public record Movie(String movieId, MediaItem mediaItem, MetaData metaData, Poster poster)
+        implements SQLiteRecord, JsonSerializable, Title {
 
     @Override
     public String getPrimaryKeyField() {
@@ -23,9 +24,9 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
         return movieId;
     }
 
-    public static Movie create(MediaItem mediaItem, MetaData metaData) {
+    public static Movie create(MediaItem mediaItem, MetaData metaData, Poster poster) {
         String movieId = UUID.randomUUID().toString();
-        return new Movie(movieId, mediaItem, metaData);
+        return new Movie(movieId, mediaItem, metaData, poster);
     }
 
     @Override
@@ -34,15 +35,19 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
     }
 
     public Movie withMovieId(String newMovieId) {
-        return new Movie(newMovieId, this.mediaItem, this.metaData);
+        return new Movie(newMovieId, this.mediaItem, this.metaData, this.poster);
     }
 
     public Movie withMediaItem(MediaItem newMediaItem) {
-        return new Movie(this.movieId, newMediaItem, this.metaData);
+        return new Movie(this.movieId, newMediaItem, this.metaData, this.poster);
     }
 
     public Movie withMetaData(MetaData newMetaData) {
-        return new Movie(this.movieId, this.mediaItem, newMetaData);
+        return new Movie(this.movieId, this.mediaItem, newMetaData, this.poster);
+    }
+
+    public Movie withPoster(Poster newPoster) {
+        return new Movie(this.movieId, this.mediaItem, this.metaData, newPoster);
     }
 
     public static class Dao extends com.hms.dao.SQLiteRecordDao<Movie> {
@@ -63,8 +68,10 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
                     + "movieId TEXT PRIMARY KEY,"
                     + "mediaId TEXT NOT NULL,"
                     + "metaDataId TEXT NOT NULL,"
+                    + "posterId TEXT NOT NULL,"
                     + "FOREIGN KEY(mediaId) REFERENCES media_items(mediaId),"
-                    + "FOREIGN KEY(metaDataId) REFERENCES metadata(metaDataId)"
+                    + "FOREIGN KEY(metaDataId) REFERENCES metadata(metaDataId),"
+                    + "FOREIGN KEY(posterId) REFERENCES posters(posterId)"
                     + ");";
         }
 
@@ -72,6 +79,7 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
         public void delete(Movie record) throws SQLException {
             new MediaItem.Dao().delete(record.mediaItem());
             new MetaData.Dao().delete(record.metaData());
+            new Poster.Dao().delete(record.poster());
             super.delete(record);
         }
 
@@ -79,6 +87,7 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
         public void insert(Movie record) throws SQLException {
             new MediaItem.Dao().insert(record.mediaItem());
             new MetaData.Dao().insert(record.metaData());
+            new Poster.Dao().insert(record.poster());
             super.insert(record);
         }
 
@@ -86,23 +95,24 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
         public void update(Movie record) throws SQLException {
             new MediaItem.Dao().update(record.mediaItem());
             new MetaData.Dao().update(record.metaData());
+            new Poster.Dao().update(record.poster());
             super.update(record);
         }
 
         @Override
         public PreparedStatementValue toInsertStatement(Movie record) {
             return new PreparedStatementValue(
-                    "INSERT INTO movies (movieId, mediaId, metaDataId) VALUES (?, ?, ?);",
+                    "INSERT INTO movies (movieId, mediaId, metaDataId, posterId) VALUES (?, ?, ?, ?);",
                     new Object[] { record.movieId(), record.mediaItem().mediaId(),
-                            record.metaData().metaDataId() });
+                            record.metaData().metaDataId(), record.poster().posterId() });
         }
 
         @Override
         public PreparedStatementValue toUpdateStatement(Movie record) {
             return new PreparedStatementValue(
-                    "UPDATE movies SET mediaId = ?, metaDataId = ? WHERE movieId = ?;",
+                    "UPDATE movies SET mediaId = ?, metaDataId = ?, posterId = ? WHERE movieId = ?;",
                     new Object[] { record.mediaItem().mediaId(), record.metaData().metaDataId(),
-                            record.movieId() });
+                            record.poster().posterId(), record.movieId() });
         }
 
         @Override
@@ -135,7 +145,8 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData)
             return new Movie(
                     rs.getString("movieId"),
                     new MediaItem.Dao().get(rs.getString("mediaId")),
-                    new MetaData.Dao().get(rs.getString("metaDataId")));
+                    new MetaData.Dao().get(rs.getString("metaDataId")),
+                    new Poster.Dao().get(rs.getString("posterId")));
         }
 
         @Override

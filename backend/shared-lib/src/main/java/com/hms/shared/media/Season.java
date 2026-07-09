@@ -12,10 +12,11 @@ import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
 import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.poster.Poster;
 import com.hms.shared.messaging.JsonSerializable;
 
-public record Season(String seasonId, String seriesId, int seasonNumber, MetaData metaData, List<Episode> episodes)
-        implements SQLiteRecord, JsonSerializable<Season>, Title {
+public record Season(String seasonId, String seriesId, int seasonNumber, MetaData metaData, Poster poster, List<Episode> episodes)
+        implements SQLiteRecord, JsonSerializable, Title {
 
     @Override
     public String getPrimaryKeyField() {
@@ -27,9 +28,9 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
         return seasonId;
     }
 
-    public static Season create(String seriesId, int seasonNumber, MetaData metaData, List<Episode> episodes) {
+    public static Season create(String seriesId, int seasonNumber, MetaData metaData, Poster poster, List<Episode> episodes) {
         String seasonId = UUID.randomUUID().toString();
-        return new Season(seasonId, seriesId, seasonNumber, metaData, episodes);
+        return new Season(seasonId, seriesId, seasonNumber, metaData, poster, episodes);
     }
 
     @Override
@@ -38,23 +39,27 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
     }
 
     public Season withSeasonId(String newSeasonId) {
-        return new Season(newSeasonId, this.seriesId, this.seasonNumber, this.metaData, this.episodes);
+        return new Season(newSeasonId, this.seriesId, this.seasonNumber, this.metaData, this.poster, this.episodes);
     }
 
     public Season withSeriesId(String newSeriesId) {
-        return new Season(this.seasonId, newSeriesId, this.seasonNumber, this.metaData, this.episodes);
+        return new Season(this.seasonId, newSeriesId, this.seasonNumber, this.metaData, this.poster, this.episodes);
     }
 
     public Season withSeasonNumber(int newSeasonNumber) {
-        return new Season(this.seasonId, this.seriesId, newSeasonNumber, this.metaData, this.episodes);
+        return new Season(this.seasonId, this.seriesId, newSeasonNumber, this.metaData, this.poster, this.episodes);
     }
 
     public Season withMetaData(MetaData newMetaData) {
-        return new Season(this.seasonId, this.seriesId, this.seasonNumber, newMetaData, this.episodes);
+        return new Season(this.seasonId, this.seriesId, this.seasonNumber, newMetaData, this.poster, this.episodes);
+    }
+
+    public Season withPoster(Poster newPoster) {
+        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, newPoster, this.episodes);
     }
 
     public Season withEpisodes(List<Episode> newEpisodes) {
-        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, newEpisodes);
+        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, this.poster, newEpisodes);
     }
 
     public Season replaceEpisode(Episode newEpisode) {
@@ -63,7 +68,7 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
         List<Episode> updatedEpisodes = new ArrayList<>(List.copyOf(this.episodes));
         updatedEpisodes.removeIf(episode -> episode.episodeId().equals(newEpisode.episodeId()));
         updatedEpisodes.add(newEpisode);
-        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, updatedEpisodes);
+        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, this.poster, updatedEpisodes);
     }
 
     public Season addEpisode(Episode newEpisode) {
@@ -72,13 +77,13 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
         List<Episode> updatedEpisodes = new ArrayList<>(List.copyOf(this.episodes));
         updatedEpisodes.removeIf(episode -> episode.episodeId().equals(newEpisode.episodeId()));
         updatedEpisodes.add(newEpisode);
-        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, updatedEpisodes);
+        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, this.poster, updatedEpisodes);
     }
 
     public Season removeEpisode(Episode episodeToRemove) {
         List<Episode> updatedEpisodes = new ArrayList<>(List.copyOf(this.episodes));
         updatedEpisodes.removeIf(episode -> episode.episodeId().equals(episodeToRemove.episodeId()));
-        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, updatedEpisodes);
+        return new Season(this.seasonId, this.seriesId, this.seasonNumber, this.metaData, this.poster, updatedEpisodes);
     }
 
     public static class Dao extends SQLiteRecordDao<Season> {
@@ -100,21 +105,24 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
                     + "seriesId TEXT NOT NULL,"
                     + "seasonNumber INTEGER NOT NULL,"
                     + "metaDataId TEXT,"
+                    + "posterId TEXT,"
                     + "FOREIGN KEY(seriesId) REFERENCES series(seriesId),"
-                    + "FOREIGN KEY(metaDataId) REFERENCES metaData(metaDataId)"
+                    + "FOREIGN KEY(metaDataId) REFERENCES metaData(metaDataId),"
+                    + "FOREIGN KEY(posterId) REFERENCES posters(posterId)"
                     + ");";
         }
 
         @Override
         public PreparedStatementValue toInsertStatement(Season record) {
             return new PreparedStatementValue(
-                    "INSERT INTO seasons (seasonId, seriesId, seasonNumber, metaDataId) VALUES (?, ?, ?, ?);",
-                    new Object[] { record.seasonId(), record.seriesId(), record.seasonNumber(), record.metaData().metaDataId() });
+                    "INSERT INTO seasons (seasonId, seriesId, seasonNumber, metaDataId, posterId) VALUES (?, ?, ?, ?, ?);",
+                    new Object[] { record.seasonId(), record.seriesId(), record.seasonNumber(), record.metaData().metaDataId(), record.poster().posterId() });
         }
 
         @Override
         public void insert(Season record) throws SQLException {
             new MetaData.Dao().insert(record.metaData());
+            new Poster.Dao().insert(record.poster());
             super.insert(record);
             for (Episode episode : record.episodes()) {
                 new Episode.Dao().insert(episode);
@@ -124,13 +132,14 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
         @Override
         public PreparedStatementValue toUpdateStatement(Season record) {
             return new PreparedStatementValue(
-                    "UPDATE seasons SET seriesId = ?, seasonNumber = ?, metaDataId = ? WHERE seasonId = ?;",
-                    new Object[] { record.seriesId(), record.seasonNumber(), record.metaData().metaDataId(), record.seasonId() });
+                    "UPDATE seasons SET seriesId = ?, seasonNumber = ?, metaDataId = ?, posterId = ? WHERE seasonId = ?;",
+                    new Object[] { record.seriesId(), record.seasonNumber(), record.metaData().metaDataId(), record.poster().posterId(), record.seasonId() });
         }
 
         @Override
         public void update(Season record) throws SQLException {
             new MetaData.Dao().update(record.metaData());
+            new Poster.Dao().update(record.poster());
             super.update(record);
             for (Episode episode : record.episodes()) {
                 new Episode.Dao().update(episode);
@@ -150,6 +159,7 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
                 new Episode.Dao().delete(episode);
             }
             new MetaData.Dao().delete(record.metaData());
+            new Poster.Dao().delete(record.poster());
             super.delete(record);
         }
 
@@ -174,8 +184,9 @@ public record Season(String seasonId, String seriesId, int seasonNumber, MetaDat
             String seriesId = rs.getString("seriesId");
             int seasonNumber = rs.getInt("seasonNumber");
             MetaData metaData = new MetaData.Dao().get(rs.getString("metaDataId")); // Assuming MetaData has a constructor that takes a String
+            Poster poster = new Poster.Dao().get(rs.getString("posterId")); // Assuming Poster has a constructor that takes a String
             List<Episode> episodes = new Episode.Dao().select(Map.of("seasonId", seasonId));
-            return new Season(seasonId, seriesId, seasonNumber, metaData, episodes);
+            return new Season(seasonId, seriesId, seasonNumber, metaData, poster, episodes);
         }
 
         @Override

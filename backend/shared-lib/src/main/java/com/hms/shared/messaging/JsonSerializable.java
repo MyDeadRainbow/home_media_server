@@ -1,17 +1,20 @@
 package com.hms.shared.messaging;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-public interface JsonSerializable<T> {
+public interface JsonSerializable {
 
     public default JsonObject toJson() throws SerializeJsonException {
         JsonObject json = new JsonObject();
@@ -27,24 +30,29 @@ public interface JsonSerializable<T> {
                     case Double d -> json.addProperty(field.getName(), d);
                     case Boolean b -> json.addProperty(field.getName(), b);
                     case Enum<?> e -> json.addProperty(field.getName(), e.name());
-                    case JsonSerializable<?> js -> json.add(field.getName(), js.toJson());
+                    case JsonSerializable js -> json.add(field.getName(), js.toJson());
                     case null -> json.add(field.getName(), JsonNull.INSTANCE);
                     case List<?> list -> {
-                        var jsonArray = new com.google.gson.JsonArray();
+                        var jsonArray = new JsonArray();
                         for (var item : list) {
-                            if (item instanceof JsonSerializable<?>) {
-                                jsonArray.add(((JsonSerializable<?>) item).toJson());
+                            if (item instanceof JsonSerializable) {
+                                jsonArray.add(((JsonSerializable) item).toJson());
                             } else {
                                 jsonArray.add(item.toString());
                             }
                         }
                         json.add(field.getName(), jsonArray);
                     }
+                    case byte[] byteArray -> {
+                        //base64 encode the byte array and add it as a string
+                        String base64Encoded = Base64.getEncoder().encodeToString(byteArray);
+                        json.addProperty(field.getName(), base64Encoded);
+                    }
                     case Object[] array -> {
-                        var jsonArray = new com.google.gson.JsonArray();
+                        var jsonArray = new JsonArray();
                         for (var item : array) {
-                            if (item instanceof JsonSerializable<?>) {
-                                jsonArray.add(((JsonSerializable<?>) item).toJson());
+                            if (item instanceof JsonSerializable) {
+                                jsonArray.add(((JsonSerializable) item).toJson());
                             } else {
                                 jsonArray.add(item.toString());
                             }
@@ -65,12 +73,12 @@ public interface JsonSerializable<T> {
         return json;
     }
 
-    public static <T extends JsonSerializable<?>> T fromJson(String json, Class<T> clazz) throws DeserializeJsonException {
+    public static <T extends JsonSerializable> T fromJson(String json, Class<T> clazz) throws DeserializeJsonException {
         JsonObject jsonObject = JsonParser.parseString(json).getAsJsonObject();
         return fromJsonObject(jsonObject, clazz);
     }
 
-    public static <T extends JsonSerializable<?>> T fromJsonObject(JsonObject json, Class<T> clazz) throws DeserializeJsonException {
+    public static <T extends JsonSerializable> T fromJsonObject(JsonObject json, Class<T> clazz) throws DeserializeJsonException {
         // use reflection to find a constructor that matches the fields in the JSON
         var constructors = clazz.getConstructors();
         for (var constructor : constructors) {
@@ -130,7 +138,7 @@ public interface JsonSerializable<T> {
                                 && json.get(paramName).isJsonObject() -> {
                             @SuppressWarnings("unchecked")
                             Object nestedObject = fromJsonObject(json.get(paramName).getAsJsonObject(),
-                                    (Class<? extends JsonSerializable<?>>) c);
+                                    (Class<? extends JsonSerializable>) c);
                             args[i] = nestedObject;
                         }
 
@@ -142,7 +150,7 @@ public interface JsonSerializable<T> {
                             // Handle List deserialization
                             var jsonArray = json.get(paramName).getAsJsonArray();
                             var listType = param.getParameterizedType();
-                            if (listType instanceof java.lang.reflect.ParameterizedType pt) {
+                            if (listType instanceof ParameterizedType pt) {
                                 var itemType = (Class<?>) pt.getActualTypeArguments()[0];
                                 var list = new java.util.ArrayList<>();
                                 for (var item : jsonArray) {
@@ -150,7 +158,7 @@ public interface JsonSerializable<T> {
                                             && item.isJsonObject()) {
                                         @SuppressWarnings("unchecked")
                                         Object nestedItem = fromJsonObject(item.getAsJsonObject(),
-                                                (Class<? extends JsonSerializable<?>>) itemType);
+                                                (Class<? extends JsonSerializable>) itemType);
                                         list.add(nestedItem);
                                     } else {
                                         // Handle primitive types or other types as needed
@@ -164,6 +172,12 @@ public interface JsonSerializable<T> {
                             }
                         }
 
+                        case Class<?> c when c == byte[].class && json.get(paramName).isJsonPrimitive() -> {
+                            // Handle byte[] deserialization from base64 encoded string
+                            String base64Encoded = json.get(paramName).getAsString();
+                            args[i] = Base64.getDecoder().decode(base64Encoded);
+                        }
+
                         case Class<?> c when c.isArray() && json.get(paramName).isJsonArray() -> {
                             // Handle Array deserialization
                             var jsonArray = json.get(paramName).getAsJsonArray();
@@ -175,7 +189,7 @@ public interface JsonSerializable<T> {
                                         && item.isJsonObject()) {
                                     @SuppressWarnings("unchecked")
                                     Object nestedItem = fromJsonObject(item.getAsJsonObject(),
-                                            (Class<? extends JsonSerializable<?>>) componentType);
+                                            (Class<? extends JsonSerializable>) componentType);
                                     Array.set(array, j, nestedItem);
                                 } else {
                                     // Handle primitive types or other types as needed

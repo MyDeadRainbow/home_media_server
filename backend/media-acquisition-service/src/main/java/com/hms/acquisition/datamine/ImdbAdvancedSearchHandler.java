@@ -23,11 +23,11 @@ public class ImdbAdvancedSearchHandler {
 
     private record Variables(int first, String locale, String sortBy, String sortOrder,
             TitleTextConstraint titleTextConstraint, TitleTypeConstraint titleTypeConstraint)
-            implements JsonSerializable<Variables> {
-        private record TitleTextConstraint(String searchTerm) implements JsonSerializable<TitleTextConstraint> {
+            implements JsonSerializable {
+        private record TitleTextConstraint(String searchTerm) implements JsonSerializable {
         }
 
-        private record TitleTypeConstraint(String... anyTitleTypeIds) implements JsonSerializable<TitleTypeConstraint> {
+        private record TitleTypeConstraint(String... anyTitleTypeIds) implements JsonSerializable {
         }
 
         Variables(int first, String locale, String sortBy, String sortOrder, String searchTerm,
@@ -39,8 +39,8 @@ public class ImdbAdvancedSearchHandler {
 
     private final String EXTENSIONS_PARAMETER = "extensions";
 
-    private record Extensions(PersistedQuery persistedQuery) implements JsonSerializable<Extensions> {
-        private record PersistedQuery(String sha256Hash, int version) implements JsonSerializable<PersistedQuery> {
+    private record Extensions(PersistedQuery persistedQuery) implements JsonSerializable {
+        private record PersistedQuery(String sha256Hash, int version) implements JsonSerializable {
         }
 
         Extensions(String sha256Hash, int version) {
@@ -133,10 +133,5 @@ public class ImdbAdvancedSearchHandler {
             // Handle exceptions
         }
         return movie;
-    }
-
-    public static void main(String[] args) {
-        new ImdbAdvancedSearchHandler()
-                .movie(new Movie(null, null, new MetaData(null, "The Land Before Time", null, null, null, null, null)));
     }
 }

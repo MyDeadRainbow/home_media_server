@@ -21,6 +21,7 @@ import com.hms.shared.media.Movie;
 import com.hms.shared.media.Season;
 import com.hms.shared.media.Series;
 import com.hms.shared.media.metadata.MetaData;
+import com.hms.shared.media.poster.Poster;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
@@ -75,6 +76,13 @@ public class TMDBApi implements MediaDbApi {
 
                 series = series.withMetaData(metaData);
                 tmdbSeriesId = json.get("id").getAsString();
+                String posterPath = json.get("poster_path").getAsString();
+                byte[] posterData = fetchImage(posterPath);
+                if (posterData != null) {
+                    Poster seriesPoster = Optional.ofNullable(series.poster()).orElse(Poster.create(null));
+                    seriesPoster = seriesPoster.withImageData(posterData);
+                    series = series.withPoster(seriesPoster);
+                }
             } catch (IOException e) {
                 log.error("IOException occurred while searching for series: {}", e.getMessage(), e);
             } catch (InterruptedException e) {
@@ -115,6 +123,15 @@ public class TMDBApi implements MediaDbApi {
                             .withRating(jsonDetails.get("vote_average").getAsFloat());
 
                     season = season.withMetaData(metaData);
+                    
+                    String posterPath = jsonDetails.get("poster_path").getAsString();
+                    byte[] posterData = fetchImage(posterPath);
+                    if (posterData != null) {
+                        Poster seasonPoster = Optional.ofNullable(season.poster()).orElse(Poster.create(null));
+                        seasonPoster = seasonPoster.withImageData(posterData);
+                        season = season.withPoster(seasonPoster);
+                    }
+
                     series = series.replaceSeason(season);
 
                     JsonArray episodesArray = jsonDetails.getAsJsonArray("episodes");
@@ -137,6 +154,15 @@ public class TMDBApi implements MediaDbApi {
                                 .withRating(episodeJson.get("vote_average").getAsFloat());
 
                         episode = episode.withMetaData(episodeMetaData);
+
+                        String episodePosterPath = episodeJson.get("still_path").getAsString();
+                        byte[] episodePosterData = fetchImage(episodePosterPath);
+                        if (episodePosterData != null) {
+                            Poster episodePoster = Optional.ofNullable(episode.poster()).orElse(Poster.create(null));
+                            episodePoster = episodePoster.withImageData(episodePosterData);
+                            episode = episode.withPoster(episodePoster);
+                        }
+
                         season = season.replaceEpisode(episode);
                         series = series.replaceSeason(season);
                     }
@@ -186,6 +212,13 @@ public class TMDBApi implements MediaDbApi {
                     .withRating(json.get("vote_average").getAsFloat());
             movie = movie.withMetaData(metaData);
 
+            String posterPath = json.get("poster_path").getAsString();
+            byte[] posterData = fetchImage(posterPath);
+            if (posterData != null) {
+                Poster moviePoster = Optional.ofNullable(movie.poster()).orElse(Poster.create(null));
+                moviePoster = moviePoster.withImageData(posterData);
+                movie = movie.withPoster(moviePoster);
+            }
         } catch (Exception e) {
             log.error("Exception occurred while searching for movie: {}", e.getMessage(), e);
         }
@@ -194,5 +227,28 @@ public class TMDBApi implements MediaDbApi {
 
     private HttpRequest.Builder addHeaders(HttpRequest.Builder request) {
         return request.header("Authorization", "Bearer " + apiKey).header("Accept", "application/json");
+    }
+
+    private String imageUrl = "https://image.tmdb.org"; // Base URL for TMDB images
+    private String imageUrlPath = "/t/p/original"; // Path for original size images
+
+    private byte[] fetchImage(String imagePath) {
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            UrlBuilder urlBuilder = UrlBuilder.fromString(imageUrl).withPath(imageUrlPath + imagePath);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(urlBuilder.toUri())
+                    .GET()
+                    .build();
+
+            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            if (response.statusCode() != 200) {
+                log.error("Error: Received non-200 response while fetching image: {}", response.statusCode());
+                return null;
+            }
+            return response.body();
+        } catch (Exception e) {
+            log.error("Exception occurred while fetching image: {}", e.getMessage(), e);
+            return null;
+        }
     }
 }

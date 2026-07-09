@@ -2,7 +2,7 @@ package com.hms.shared.messaging.mediaupdates;
 
 import com.hms.shared.messaging.JsonSerializable;
 
-public record MediaUpdate(MediaUpdateType type, String id) implements JsonSerializable<MediaUpdate> {
+public record MediaUpdate(MediaUpdateType type, String id) implements JsonSerializable {
 
     public static MediaUpdate created(String id) {
         return new MediaUpdate(MediaUpdateType.CREATED, id);

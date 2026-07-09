@@ -14,7 +14,7 @@ import com.hms.shared.messaging.JsonSerializable;
 
 public record MetaData(String metaDataId, String title, String plotSummary, LocalDate airDate, Float rating,
         MetaDataStatus status, String message)
-        implements SQLiteRecord, JsonSerializable<MetaData>, Title {
+        implements SQLiteRecord, JsonSerializable, Title {
 
     @Override
     public String getPrimaryKeyField() {

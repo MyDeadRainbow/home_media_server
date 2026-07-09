@@ -7,7 +7,7 @@ import com.hms.shared.messaging.JsonSerializable;
 /**
  * DataMineRequest is a record that represents a request to mine data for a specific media item.
  */
-public interface DataMineRequest extends JsonSerializable<DataMineRequest> {
+public interface DataMineRequest extends JsonSerializable {
     public static final String TOPIC = "data-mine-requests";
     
     public String imdbSearchTitle();
@@ -19,7 +19,7 @@ public interface DataMineRequest extends JsonSerializable<DataMineRequest> {
         }
     }
 
-    public static record Season(String seriesId, int seasonNumber, List<Episode> episodes) implements JsonSerializable<Season> {
+    public static record Season(String seriesId, int seasonNumber, List<Episode> episodes) implements JsonSerializable {
         // @Override
         // public String imdbSearchTitle() {
         //     return seasonTitle;
@@ -29,7 +29,7 @@ public interface DataMineRequest extends JsonSerializable<DataMineRequest> {
     /**
      * (String mediaId, String episodeId, String episodeTitle, int episodeNumber, String seriesTitle, int seasonNumber)
      */
-    public static record Episode(String mediaId, String episodeId, String episodeTitle, int episodeNumber, String seriesTitle, int seasonNumber) implements JsonSerializable<Episode> {
+    public static record Episode(String mediaId, String episodeId, String episodeTitle, int episodeNumber, String seriesTitle, int seasonNumber) implements JsonSerializable {
         // /**
         //  * returns the series title so that the search can be done on imdb for the series, then the season and episode can be found from there
         //  * @return seriesTitle

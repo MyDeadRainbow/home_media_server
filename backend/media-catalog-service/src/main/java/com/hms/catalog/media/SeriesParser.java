@@ -1,20 +1,17 @@
 package com.hms.catalog.media;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import com.hms.dao.SQLiteMap;
-import com.hms.dao.SQLiteRecordDao;
 import com.hms.shared.media.Episode;
 import com.hms.shared.media.MediaItem;
 import com.hms.shared.media.Season;
 import com.hms.shared.media.Series;
 import com.hms.shared.media.metadata.MetaData;
 import com.hms.shared.media.metadata.MetaDataStatus;
+import com.hms.shared.media.poster.Poster;
 
 public class SeriesParser {
 
@@ -61,6 +58,7 @@ public class SeriesParser {
 
                 if (series == null) {
                     series = Series.create(MetaData.create(seriesName, null, null, null, MetaDataStatus.PENDING, null),
+                            Poster.create(null),
                             new ArrayList<Season>());
                     // new Series(UUID.randomUUID().toString(), seriesName, new ArrayList<>(),
                     // new MetaData(UUID.randomUUID().toString(), null, null, null,
@@ -77,6 +75,7 @@ public class SeriesParser {
                     season = Season.create(series.seriesId(), seasonNumber,
                             MetaData.create(seriesName + " S" + seasonNumber, null, null, null, MetaDataStatus.PENDING,
                                     null),
+                            Poster.create(null),
                             new ArrayList<Episode>());
                     // new Season(UUID.randomUUID().toString(), series.seriesId(),
                     // seriesName + " S" + seasonNumber, seasonNumber, new ArrayList<>());
@@ -88,10 +87,13 @@ public class SeriesParser {
                 MediaItem mediaItem = new MediaItem(entry.mediaId(), string);
 
                 Episode episode = Episode.create(season.seasonId(), series.seriesId(), episodeNumber, mediaItem,
-                        MetaData.create(episodeName, null, null, null, MetaDataStatus.PENDING, null));
-                // new Episode(UUID.randomUUID().toString(), season.seasonId(), series.seriesId(),
-                //         episodeName, episodeNumber, mediaItem,
-                //         new MetaData(UUID.randomUUID().toString(), null, null, null, MetaDataStatus.PENDING, null));
+                        MetaData.create(episodeName, null, null, null, MetaDataStatus.PENDING, null),
+                        Poster.create(null));
+                // new Episode(UUID.randomUUID().toString(), season.seasonId(),
+                // series.seriesId(),
+                // episodeName, episodeNumber, mediaItem,
+                // new MetaData(UUID.randomUUID().toString(), null, null, null,
+                // MetaDataStatus.PENDING, null));
                 season = season.addEpisode(episode);
                 series = series.addSeason(season);
                 seriesMap.put(series.seriesId(), series);
