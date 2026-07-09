@@ -17,6 +17,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
+import com.hms.acquisition.datamine.api.MediaDbApi;
+import com.hms.acquisition.datamine.api.MediaDbApiFactory;
 import com.hms.acquisition.datamine.exception.DatamineException;
 import com.hms.shared.media.Movie;
 import com.hms.shared.media.Series;
@@ -114,13 +116,15 @@ public class DataMineRequestConsumer {
 
     @KafkaListener(topics = Topics.DATAMINE_MOVIE, groupId = GROUP_ID, containerFactory = "movieKafkaListenerContainerFactory", autoStartup = "true")
     public void listenMovie(Movie message) {
-        DatamineMovieHandler movieHandler = new DatamineMovieHandler();
-        try {
-            MetaDataProducer.postMessage(movieHandler.handle(message));
-        } catch (DatamineException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        MediaDbApi mediaDbApi = MediaDbApiFactory.createTMDBApi();
+        MetaDataProducer.postMessage(mediaDbApi.searchMovie(message));
+        // DatamineMovieHandler movieHandler = new DatamineMovieHandler();
+        // try {
+        //     MetaDataProducer.postMessage(movieHandler.handle(message));
+        // } catch (DatamineException e) {
+        //     // TODO Auto-generated catch block
+        //     e.printStackTrace();
+        // }
         // switch (message) {
         // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
         // case MetaData.Movie movie -> handleMovieMetaData(movie);
@@ -133,13 +137,15 @@ public class DataMineRequestConsumer {
 
     @KafkaListener(topics = Topics.DATAMINE_SERIES, groupId = GROUP_ID, containerFactory = "seriesKafkaListenerContainerFactory", autoStartup = "true")
     public void listenSeries(Series message) {
-        DatamineSeriesHandler seriesHandler = new DatamineSeriesHandler();
-        try {
-            MetaDataProducer.postMessage(seriesHandler.handle(message));
-        } catch (DatamineException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        MediaDbApi mediaDbApi = MediaDbApiFactory.createTMDBApi();
+        MetaDataProducer.postMessage(mediaDbApi.searchSeries(message));
+        // DatamineSeriesHandler seriesHandler = new DatamineSeriesHandler();
+        // try {
+        //     MetaDataProducer.postMessage(seriesHandler.handle(message));
+        // } catch (DatamineException e) {
+        //     // TODO Auto-generated catch block
+        //     e.printStackTrace();
+        // }
         // switch (message) {
         // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
         // case MetaData.Movie movie -> handleMovieMetaData(movie);

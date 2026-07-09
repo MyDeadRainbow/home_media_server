@@ -25,37 +25,18 @@ RUN mvn -B -pl media-acquisition-service -am clean package
 
 # RUN jar xf /tmp/libtorrent4j-linux-2.0.5-25.jar lib/x86_64/libtorrent4j.so
 
-FROM mcr.microsoft.com/playwright:v1.60.0-noble
+# FROM mcr.microsoft.com/playwright:v1.60.0-noble
+# WORKDIR /app
+
+# RUN apt-get update && apt-get install -y openjdk-25-jre-headless && rm -rf /var/lib/apt/lists/*
+
+# ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+# ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+# ENV LD_LIBRARY_PATH=/app/lib
+# ENV DISPLAY=:99
+
+FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
-
-RUN apt-get update && apt-get install -y openjdk-25-jre-headless && rm -rf /var/lib/apt/lists/*
-
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-ENV LD_LIBRARY_PATH=/app/lib
-ENV DISPLAY=:99
-
-# Use Playwright's installer to resolve distro-specific system deps and Chromium.
-# RUN mkdir -p /tmp/playwright
-# COPY --from=build /root/.m2/repository/com/microsoft/playwright/playwright/1.60.0/playwright-1.60.0.jar /tmp/playwright/playwright.jar
-# COPY --from=build /root/.m2/repository/com/microsoft/playwright/driver/1.60.0/driver-1.60.0.jar /tmp/playwright/driver.jar
-# COPY --from=build /root/.m2/repository/com/microsoft/playwright/driver-bundle/1.60.0/driver-bundle-1.60.0.jar /tmp/playwright/driver-bundle.jar
-# RUN java -cp "/tmp/playwright/*" com.microsoft.playwright.CLI install --with-deps chromium \
-#     && rm -rf /tmp/playwright
-
-# # This gets rid of a warning when starting playwright, but it is not strictly nesessary for the functionality we use.
-# # this greatly increases the size of the image, but it is needed for playwright to work properly.
-# RUN apt-get update && apt-get install -y \
-#     libxcursor1 \
-#     libgtk-3-0 \
-#     libpangocairo-1.0-0 \
-#     libcairo-gobject2 \
-#     libgdk-pixbuf-2.0-0 \
-#     xvfb 
-
-
-
-# COPY --from=extractor /tmp/lib/x86_64/libtorrent4j.so /app/lib/libtorrent4j.so
 
 COPY --from=build /workspace/media-acquisition-service/target/media-acquisition-service-0.1.0.jar app.jar
 EXPOSE 8082
