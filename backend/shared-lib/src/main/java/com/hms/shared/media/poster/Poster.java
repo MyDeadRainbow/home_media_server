@@ -58,7 +58,7 @@ public record Poster(String posterId, byte[] imageData) implements JsonSerializa
         public String toCreateTableStatement() {
             return "CREATE TABLE IF NOT EXISTS posters ("
                     + "posterId TEXT PRIMARY KEY,"
-                    + "imageData BLOB NOT NULL"
+                    + "imageData BLOB"
                     + ");";
         }
 
