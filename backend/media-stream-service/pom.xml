@@ -33,19 +33,23 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-kafka</artifactId>
         </dependency>
+
         <!-- Source: https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
         <dependency>
             <groupId>org.xerial</groupId>
@@ -53,6 +57,7 @@
             <version>3.53.1.0</version>
             <scope>compile</scope>
         </dependency>
+
         <!-- Source: https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -60,20 +65,6 @@
             <version>33.6.0-jre</version>
             <scope>compile</scope>
         </dependency>
-
-        <!-- Core libtorrent4j wrapper -->
-        <!-- <dependency>
-            <groupId>org.libtorrent4j</groupId>
-            <artifactId>libtorrent4j</artifactId>
-            <version>${libtorrent4j.version}</version>
-        </dependency> -->
-
-        <!-- Native Linux binaries -->
-        <!-- <dependency>
-            <groupId>org.libtorrent4j</groupId>
-            <artifactId>libtorrent4j-linux</artifactId>
-            <version>${libtorrent4j.version}</version>
-        </dependency> -->
 
         <!-- Source: https://mvnrepository.com/artifact/com.frostwire/jlibtorrent -->
         <dependency>
