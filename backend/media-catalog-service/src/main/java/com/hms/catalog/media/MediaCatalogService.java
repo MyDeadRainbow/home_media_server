@@ -132,8 +132,8 @@ public class MediaCatalogService {
         return seasonList;
     }
 
-    public List<MediaInfo> getEpisodes(String seriesId, String seasonId, String query) {
-        List<MediaInfo> episodeList = new ArrayList<>();
+    public List<Episode> getEpisodes(String seriesId, String seasonId, String query) {
+        List<Episode> episodeList = new ArrayList<>();
         try {
             var episodes = new Episode.Dao()
                     .select(Map.of("seriesId", seriesId, "seasonId", seasonId));
@@ -144,16 +144,7 @@ public class MediaCatalogService {
                     continue;
                 }
 
-                episodeList.add(new MediaInfo(
-                        episode.media().mediaId(),
-                        episode.title(),
-                        MediaCategory.SERIES.name().toLowerCase(Locale.ROOT),
-                        episode.metaData().airDate(),
-                        episode.metaData().plotSummary(),
-                        episode.metaData().rating(),
-                        // episode.media().filePath()
-                        "stream/files/" + episode.media().mediaId()
-                    ));
+                episodeList.add(episode);
             }
         } catch (SQLException e) {
             // Log the error and fall back to in-memory index
@@ -162,8 +153,8 @@ public class MediaCatalogService {
         return episodeList;
     }
 
-    public List<MediaInfo> getMovies(String query) {
-        List<MediaInfo> movieList = new ArrayList<>();
+    public List<Movie> getMovies(String query) {
+        List<Movie> movieList = new ArrayList<>();
         try {
             List<Movie> movies = new Movie.Dao().select(Map.of());
             String normalized = normalizeQuery(query);
@@ -173,16 +164,7 @@ public class MediaCatalogService {
                     continue;
                 }
 
-                movieList.add(new MediaInfo(
-                        movie.mediaItem().mediaId(),
-                        movie.title(),
-                        MediaCategory.MOVIE.name().toLowerCase(Locale.ROOT),
-                        movie.metaData().airDate(),
-                        movie.metaData().plotSummary(),
-                        movie.metaData().rating(),
-                        // movie.mediaItem().filePath()
-                        "stream/files/" + movie.mediaItem().mediaId()
-                    ));
+                movieList.add(movie);
             }
         } catch (SQLException e) {
             // Log the error and fall back to in-memory index

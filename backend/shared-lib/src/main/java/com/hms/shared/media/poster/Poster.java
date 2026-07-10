@@ -2,6 +2,7 @@ package com.hms.shared.media.poster;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Map;
 
 import com.hms.dao.PreparedStatementValue;
@@ -29,7 +30,18 @@ public record Poster(String posterId, byte[] imageData) implements JsonSerializa
     public Poster withImageData(byte[] newImageData) {
         return new Poster(this.posterId, newImageData);
     }
-    
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!(obj instanceof Poster other))
+            return false;
+        if (!Arrays.equals(this.imageData, other.imageData))
+            return false;
+        return posterId.equals(other.posterId);
+    }
+
     public static class Dao extends SQLiteRecordDao<Poster> {
 
         @Override
@@ -46,7 +58,7 @@ public record Poster(String posterId, byte[] imageData) implements JsonSerializa
         public String toCreateTableStatement() {
             return "CREATE TABLE IF NOT EXISTS posters ("
                     + "posterId TEXT PRIMARY KEY,"
-                    + "imageData BLOB NOT NULL"
+                    + "imageData BLOB"
                     + ");";
         }
 

@@ -25,7 +25,7 @@ import com.hms.shared.messaging.datamining.DataMineRequestSerializer;
 
 // @Service
 // public class DataMineRequestProducer {
-    
+
 //     @Qualifier("dataMineRequestKafkaTemplate")
 //     private final KafkaTemplate<String, DataMineRequest> kafkaTemplate;
 
@@ -91,7 +91,8 @@ public class DataMineRequestProducer {
 
     public static DataMineRequestProducer INSTANCE;
 
-    public DataMineRequestProducer(KafkaTemplate<String, Movie> movieKafkaTemplate, KafkaTemplate<String, Series> seriesKafkaTemplate) {
+    public DataMineRequestProducer(KafkaTemplate<String, Movie> movieKafkaTemplate,
+            KafkaTemplate<String, Series> seriesKafkaTemplate) {
         this.movieKafkaTemplate = movieKafkaTemplate;
         this.seriesKafkaTemplate = seriesKafkaTemplate;
         INSTANCE = this;
@@ -145,6 +146,7 @@ class DataMineRequestProducerConfig {
     @Bean
     public ProducerFactory<String, Movie> movieProducerFactory() {
         Map<String, Object> configProps = Map.of(
+                ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 104857600,
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, MovieSerializer.class.getName());
@@ -167,6 +169,7 @@ class DataMineRequestProducerConfig {
     @Bean
     public ProducerFactory<String, Series> seriesProducerFactory() {
         Map<String, Object> configProps = Map.of(
+                ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 104857600,
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName(),
                 ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, SeriesSerializer.class.getName());

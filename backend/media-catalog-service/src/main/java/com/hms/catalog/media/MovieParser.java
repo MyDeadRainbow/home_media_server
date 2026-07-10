@@ -6,6 +6,7 @@ import com.hms.shared.media.MediaItem;
 import com.hms.shared.media.Movie;
 import com.hms.shared.media.metadata.MetaData;
 import com.hms.shared.media.metadata.MetaDataStatus;
+import com.hms.shared.media.poster.Poster;
 
 public class MovieParser {
     private ParseEntry filePath;
@@ -32,7 +33,7 @@ public class MovieParser {
                         null,
                         MetaDataStatus.PENDING,
                         null),
-                null // Placeholder for poster
+                Poster.create(null) // Placeholder for poster
         );
 
         return movie;

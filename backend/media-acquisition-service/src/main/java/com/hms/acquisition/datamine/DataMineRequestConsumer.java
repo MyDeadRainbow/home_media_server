@@ -120,10 +120,10 @@ public class DataMineRequestConsumer {
         MetaDataProducer.postMessage(mediaDbApi.searchMovie(message));
         // DatamineMovieHandler movieHandler = new DatamineMovieHandler();
         // try {
-        //     MetaDataProducer.postMessage(movieHandler.handle(message));
+        // MetaDataProducer.postMessage(movieHandler.handle(message));
         // } catch (DatamineException e) {
-        //     // TODO Auto-generated catch block
-        //     e.printStackTrace();
+        // // TODO Auto-generated catch block
+        // e.printStackTrace();
         // }
         // switch (message) {
         // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
@@ -141,10 +141,10 @@ public class DataMineRequestConsumer {
         MetaDataProducer.postMessage(mediaDbApi.searchSeries(message));
         // DatamineSeriesHandler seriesHandler = new DatamineSeriesHandler();
         // try {
-        //     MetaDataProducer.postMessage(seriesHandler.handle(message));
+        // MetaDataProducer.postMessage(seriesHandler.handle(message));
         // } catch (DatamineException e) {
-        //     // TODO Auto-generated catch block
-        //     e.printStackTrace();
+        // // TODO Auto-generated catch block
+        // e.printStackTrace();
         // }
         // switch (message) {
         // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
@@ -247,6 +247,7 @@ class MetaDataConsumerConfig {
     @Bean
     public ConsumerFactory<String, Movie> movieConsumerFactory() {
         Map<String, Object> props = Map.of(
+                ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, 104857600,
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),
@@ -272,6 +273,7 @@ class MetaDataConsumerConfig {
     @Bean
     public ConsumerFactory<String, Series> seriesConsumerFactory() {
         Map<String, Object> props = Map.of(
+                ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, 104857600,
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ConsumerConfig.GROUP_ID_CONFIG, DataMineRequestConsumer.GROUP_ID,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName(),

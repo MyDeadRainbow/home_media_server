@@ -42,11 +42,12 @@ public class MetaDataConsumer {
             e.printStackTrace();
         }
         // switch (message) {
-        //     case MetaData.Episode episode -> handleEpisodeMetaData(episode);
-        //     case MetaData.Movie movie -> handleMovieMetaData(movie);
-        //     case MetaData.Series series -> handleSeriesMetaData(series);
-        //     default ->
-        //         LOG.warn("Received metadata message with unsupported type: {}", message.getClass().getSimpleName());
+        // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
+        // case MetaData.Movie movie -> handleMovieMetaData(movie);
+        // case MetaData.Series series -> handleSeriesMetaData(series);
+        // default ->
+        // LOG.warn("Received metadata message with unsupported type: {}",
+        // message.getClass().getSimpleName());
         // }
     }
 
@@ -59,83 +60,89 @@ public class MetaDataConsumer {
             e.printStackTrace();
         }
         // switch (message) {
-        //     case MetaData.Episode episode -> handleEpisodeMetaData(episode);
-        //     case MetaData.Movie movie -> handleMovieMetaData(movie);
-        //     case MetaData.Series series -> handleSeriesMetaData(series);
-        //     default ->
-        //         LOG.warn("Received metadata message with unsupported type: {}", message.getClass().getSimpleName());
+        // case MetaData.Episode episode -> handleEpisodeMetaData(episode);
+        // case MetaData.Movie movie -> handleMovieMetaData(movie);
+        // case MetaData.Series series -> handleSeriesMetaData(series);
+        // default ->
+        // LOG.warn("Received metadata message with unsupported type: {}",
+        // message.getClass().getSimpleName());
         // }
     }
 
     // private void handleEpisodeMetaData(MetaData.Episode message) {
-    //     LOG.info("Received Episode MetaData: {}", message);
-    //     try {
-    //         Episode episode = new Episode.Dao().get(message.episodeId());
-    //         com.hms.shared.media.metadata.MetaData currentMetaData = episode.metaData();
+    // LOG.info("Received Episode MetaData: {}", message);
+    // try {
+    // Episode episode = new Episode.Dao().get(message.episodeId());
+    // com.hms.shared.media.metadata.MetaData currentMetaData = episode.metaData();
 
-    //         com.hms.shared.media.metadata.MetaData updatedMetaData = new com.hms.shared.media.metadata.MetaData(
-    //                 currentMetaData.metaDataId(),
-    //                 message.plotSummary(),
-    //                 message.airDate(),
-    //                 message.rating());
+    // com.hms.shared.media.metadata.MetaData updatedMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // currentMetaData.metaDataId(),
+    // message.plotSummary(),
+    // message.airDate(),
+    // message.rating());
 
-    //         episode = episode.withMetaData(updatedMetaData);
-    //         new Episode.Dao().update(episode);
-    //     } catch (SQLException e) {
-    //         LOG.error("Failed to retrieve episode from database: {}", e.getMessage(), e);
-    //     }
+    // episode = episode.withMetaData(updatedMetaData);
+    // new Episode.Dao().update(episode);
+    // } catch (SQLException e) {
+    // LOG.error("Failed to retrieve episode from database: {}", e.getMessage(), e);
+    // }
     // }
 
     // private void handleMovieMetaData(MetaData.Movie message) {
-    //     LOG.info("Received Movie MetaData: {}", message);
-    //     try {
-    //         Movie movie = new Movie.Dao().get(message.movieId());
-    //         com.hms.shared.media.metadata.MetaData currentMetaData = movie.metaData();
+    // LOG.info("Received Movie MetaData: {}", message);
+    // try {
+    // Movie movie = new Movie.Dao().get(message.movieId());
+    // com.hms.shared.media.metadata.MetaData currentMetaData = movie.metaData();
 
-    //         com.hms.shared.media.metadata.MetaData updatedMetaData = new com.hms.shared.media.metadata.MetaData(
-    //                 currentMetaData.metaDataId(),
-    //                 message.plotSummary(),
-    //                 message.releaseDate(),
-    //                 message.rating());
+    // com.hms.shared.media.metadata.MetaData updatedMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // currentMetaData.metaDataId(),
+    // message.plotSummary(),
+    // message.releaseDate(),
+    // message.rating());
 
-    //         movie = movie.withMetaData(updatedMetaData);
-    //         new Movie.Dao().update(movie);
-    //     } catch (Exception e) {
-    //         LOG.error("Failed to handle Movie metadata: {}", e.getMessage(), e);
-    //     }
+    // movie = movie.withMetaData(updatedMetaData);
+    // new Movie.Dao().update(movie);
+    // } catch (Exception e) {
+    // LOG.error("Failed to handle Movie metadata: {}", e.getMessage(), e);
+    // }
     // }
 
     // private void handleSeriesMetaData(MetaData.Series message) {
-    //     LOG.info("Received Series MetaData: {}", message);
-    //     try {
-    //         Series series = new Series.Dao().get(message.seriesId());
-    //         com.hms.shared.media.metadata.MetaData currentMetaData = series.metaData();
+    // LOG.info("Received Series MetaData: {}", message);
+    // try {
+    // Series series = new Series.Dao().get(message.seriesId());
+    // com.hms.shared.media.metadata.MetaData currentMetaData = series.metaData();
 
-    //         com.hms.shared.media.metadata.MetaData updatedMetaData = new com.hms.shared.media.metadata.MetaData(
-    //                 currentMetaData.metaDataId(),
-    //                 message.plotSummary(),
-    //                 message.firstAirDate(),
-    //                 message.rating());
+    // com.hms.shared.media.metadata.MetaData updatedMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // currentMetaData.metaDataId(),
+    // message.plotSummary(),
+    // message.firstAirDate(),
+    // message.rating());
 
-    //         series = series.withMetaData(updatedMetaData);
-    //         new Series.Dao().update(series);
+    // series = series.withMetaData(updatedMetaData);
+    // new Series.Dao().update(series);
 
-    //         for (MetaData.Season season : message.seasons()) {
-    //             for (MetaData.Episode episode : season.episodes()) {
-    //                 Episode episodeEntity = new Episode.Dao().get(episode.episodeId());
-    //                 com.hms.shared.media.metadata.MetaData episodeCurrentMetaData = episodeEntity.metaData();
-    //                 com.hms.shared.media.metadata.MetaData updatedEpisodeMetaData = new com.hms.shared.media.metadata.MetaData(
-    //                         episodeCurrentMetaData.metaDataId(),
-    //                         episode.plotSummary(),
-    //                         episode.airDate(),
-    //                         episode.rating());
-    //                 episodeEntity = episodeEntity.withMetaData(updatedEpisodeMetaData);
-    //                 new Episode.Dao().update(episodeEntity);
-    //             }
-    //         }
-    //     } catch (Exception e) {
-    //         LOG.error("Failed to handle Series metadata: {}", e.getMessage(), e);
-    //     }
+    // for (MetaData.Season season : message.seasons()) {
+    // for (MetaData.Episode episode : season.episodes()) {
+    // Episode episodeEntity = new Episode.Dao().get(episode.episodeId());
+    // com.hms.shared.media.metadata.MetaData episodeCurrentMetaData =
+    // episodeEntity.metaData();
+    // com.hms.shared.media.metadata.MetaData updatedEpisodeMetaData = new
+    // com.hms.shared.media.metadata.MetaData(
+    // episodeCurrentMetaData.metaDataId(),
+    // episode.plotSummary(),
+    // episode.airDate(),
+    // episode.rating());
+    // episodeEntity = episodeEntity.withMetaData(updatedEpisodeMetaData);
+    // new Episode.Dao().update(episodeEntity);
+    // }
+    // }
+    // } catch (Exception e) {
+    // LOG.error("Failed to handle Series metadata: {}", e.getMessage(), e);
+    // }
     // }
 }
 
@@ -153,6 +160,7 @@ class MetaDataConsumerConfig {
     @Bean
     public ConsumerFactory<String, Movie> movieConsumerFactory() {
         Map<String, Object> props = Map.of(
+                ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, 104857600,
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ConsumerConfig.GROUP_ID_CONFIG, MetaDataConsumer.GROUP_ID,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -179,6 +187,7 @@ class MetaDataConsumerConfig {
     @Bean
     public ConsumerFactory<String, Series> seriesConsumerFactory() {
         Map<String, Object> props = Map.of(
+                ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, 104857600,
                 ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers,
                 ConsumerConfig.GROUP_ID_CONFIG, MetaDataConsumer.GROUP_ID,
                 ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
