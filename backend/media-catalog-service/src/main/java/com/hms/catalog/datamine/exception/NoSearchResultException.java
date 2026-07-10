@@ -1,4 +1,4 @@
-package com.hms.acquisition.datamine.exception;
+package com.hms.catalog.datamine.exception;
 
 public class NoSearchResultException extends DatamineException {
     public NoSearchResultException(String message) {

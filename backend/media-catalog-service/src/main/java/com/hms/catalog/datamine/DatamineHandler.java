@@ -1,11 +1,11 @@
-package com.hms.acquisition.datamine;
+package com.hms.catalog.datamine;
 
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.hms.acquisition.datamine.exception.DatamineException;
-import com.hms.acquisition.datamine.exception.NoSearchResultException;
+import com.hms.catalog.datamine.exception.DatamineException;
+import com.hms.catalog.datamine.exception.NoSearchResultException;
 import com.hms.shared.media.Title;
 import com.hms.shared.messaging.datamining.DataMineRequest;
 import com.hms.shared.pipline.Handler;

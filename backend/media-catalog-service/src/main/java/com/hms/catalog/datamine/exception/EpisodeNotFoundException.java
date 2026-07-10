@@ -1,4 +1,4 @@
-package com.hms.acquisition.datamine.exception;
+package com.hms.catalog.datamine.exception;
 
 public class EpisodeNotFoundException extends DatamineException {
     public EpisodeNotFoundException(String message) {

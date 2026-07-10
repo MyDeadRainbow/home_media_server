@@ -1,4 +1,4 @@
-package com.hms.acquisition.datamine.exception;
+package com.hms.catalog.datamine.exception;
 
 public abstract class DatamineException extends Exception {
 

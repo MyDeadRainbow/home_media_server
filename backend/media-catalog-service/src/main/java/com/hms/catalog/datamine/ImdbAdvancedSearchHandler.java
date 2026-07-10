@@ -1,4 +1,4 @@
-package com.hms.acquisition.datamine;
+package com.hms.catalog.datamine;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;

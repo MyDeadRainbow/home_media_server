@@ -1,4 +1,4 @@
-package com.hms.acquisition.datamine;
+package com.hms.catalog.datamine;
 
 // public class DatamineEpisodeHandler extends DatamineHandler<DataMineRequest.Episode> {
 

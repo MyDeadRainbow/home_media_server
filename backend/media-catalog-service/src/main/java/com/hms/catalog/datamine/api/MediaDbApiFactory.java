@@ -1,4 +1,4 @@
-package com.hms.acquisition.datamine.api;
+package com.hms.catalog.datamine.api;
 
 import java.util.Optional;
 

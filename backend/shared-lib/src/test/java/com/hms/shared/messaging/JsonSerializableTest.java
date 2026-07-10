@@ -49,7 +49,7 @@ public class JsonSerializableTest {
     }
 
     private Poster createPoster(String idSuffix) {
-        return new Poster("poster-" + idSuffix, new byte[] { 0x01, 0x02, 0x03 });
+        return new Poster("poster-" + idSuffix, "https://example.com/poster-" + idSuffix + ".jpg");
     }
 
     private Episode createEpisode() {

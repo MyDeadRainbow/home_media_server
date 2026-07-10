@@ -1,5 +1,6 @@
 package com.hms.catalog.messaging;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,7 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
+import com.hms.catalog.datamine.api.MediaDbApiFactory;
 import com.hms.catalog.media.MovieParser;
 import com.hms.catalog.media.ParseEntry;
 import com.hms.catalog.media.SeriesParser;
@@ -76,9 +78,17 @@ public class CatalogUpdateConsumer {
                     // season.seasonNumber()))
                     // .toList()));
                     // });
-                    DataMineRequestProducer.postMessage(series);
+                    // DataMineRequestProducer.postMessage(series);
                     // .postMessage(new DataMineRequest.Series(series.seriesId(), series.name(),
                     // seasons));
+                    MediaDbApiFactory.createTMDBApi().searchSeries(series)
+                            .thenAccept(s -> {
+                                try {
+                                    new Series.Dao().update(s);
+                                } catch (SQLException e) {
+                                    LOG.error("Error updating series: {}", s.title(), e);
+                                }
+                            });
                 } catch (Exception e) {
                     LOG.error("Error inserting series: {}", series.title(), e);
                 }
@@ -112,8 +122,17 @@ public class CatalogUpdateConsumer {
         Movie movie = new MovieParser(new ParseEntry(filePathRecord.mediaId(), filePathRecord.filePath())).parse();
         try {
             new Movie.Dao().insert(movie);
-            DataMineRequestProducer.postMessage(movie);
-                    // .postMessage(new DataMineRequest.Movie(movie.mediaItem().mediaId(), movie.movieId(), movie.name()));
+            // DataMineRequestProducer.postMessage(movie);
+            // .postMessage(new DataMineRequest.Movie(movie.mediaItem().mediaId(),
+            // movie.movieId(), movie.name()));
+            MediaDbApiFactory.createTMDBApi().searchMovie(movie)
+                    .thenAccept(m -> {
+                        try {
+                            new Movie.Dao().update(m);
+                        } catch (SQLException e) {
+                            LOG.error("Error updating movie: {}", m.title(), e);
+                        }
+                    });
         } catch (Exception e) {
             LOG.error("Error inserting movie: {}", movie.title(), e);
         }

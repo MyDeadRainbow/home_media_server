@@ -1,10 +1,10 @@
-package com.hms.acquisition.datamine;
+package com.hms.catalog.datamine;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import com.hms.acquisition.datamine.exception.DatamineException;
+import com.hms.catalog.datamine.exception.DatamineException;
 import com.hms.shared.media.Movie;
 import com.hms.shared.media.metadata.MetaData;
 import com.hms.shared.media.metadata.MetaDataStatus;

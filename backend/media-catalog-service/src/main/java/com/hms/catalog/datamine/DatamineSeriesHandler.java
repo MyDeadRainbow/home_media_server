@@ -1,13 +1,13 @@
-package com.hms.acquisition.datamine;
+package com.hms.catalog.datamine;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-import com.hms.acquisition.datamine.exception.DatamineException;
-import com.hms.acquisition.datamine.exception.EpisodeNotFoundException;
-import com.hms.acquisition.datamine.exception.SeasonNotFoundException;
+import com.hms.catalog.datamine.exception.DatamineException;
+import com.hms.catalog.datamine.exception.EpisodeNotFoundException;
+import com.hms.catalog.datamine.exception.SeasonNotFoundException;
 import com.hms.shared.media.Episode;
 import com.hms.shared.media.Season;
 import com.hms.shared.media.Series;
