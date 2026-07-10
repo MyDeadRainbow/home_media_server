@@ -1,4 +1,4 @@
-package com.hms.acquisition.search;
+package com.hms.shared.orchestrator;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 

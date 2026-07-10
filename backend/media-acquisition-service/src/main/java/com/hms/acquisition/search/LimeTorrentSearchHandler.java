@@ -8,6 +8,8 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.shared.orchestrator.SseEmitterHandler;
+
 import io.mikael.urlbuilder.UrlBuilder;
 
 public class LimeTorrentSearchHandler

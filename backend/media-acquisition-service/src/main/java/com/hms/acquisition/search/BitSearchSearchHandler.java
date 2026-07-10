@@ -5,6 +5,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.shared.orchestrator.SseEmitterHandler;
+
 import io.mikael.urlbuilder.UrlBuilder;
 
 public class BitSearchSearchHandler implements SseEmitterHandler<SearchRequest> {

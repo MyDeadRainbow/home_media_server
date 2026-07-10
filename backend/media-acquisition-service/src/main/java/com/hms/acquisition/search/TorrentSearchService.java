@@ -3,6 +3,8 @@ package com.hms.acquisition.search;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.shared.orchestrator.SseEmitterOrchestrator;
+
 @Service
 public class TorrentSearchService {
 

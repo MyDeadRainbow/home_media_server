@@ -9,6 +9,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.hms.shared.media.MediaCategory;
+import com.hms.shared.orchestrator.SseEmitterHandler;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
