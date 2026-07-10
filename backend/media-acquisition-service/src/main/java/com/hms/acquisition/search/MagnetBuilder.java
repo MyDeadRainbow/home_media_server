@@ -1,17 +1,12 @@
 package com.hms.acquisition.search;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Function;
 
 import org.springframework.web.util.UriUtils;
-
-import io.mikael.urlbuilder.util.Encoder;
 
 public class MagnetBuilder {
     private static final String MAGNET_PREFIX = "magnet:?xt=urn:btih:";
@@ -73,32 +68,6 @@ public class MagnetBuilder {
     }
 
     private String encode(final String input) {
-        // final StringBuilder sb = new StringBuilder();
-        // final char[] inputChars = input.toCharArray();
-        // for (int i = 0; i < Character.codePointCount(inputChars, 0, inputChars.length); i++) {
-        //     final CharBuffer cb;
-        //     final int codePoint = Character.codePointAt(inputChars, i);
-        //     if (Character.isBmpCodePoint(codePoint)) {
-        //         final char c = Character.toChars(codePoint)[0];
-        //         cb = CharBuffer.allocate(1);
-        //         cb.append(c);
-        //     } else {
-        //         cb = CharBuffer.allocate(2);
-        //         cb.append(Character.highSurrogate(codePoint));
-        //         cb.append(Character.lowSurrogate(codePoint));
-        //     }
-        //     cb.rewind();
-        //     final ByteBuffer bb = outputEncoding.encode(cb);
-        //     for (int j = 0; j < bb.limit(); j++) {
-        //         // Until someone has a real problem with the performance of this bit,
-        //         // I will leave this less optimal, but much simpler implementation in place
-        //         sb.append('%');
-        //         sb.append(String.format(Locale.US, "%1$02X", bb.get(j)));
-        //     }
-        // }
-        // return sb.toString();
-        // Encoder encoder = new Encoder(outputEncoding);
-        // return encoder.urlEncode(input, false, false, false);
         return UriUtils.encode(input, outputEncoding);
     }
 }

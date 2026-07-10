@@ -2,7 +2,6 @@ package com.hms.shared.media.poster;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Map;
 
 import com.hms.dao.PreparedStatementValue;

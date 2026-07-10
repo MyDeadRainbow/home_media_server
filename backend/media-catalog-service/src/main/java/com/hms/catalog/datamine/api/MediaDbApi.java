@@ -2,10 +2,7 @@ package com.hms.catalog.datamine.api;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
-import org.springframework.boot.task.ThreadPoolTaskExecutorBuilder;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import com.hms.shared.media.Movie;

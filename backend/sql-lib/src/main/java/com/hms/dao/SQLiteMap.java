@@ -1,6 +1,5 @@
 package com.hms.dao;
 
-import java.sql.SQLException;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.List;

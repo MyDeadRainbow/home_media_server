@@ -1,7 +1,5 @@
 package com.hms.catalog.media;
 
-import java.util.UUID;
-
 import com.hms.shared.media.MediaItem;
 import com.hms.shared.media.Movie;
 import com.hms.shared.media.metadata.MetaData;

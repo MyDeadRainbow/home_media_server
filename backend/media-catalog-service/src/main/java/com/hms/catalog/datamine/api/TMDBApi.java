@@ -1,12 +1,10 @@
 package com.hms.catalog.datamine.api;
 
-import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -27,7 +25,7 @@ import com.hms.shared.media.poster.Poster;
 import io.mikael.urlbuilder.UrlBuilder;
 
 public class TMDBApi extends MediaDbApi {
-
+    
     private static final Logger log = LoggerFactory.getLogger(TMDBApi.class);
 
     protected TMDBApi(String apiKey) {
@@ -42,6 +40,8 @@ public class TMDBApi extends MediaDbApi {
     private final String moviePath = "/movie";
     private final String queryParameter = "query";
     private final String seasonPath = "/season";
+    private String imageUrl = "https://image.tmdb.org"; // Base URL for TMDB images
+    private String imageUrlPath = "/t/p/original"; // Path for original size images
 
     // https://api.themoviedb.org/3/search/tv
     @Override
@@ -275,26 +275,4 @@ public class TMDBApi extends MediaDbApi {
         return request.header("Authorization", "Bearer " + apiKey).header("Accept", "application/json");
     }
 
-    private String imageUrl = "https://image.tmdb.org"; // Base URL for TMDB images
-    private String imageUrlPath = "/t/p/original"; // Path for original size images
-
-    private byte[] fetchImage(String imagePath) {
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            UrlBuilder urlBuilder = UrlBuilder.fromString(imageUrl).withPath(imageUrlPath + imagePath);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(urlBuilder.toUri())
-                    .GET()
-                    .build();
-
-            HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() != 200) {
-                log.error("Error: Received non-200 response while fetching image: {}", response.statusCode());
-                return null;
-            }
-            return response.body();
-        } catch (Exception e) {
-            log.error("Exception occurred while fetching image: {}", e.getMessage(), e);
-            return null;
-        }
-    }
 }

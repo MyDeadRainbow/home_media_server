@@ -149,19 +149,6 @@ public class MediaStreamingService {
                 + "High-performance stream sample is now playing.\n";
     }
 
-    private String extension(String filename) {
-        if (filename == null || filename.isBlank()) {
-            return ".mp4";
-        }
-
-        int dot = filename.lastIndexOf('.');
-        if (dot < 0 || dot == filename.length() - 1) {
-            return ".mp4";
-        }
-
-        return filename.substring(dot).toLowerCase(Locale.ROOT);
-    }
-
     private Path findStoredFile(String storageId) {
         if (storageId == null || storageId.isBlank()) {
             throw new IllegalArgumentException("storageId is required");
