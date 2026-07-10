@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hms.catalog.MediaItem;
+import com.hms.shared.media.Episode;
 import com.hms.shared.media.MediaCategory;
 import com.hms.shared.media.MediaInfo;
+import com.hms.shared.media.Movie;
 import com.hms.shared.media.Season;
 import com.hms.shared.media.Series;
 
@@ -48,12 +50,12 @@ public class MediaCatalogController {
     }
     
     @GetMapping("/episodes")
-    public List<MediaInfo> getEpisodes(@RequestParam String seriesId, @RequestParam String seasonId, @RequestParam(required = false) String query) {
+    public List<Episode> getEpisodes(@RequestParam String seriesId, @RequestParam String seasonId, @RequestParam(required = false) String query) {
         return mediaCatalogService.getEpisodes(seriesId, seasonId, query);
     }
 
     @GetMapping("/movies")
-    public List<MediaInfo> getMovies(@RequestParam(required = false) String query) {
+    public List<Movie> getMovies(@RequestParam(required = false) String query) {
         return mediaCatalogService.getMovies(query);
     }
     
