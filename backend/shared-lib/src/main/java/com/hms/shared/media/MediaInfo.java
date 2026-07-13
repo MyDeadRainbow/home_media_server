@@ -47,7 +47,7 @@ public record MediaInfo(String mediaId, String title, String type, LocalDate rel
         @Override
         public void ensureTableExists() throws SQLException {
             try (var conn = Database.getConnection(getDbPath());) {
-                for (SQLiteRecordDao dao : getDependecies()) {
+                for (SQLiteRecordDao<?> dao : getDependecies()) {
                     dao.ensureTableExists();
                 }
                 try (var stmt = conn.createStatement()) {

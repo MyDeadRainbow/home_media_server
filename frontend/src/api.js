@@ -1,4 +1,4 @@
-export const API_GATEWAY = import.meta.env.VITE_API_GATEWAY_URL || 'http://192.168.0.157:18080'
+export const API_GATEWAY = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
 export const API_KEY = import.meta.env.VITE_GATEWAY_API_KEY || 'dev-local-key'
 
 async function request(url, options = {}) {

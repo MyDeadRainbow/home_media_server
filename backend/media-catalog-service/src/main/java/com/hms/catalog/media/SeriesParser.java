@@ -30,13 +30,6 @@ public class SeriesParser {
         // The.Office.US.S01E01.Pilot.720p.WEBRip.2CH.x265.HEVC-PSA
 
         SQLiteMap<Series> seriesMap = new SQLiteMap<>(new Series.Dao());
-        SQLiteMap<Season> seasonMap = new SQLiteMap<>(new Season.Dao());
-        SQLiteMap<Episode> episodeMap = new SQLiteMap<>(new Episode.Dao());
-
-        // Map<String, Series> seriesMap = new HashMap<>();
-        // SQLiteRecordDao<Series> seriesDao = new Series.Dao();
-        // SQLiteRecordDao<Season> seasonDao = new Season.Dao();
-        // SQLiteRecordDao<Episode> episodeDao = new Episode.Dao();
 
         for (ParseEntry entry : filePaths) {
             String string = entry.filePath();
@@ -60,9 +53,6 @@ public class SeriesParser {
                     series = Series.create(MetaData.create(seriesName, null, null, null, MetaDataStatus.PENDING, null),
                             Poster.create(null),
                             new ArrayList<Season>());
-                    // new Series(UUID.randomUUID().toString(), seriesName, new ArrayList<>(),
-                    // new MetaData(UUID.randomUUID().toString(), null, null, null,
-                    // MetaDataStatus.PENDING, null));
                     seriesMap.put(series.seriesId(), series);
                 }
 
@@ -77,8 +67,6 @@ public class SeriesParser {
                                     null),
                             Poster.create(null),
                             new ArrayList<Episode>());
-                    // new Season(UUID.randomUUID().toString(), series.seriesId(),
-                    // seriesName + " S" + seasonNumber, seasonNumber, new ArrayList<>());
 
                     series = series.addSeason(season);
                     seriesMap.put(series.seriesId(), series);
@@ -89,11 +77,7 @@ public class SeriesParser {
                 Episode episode = Episode.create(season.seasonId(), series.seriesId(), episodeNumber, mediaItem,
                         MetaData.create(episodeName, null, null, null, MetaDataStatus.PENDING, null),
                         Poster.create(null));
-                // new Episode(UUID.randomUUID().toString(), season.seasonId(),
-                // series.seriesId(),
-                // episodeName, episodeNumber, mediaItem,
-                // new MetaData(UUID.randomUUID().toString(), null, null, null,
-                // MetaDataStatus.PENDING, null));
+                        
                 season = season.addEpisode(episode);
                 series = series.addSeason(season);
                 seriesMap.put(series.seriesId(), series);

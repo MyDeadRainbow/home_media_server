@@ -2,55 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "java",
-            "name": "TMDBApi",
-            "request": "launch",
-            "mainClass": "com.hms.acquisition.datamine.api.TMDBApi",
-            "projectName": "media-acquisition-service"
-        },
-        {
-            "type": "java",
-            "name": "ImdbAdvancedSearchHandler",
-            "request": "launch",
-            "mainClass": "com.hms.acquisition.datamine.ImdbAdvancedSearchHandler",
-            "projectName": "media-acquisition-service"
-        },
-        {
-            "type": "java",
-            "name": "PirateBaySearchHandler",
-            "request": "launch",
-            "mainClass": "com.hms.acquisition.search.PirateBaySearchHandler",
-            "projectName": "media-acquisition-service"
-        },
-        {
-            "type": "java",
-            "name": "DatamineGeminiAiHandler",
-            "request": "launch",
-            "mainClass": "com.hms.acquisition.datamine.DatamineGeminiAiHandler",
-            "projectName": "media-acquisition-service"
-        },
-        {
-            "type": "java",
-            "name": "DatamineHandler",
-            "request": "launch",
-            "mainClass": "com.hms.acquisition.datamine.DatamineHandler",
-            "projectName": "media-acquisition-service"
-        },
-        {
-            "type": "java",
-            "name": "DatamineMovieHandler",
-            "request": "launch",
-            "mainClass": "com.hms.acquisition.datamine.DatamineMovieHandler",
-            "projectName": "media-acquisition-service"
-        },
-        {
-            "type": "java",
-            "name": "ExampleRecord",
-            "request": "launch",
-            "mainClass": "com.hms.shared.sql.ExampleRecord",
-            "projectName": "shared-lib"
-        },
-        {
             "type": "dockerfile",
             "request": "launch",
             "name": "Docker: Build",
@@ -180,7 +131,7 @@
             "preLaunchTask": "Compose Up (Debug)",
             "postDebugTask": "Compose Down (Debug)",
             "configurations": [
-                "Debug Frontend (Docker)",
+                // "Debug Frontend (Docker)",
                 "Attach Gateway Service (Docker)",
                 "Attach Catalog Service (Docker)",
                 "Attach Acquisition Service (Docker)",

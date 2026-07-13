@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.base.Preconditions;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.shared.media.metadata.MetaData;
@@ -124,6 +125,7 @@ public record Movie(String movieId, MediaItem mediaItem, MetaData metaData, Post
 
         @Override
         public PreparedStatementValue toSelectStatement(Map<String, Object> conditions) {
+            Preconditions.checkNotNull(conditions, "Conditions map cannot be null");
             StringBuilder sql = new StringBuilder("SELECT * FROM movies");
             if (conditions != null && !conditions.isEmpty()) {
                 sql.append(" WHERE ");

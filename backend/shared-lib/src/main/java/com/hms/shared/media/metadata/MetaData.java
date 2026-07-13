@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.base.Preconditions;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
@@ -117,6 +118,7 @@ public record MetaData(String metaDataId, String title, String plotSummary, Loca
 
         @Override
         public PreparedStatementValue toSelectStatement(Map<String, Object> conditions) {
+            Preconditions.checkNotNull(conditions, "Conditions map cannot be null");
             StringBuilder queryBuilder = new StringBuilder("SELECT * FROM metadata");
             if (conditions != null && !conditions.isEmpty()) {
                 queryBuilder.append(" WHERE ");

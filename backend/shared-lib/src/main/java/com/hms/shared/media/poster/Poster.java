@@ -2,7 +2,6 @@ package com.hms.shared.media.poster;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Map;
 
 import com.hms.dao.PreparedStatementValue;
@@ -10,7 +9,9 @@ import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
 import com.hms.shared.messaging.JsonSerializable;
 
-public record Poster(String posterId, byte[] imageData) implements JsonSerializable, SQLiteRecord {
+public record Poster(String posterId, String url//, byte[] imageData
+
+) implements JsonSerializable, SQLiteRecord {
 
     @Override
     public String getPrimaryKeyField() {
@@ -22,25 +23,25 @@ public record Poster(String posterId, byte[] imageData) implements JsonSerializa
         return posterId;
     }
 
-    public static Poster create(byte[] imageData) {
+    public static Poster create(String url) {
         String posterId = java.util.UUID.randomUUID().toString();
-        return new Poster(posterId, imageData);
+        return new Poster(posterId, url);
     }
 
-    public Poster withImageData(byte[] newImageData) {
-        return new Poster(this.posterId, newImageData);
+    public Poster withUrl(String newUrl) {
+        return new Poster(this.posterId, newUrl);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (!(obj instanceof Poster other))
-            return false;
-        if (!Arrays.equals(this.imageData, other.imageData))
-            return false;
-        return posterId.equals(other.posterId);
-    }
+    // @Override
+    // public boolean equals(Object obj) {
+    //     if (this == obj)
+    //         return true;
+    //     if (!(obj instanceof Poster other))
+    //         return false;
+    //     if (!Objects.equals(this.url, other.url))
+    //         return false;
+    //     return posterId.equals(other.posterId);
+    // }
 
     public static class Dao extends SQLiteRecordDao<Poster> {
 
@@ -58,22 +59,22 @@ public record Poster(String posterId, byte[] imageData) implements JsonSerializa
         public String toCreateTableStatement() {
             return "CREATE TABLE IF NOT EXISTS posters ("
                     + "posterId TEXT PRIMARY KEY,"
-                    + "imageData BLOB"
+                    + "url TEXT"
                     + ");";
         }
 
         @Override
         public PreparedStatementValue toInsertStatement(Poster record) {
             return new PreparedStatementValue(
-                    "INSERT INTO posters (posterId, imageData) VALUES (?, ?);",
-                    new Object[] { record.posterId(), record.imageData() });
+                    "INSERT INTO posters (posterId, url) VALUES (?, ?);",
+                    new Object[] { record.posterId(), record.url() });
         }
 
         @Override
         public PreparedStatementValue toUpdateStatement(Poster record) {
             return new PreparedStatementValue(
-                    "UPDATE posters SET imageData = ? WHERE posterId = ?;",
-                    new Object[] { record.imageData(), record.posterId() });
+                    "UPDATE posters SET url = ? WHERE posterId = ?;",
+                    new Object[] { record.url(), record.posterId() });
         }
 
         @Override
@@ -104,8 +105,8 @@ public record Poster(String posterId, byte[] imageData) implements JsonSerializa
         @Override
         public Poster mapResultSetToRecord(ResultSet rs) throws SQLException {
             String posterId = rs.getString("posterId");
-            byte[] imageData = rs.getBytes("imageData");
-            return new Poster(posterId, imageData);
+            String url = rs.getString("url");
+            return new Poster(posterId, url);
         }
 
         @Override

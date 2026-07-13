@@ -28,6 +28,7 @@ public class TorrentDownloadService {
                 LocalDateTime.now(),
                 null,
                 null,
+                null,
                 null
             );
 

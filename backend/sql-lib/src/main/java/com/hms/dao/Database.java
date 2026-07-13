@@ -25,7 +25,6 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 public enum Database {
     INSTANCE;
@@ -76,7 +75,7 @@ public enum Database {
     }
 
     public static boolean createDatabase(String databasePath) {
-        try (Connection conn = getConnection(databasePath)) {
+        try (Connection _ = getConnection(databasePath)) {
             return true; // Database created successfully
         } catch (DBFileNotFoundException e) {
             File dbFile = new File(DATA_PATH + "/" + databasePath);

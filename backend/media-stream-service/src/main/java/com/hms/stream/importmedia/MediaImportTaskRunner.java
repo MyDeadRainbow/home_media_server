@@ -2,7 +2,6 @@ package com.hms.stream.importmedia;
 
 import java.sql.SQLException;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,8 +11,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import com.hms.dao.DBFileNotFoundException;
-import com.hms.dao.GetConnectionException;
 import com.hms.stream.importmedia.pipeline.ImportMediaPipeline;
 
 /**
@@ -123,6 +120,6 @@ public class MediaImportTaskRunner implements Runnable {
                 })
                 .build();
 
-        ImportMediaEntry updatedEntry = pipeline.handle(entry);
+        pipeline.handle(entry);
     }
 }

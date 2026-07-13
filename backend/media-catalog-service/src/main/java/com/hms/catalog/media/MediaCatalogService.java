@@ -22,18 +22,8 @@ import com.hms.shared.media.Series;
 public class MediaCatalogService {
 
     private final Logger LOG = org.slf4j.LoggerFactory.getLogger(MediaCatalogService.class);
-    // private final Map<String, MediaItem> mediaIndex = new ConcurrentHashMap<>();
 
     public MediaCatalogService() {
-        // MediaItem sample = new MediaItem(
-        // UUID.randomUUID().toString(),
-        // "Open Source Adventures",
-        // "series",
-        // 2025,
-        // "Demo entry to validate UI and stream controls.",
-        // "https://picsum.photos/seed/hms1/320/180",
-        // "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4");
-        // mediaIndex.put(sample.id(), sample);
     }
 
     public List<MediaInfo> search(String query, MediaCategory category) {
@@ -48,31 +38,6 @@ public class MediaCatalogService {
         }
 
         return mediaInfos;
-
-        // List<MediaItem> results;
-        // try {
-        // results = new MediaItem.Dao().select(Map.of());
-        // } catch (SQLException e) {
-        // // Log the error and fall back to in-memory index
-        // System.err.println("Failed to query media items from database: " +
-        // e.getMessage());
-        // results = new ArrayList<>(mediaIndex.values());
-        // }
-        // if (query == null || query.isBlank()) {
-        // return results;
-        // }
-        // String normalized = query.toLowerCase(Locale.ROOT);
-        // return results.stream()
-        // .filter(item -> item.title().toLowerCase(Locale.ROOT).contains(normalized)
-        // || item.type().toLowerCase(Locale.ROOT).contains(normalized)
-        // ||
-        // Optional.ofNullable(item.description()).orElse("").toLowerCase(Locale.ROOT)
-        // .contains(normalized))
-        // // .map(item -> new MediaItem(item.id(), item.title(), item.type(),
-        // item.year(),
-        // // item.description(),
-        // // item.posterUrl(), item.streamUrl()))
-        // .toList();
     }
 
     public MediaItem add(CreateMediaRequest request) {
@@ -89,10 +54,7 @@ public class MediaCatalogService {
         } catch (Exception e) {
             // throw new RuntimeException("Failed to insert media item into database", e);
         }
-
-        // MediaUpdates.postMessage(MediaUpdate.created(item.id()));
-
-        // mediaIndex.put(item.id(), item);
+        
         return item;
     }
 

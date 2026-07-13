@@ -114,7 +114,7 @@ public abstract class SQLiteRecordDao<T extends SQLiteRecord> {
 
     public void ensureTableExists() throws SQLException {        
         try (var conn = Database.getConnection(getDbPath());) {
-            for (SQLiteRecordDao dao : getDependecies()) {
+            for (SQLiteRecordDao<?> dao : getDependecies()) {
                 dao.ensureTableExists();
             }
             try (var stmt = conn.createStatement()) {                
