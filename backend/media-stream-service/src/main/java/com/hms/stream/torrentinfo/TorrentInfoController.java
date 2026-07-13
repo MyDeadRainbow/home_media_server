@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 
 @RestController
-@RequestMapping("/api/stream")
+@RequestMapping("/api/stream/torrent")
 public class TorrentInfoController {
     private final TorrentInfoService torrentInfoService;
 
@@ -25,7 +25,7 @@ public class TorrentInfoController {
         this.torrentInfoService = torrentInfoService;
     }
 
-    @GetMapping("/torrentInfo")
+    @GetMapping("/info")
     public ResponseEntity<List<TorrentInfoResponse>> getTorrentInfo() {
         return new ResponseEntity<>(torrentInfoService.getTorrentInfo(), HttpStatus.OK);
     }

@@ -10,7 +10,10 @@
         <h2>Search Torrents</h2>
       </div>
       <p class="muted">Torrent search now runs from a dedicated page.</p>
-      <button type="button" @click="openTorrentSearchPage">Open Search Page</button>
+      <div class="torrent-shortcuts">
+        <button type="button" @click="openTorrentSearchPage">Open Search Page</button>
+        <button type="button" class="secondary-button" @click="openTorrentQueuePage">Open Torrent Queue</button>
+      </div>
     </section>
 
     <main class="layout">
@@ -283,7 +286,7 @@ function normalizeSeriesItem(item) {
     releaseDate,
     year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : 0),
     rating: Number.isFinite(numericRating) ? numericRating : null,
-    posterUrl: metadata.posterUrl || item.posterUrl || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || item.poster?.url || '',
     streamUrl: item.streamUrl || item.filePath || ''
   }
 }
@@ -305,7 +308,7 @@ function normalizeSeasonItem(item, parentSeries) {
     rating: Number.isFinite(Number.parseFloat(metadata.rating ?? item.rating))
       ? Number.parseFloat(metadata.rating ?? item.rating)
       : null,
-    posterUrl: metadata.posterUrl || item.posterUrl || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || item.poster?.url || '',
     streamUrl: item.streamUrl || item.filePath || ''
   }
 }
@@ -335,7 +338,7 @@ function normalizeMediaItem(item, fallbackType) {
     rating: Number.isFinite(numericRating) ? numericRating : null,
     plotSummary: metadata.plotSummary || item.plotSummary || item.description || '',
     description: metadata.plotSummary || item.plotSummary || item.description || '',
-    posterUrl: metadata.posterUrl || item.posterUrl || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || item.poster?.url || '',
     streamUrl: item.streamUrl || item.filePath || ''
   }
 }
@@ -497,6 +500,10 @@ function backToHome() {
 
 function openTorrentSearchPage() {
   router.push({ path: '/search' })
+}
+
+function openTorrentQueuePage() {
+  router.push({ path: '/torrents' })
 }
 
 function onUploadFileSelected(event) {

@@ -94,6 +94,43 @@ function normalizePosterSrc(value) {
   return `data:${detectBase64ImageMime(base64Payload)};base64,${base64Payload}`
 }
 
+function bytesToBase64(bytes) {
+  if (!Array.isArray(bytes) || !bytes.length) {
+    return ''
+  }
+
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.slice(i, i + chunkSize)
+    binary += String.fromCharCode(...chunk)
+  }
+
+  try {
+    return btoa(binary)
+  } catch {
+    return ''
+  }
+}
+
+function extractPosterImageData(item) {
+  const candidate = item?.poster?.imageData ?? item?.imageData ?? item?.posterImageData
+
+  if (typeof candidate === 'string') {
+    return candidate
+  }
+
+  if (Array.isArray(candidate)) {
+    return bytesToBase64(candidate)
+  }
+
+  if (candidate && Array.isArray(candidate.data)) {
+    return bytesToBase64(candidate.data)
+  }
+
+  return ''
+}
+
 const displayType = computed(() => {
   const type = String(props.item.type || '').trim()
   if (!type) {
@@ -177,7 +214,8 @@ const releaseYear = computed(() => {
 })
 
 const posterSource = computed(() => {
-  const normalized = normalizePosterSrc(props.item.poster.imageData)
+  const imageData = extractPosterImageData(props.item)
+  const normalized = normalizePosterSrc(imageData || props.item.posterUrl)
   return normalized || fallbackPoster
 })
 

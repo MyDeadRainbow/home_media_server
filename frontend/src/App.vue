@@ -6,6 +6,7 @@
         <ul class="nav-links">
             <li><a @click="navigateToHome">Home</a></li>
           <li><a @click="navigateToSearch">Search Torrents</a></li>
+            <li><a @click="navigateToTorrents">Torrent Queue</a></li>
             <li><a @click="">Series</a></li>
             <li><a @click="">Movies</a></li>
             <li><a @click="navigateToProfile">Profile</a></li>
@@ -28,6 +29,12 @@ function navigateToHome (){
 function navigateToSearch (){
    router.push({
     path: `/search`
+  })
+}
+
+function navigateToTorrents (){
+   router.push({
+    path: `/torrents`
   })
 }
 

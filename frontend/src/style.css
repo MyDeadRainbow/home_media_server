@@ -193,6 +193,12 @@ h3 {
   padding: 1rem;
 }
 
+.torrent-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
 input,
 select,
 button {
@@ -682,6 +688,130 @@ span.psw {
   }
 
   .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.torrent-info-page {
+  padding-bottom: 3rem;
+}
+
+.torrent-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.torrent-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.torrent-card {
+  background: color-mix(in srgb, #ffffff 82%, var(--bg-1) 18%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.9rem;
+}
+
+.torrent-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.torrent-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.queue-chip {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #e8dfd2;
+  color: #3D3937;
+  font-size: 0.85rem;
+}
+
+.torrent-hash {
+  margin: 0.5rem 0 0.8rem;
+  word-break: break-all;
+  font-size: 0.85rem;
+  color: #5b564f;
+}
+
+.progress-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+.progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e9e4dc;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #BF9D78 0%, #8f7456 100%);
+}
+
+.torrent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+.torrent-grid p {
+  margin: 0;
+}
+
+.torrent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.secondary-button {
+  background-color: #3D3937;
+  color: #F4F4F4;
+}
+
+.secondary-button:hover {
+  background-color: #231f1e;
+}
+
+.danger-button {
+  background-color: #9f2f2f;
+  color: #F4F4F4;
+}
+
+.danger-button:hover {
+  background-color: #7f2020;
+}
+
+@media (max-width: 720px) {
+  .torrent-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .torrent-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .torrent-actions {
+    display: grid;
     grid-template-columns: 1fr;
   }
 }

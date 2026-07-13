@@ -53,14 +53,93 @@ export function searchCatalogSeasons(seriesId, query) {
   return request(`${API_GATEWAY}/api/media/seasons${suffix}`)
 }
 
+function normalizePosterImageData(item) {
+  const imageData = item?.poster?.imageData
+  if (imageData === null || imageData === undefined) {
+    return item?.posterUrl || ''
+  }
+
+  if (typeof imageData === 'string') {
+    return imageData
+  }
+
+  if (Array.isArray(imageData)) {
+    try {
+      const binary = String.fromCharCode(...imageData)
+      return btoa(binary)
+    } catch {
+      return item?.posterUrl || ''
+    }
+  }
+
+  return item?.posterUrl || ''
+}
+
+function normalizeCatalogMovie(item) {
+  const metadata = item?.metaData || item?.metadata || item?.meta || {}
+  const mediaItem = item?.mediaItem || item?.media || {}
+  const posterImageData = normalizePosterImageData(item)
+
+  return {
+    ...item,
+    id: item?.id || item?.movieId || item?.mediaId || mediaItem?.mediaId,
+    mediaId: item?.mediaId || mediaItem?.mediaId || item?.movieId || item?.id,
+    movieId: item?.movieId || item?.id || null,
+    type: item?.type || 'movie',
+    title: metadata?.title || item?.title || item?.name || 'Movie',
+    plotSummary: metadata?.plotSummary || item?.plotSummary || item?.description || '',
+    description: metadata?.plotSummary || item?.plotSummary || item?.description || '',
+    releaseDate: metadata?.airDate || metadata?.releaseDate || item?.releaseDate || null,
+    rating: metadata?.rating ?? item?.rating ?? null,
+    streamUrl: item?.streamUrl || item?.filePath || mediaItem?.filePath || '',
+    posterUrl: item?.posterUrl || metadata?.posterUrl || posterImageData,
+    metaData: metadata,
+    metadata,
+    mediaItem,
+    media: mediaItem,
+    poster: item?.poster || null
+  }
+}
+
+function normalizeCatalogEpisode(item) {
+  const metadata = item?.metaData || item?.metadata || item?.meta || {}
+  const mediaItem = item?.media || item?.mediaItem || {}
+  const posterImageData = normalizePosterImageData(item)
+
+  return {
+    ...item,
+    id: item?.id || item?.episodeId || item?.mediaId || mediaItem?.mediaId,
+    mediaId: item?.mediaId || mediaItem?.mediaId || item?.episodeId || item?.id,
+    episodeId: item?.episodeId || item?.id || null,
+    type: item?.type || 'episode',
+    title: metadata?.title || item?.title || item?.name || 'Episode',
+    plotSummary: metadata?.plotSummary || item?.plotSummary || item?.description || '',
+    description: metadata?.plotSummary || item?.plotSummary || item?.description || '',
+    releaseDate: metadata?.airDate || metadata?.releaseDate || item?.releaseDate || null,
+    rating: metadata?.rating ?? item?.rating ?? null,
+    episodeNumber: item?.episodeNumber ?? null,
+    seasonId: item?.seasonId || null,
+    seriesId: item?.seriesId || null,
+    streamUrl: item?.streamUrl || item?.filePath || mediaItem?.filePath || '',
+    posterUrl: item?.posterUrl || metadata?.posterUrl || posterImageData,
+    metaData: metadata,
+    metadata,
+    media: mediaItem,
+    mediaItem,
+    poster: item?.poster || null
+  }
+}
+
 export function searchCatalogEpisodes(seriesId, seasonId, query) {
   const suffix = buildCatalogSuffix({ seriesId, seasonId, query })
   return request(`${API_GATEWAY}/api/media/episodes${suffix}`)
+    .then((results) => (Array.isArray(results) ? results.map(normalizeCatalogEpisode) : []))
 }
 
 export function searchCatalogMovies(query) {
   const suffix = buildCatalogSuffix({ query })
   return request(`${API_GATEWAY}/api/media/movies${suffix}`)
+    .then((results) => (Array.isArray(results) ? results.map(normalizeCatalogMovie) : []))
 }
 
 export function createMedia(payload) {
@@ -81,6 +160,28 @@ export function importStreamMedia(payload) {
   return request(`${API_GATEWAY}/api/stream/importRequest`, {
     method: 'POST',
     body: JSON.stringify(payload)
+  })
+}
+
+export function getTorrentInfo() {
+  return request(`${API_GATEWAY}/api/stream/torrent/info`)
+}
+
+export function pauseTorrent(infoHash) {
+  return request(`${API_GATEWAY}/api/stream/torrent/pause/${encodeURIComponent(infoHash)}`, {
+    method: 'POST'
+  })
+}
+
+export function resumeTorrent(infoHash) {
+  return request(`${API_GATEWAY}/api/stream/torrent/resume/${encodeURIComponent(infoHash)}`, {
+    method: 'POST'
+  })
+}
+
+export function deleteTorrent(infoHash) {
+  return request(`${API_GATEWAY}/api/stream/torrent/delete/${encodeURIComponent(infoHash)}`, {
+    method: 'POST'
   })
 }
 

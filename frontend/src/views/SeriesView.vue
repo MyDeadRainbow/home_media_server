@@ -159,7 +159,7 @@ function normalizeSeriesItem(item) {
     releaseDate,
     year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : null),
     rating: Number.isFinite(numericRating) ? numericRating : null,
-    posterUrl: metadata.posterUrl || item.posterUrl || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || item.poster?.url || '',
     streamUrl: item.streamUrl || item.filePath || '',
     metadata
   }
@@ -184,7 +184,7 @@ function normalizeSeasonItem(item, parentSeries) {
     releaseDate,
     year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : null),
     rating: Number.isFinite(numericRating) ? numericRating : null,
-    posterUrl: metadata.posterUrl || item.posterUrl || parentSeries?.posterUrl || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || parentSeries?.posterUrl || item.poster?.url || '',
     streamUrl: item.streamUrl || item.filePath || '',
     metadata
   }
@@ -211,7 +211,7 @@ function normalizeEpisodeItem(item) {
     releaseDate,
     year: item.year || (releaseDate ? new Date(releaseDate).getFullYear() : null),
     rating: Number.isFinite(numericRating) ? numericRating : null,
-    posterUrl: metadata.posterUrl || item.posterUrl || series.value?.posterUrl || '',
+    posterUrl: metadata.posterUrl || item.posterUrl || series.value?.posterUrl || item.poster?.url || '',
     streamUrl: item.streamUrl || item.filePath || '',
     metadata
   }
