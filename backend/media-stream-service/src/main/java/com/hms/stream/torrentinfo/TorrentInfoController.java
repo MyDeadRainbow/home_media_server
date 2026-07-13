@@ -1,0 +1,55 @@
+package com.hms.stream.torrentinfo;
+
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+
+
+@RestController
+@RequestMapping("/api/stream")
+public class TorrentInfoController {
+    private final TorrentInfoService torrentInfoService;
+
+    public TorrentInfoController(TorrentInfoService torrentInfoService) {
+        this.torrentInfoService = torrentInfoService;
+    }
+
+    @GetMapping("/torrentInfo")
+    public ResponseEntity<List<TorrentInfoResponse>> getTorrentInfo() {
+        return new ResponseEntity<>(torrentInfoService.getTorrentInfo(), HttpStatus.OK);
+    }
+    
+    @PostMapping("/pause/{infoHash}")
+    public ResponseEntity<Boolean> postPause(@PathVariable String infoHash) {
+        return new ResponseEntity<>(torrentInfoService.pauseTorrent(infoHash), HttpStatus.OK);
+    }
+
+    @PostMapping("/resume/{infoHash}")
+    public ResponseEntity<Boolean> postResume(@PathVariable String infoHash) {
+        return new ResponseEntity<>(torrentInfoService.resumeTorrent(infoHash), HttpStatus.OK);
+    }
+    
+    @PostMapping("/delete/{infoHash}")
+    public ResponseEntity<Boolean> postDelete(@PathVariable String infoHash) {
+        return new ResponseEntity<>(torrentInfoService.deleteTorrent(infoHash), HttpStatus.OK);
+    }
+    
+    @PostMapping("/reorder/{infoHash}/{newPosition}")
+    public ResponseEntity<Boolean> postReorder(@PathVariable String infoHash, @PathVariable int newPosition) {
+        //TODO: process POST request
+        
+        return new ResponseEntity<>(false, HttpStatus.NOT_IMPLEMENTED);
+    }
+    
+}

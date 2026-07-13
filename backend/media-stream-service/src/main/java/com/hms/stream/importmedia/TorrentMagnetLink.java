@@ -8,8 +8,10 @@ import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 
@@ -18,31 +20,36 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.frostwire.jlibtorrent.AddTorrentParams;
-import com.frostwire.jlibtorrent.AlertListener;
 import com.frostwire.jlibtorrent.ErrorCode;
 import com.frostwire.jlibtorrent.FileStorage;
 import com.frostwire.jlibtorrent.PeerRequest;
 import com.frostwire.jlibtorrent.Priority;
-import com.frostwire.jlibtorrent.SessionHandle;
-import com.frostwire.jlibtorrent.SessionManager;
 import com.frostwire.jlibtorrent.TorrentFlags;
 import com.frostwire.jlibtorrent.TorrentHandle;
 import com.frostwire.jlibtorrent.TorrentInfo;
 import com.frostwire.jlibtorrent.Vectors;
+import com.frostwire.jlibtorrent.alerts.AbstractAlert;
 import com.frostwire.jlibtorrent.alerts.AddTorrentAlert;
-import com.frostwire.jlibtorrent.alerts.Alert;
 import com.frostwire.jlibtorrent.alerts.BlockFinishedAlert;
 import com.frostwire.jlibtorrent.alerts.FileCompletedAlert;
+import com.frostwire.jlibtorrent.alerts.PieceFinishedAlert;
 import com.frostwire.jlibtorrent.alerts.SaveResumeDataAlert;
+import com.frostwire.jlibtorrent.alerts.TorrentAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentFinishedAlert;
 import com.frostwire.jlibtorrent.swig.add_torrent_params;
 import com.frostwire.jlibtorrent.swig.error_code;
+import com.frostwire.jlibtorrent.swig.torrent_alert;
 import com.hms.shared.media.MediaItem;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.catalogupdates.FilePathRecord;
+import com.hms.shared.util.Wrapper;
 import com.hms.stream.importmedia.pipeline.ImportMediaHandler;
 import com.hms.stream.messaging.CatalogUpdateProducer;
+import com.hms.stream.torrentsession.TorrentAlertHandler;
+import com.hms.stream.torrentsession.TorrentAlertListener;
+import com.hms.stream.torrentsession.TorrentSession;
+import com.hms.stream.torrentsession.exception.TorrentException;
 
 public class TorrentMagnetLink implements ImportMediaHandler {
     private static final Logger LOG = LoggerFactory.getLogger(TorrentMagnetLink.class);
@@ -101,19 +108,99 @@ public class TorrentMagnetLink implements ImportMediaHandler {
         return entry;
     }
 
+    public static void main(String[] args) {
+        TorrentHandle handle = null; // Assume this is initialized properly
+        TorrentAlertListener listener = new TorrentAlertListener(handle,
+                Arrays.asList(
+                        TorrentAlertHandler.arrayOf(
+                                TorrentAlertHandler.of(AddTorrentAlert.class, a -> {
+                                    LOG.info("Torrent added: {}", a.handle().name());
+                                    // updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.IN_PROGRESS));
+                                    // var updatedEntry = updatedEntryWrapper.getValue();
+                                    // try {
+                                    // new ImportMediaEntry.Dao().update(updatedEntry);
+                                    // } catch (SQLException e) {
+                                    // LOG.error("Failed to update entry status to IN_PROGRESS", e);
+                                    // }
+                                }),
+                                TorrentAlertHandler.of(SaveResumeDataAlert.class, a -> {
+                                    byte[] resumeData = Vectors
+                                            .byte_vector2bytes(
+                                                    add_torrent_params.write_resume_data_buf(a.params().swig()));
+                                    // File resumeFile = new File(updatedEntryWrapper.getValue().resumeFile());
+                                    // try {
+                                    // Files.write(resumeFile.toPath(), resumeData, StandardOpenOption.CREATE,
+                                    // StandardOpenOption.TRUNCATE_EXISTING);
+                                    // } catch (Exception e) {
+                                    // LOG.error("Failed to write resume data to file: {}",
+                                    // resumeFile.getAbsolutePath(), e);
+                                    // }
+                                }),
+                                TorrentAlertHandler.of(FileCompletedAlert.class, a -> {
+                                    int index = a.index();
+                                    // TorrentHandle alertHandle = a.handle();
+                                    // TorrentInfo alertInfo = a.handle().torrentFile();
+                                    // FileStorage alertStorage = a.handle().torrentFile().files();
+                                    // Priority[] priorities = Priority.array(Priority.IGNORE,
+                                    // alertStorage.numFiles());
+
+                                    // for (int i = 0; i < priorities.length; i++) {
+                                    // String filePath = alertStorage.filePath(i);
+                                    // if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
+                                    // filePath.endsWith(".avi")) {
+                                    // if (index + 1 != i) {
+                                    // priorities[i] = Priority.NORMAL;
+                                    // } else {
+                                    // priorities[i] = Priority.SEVEN;
+                                    // }
+                                    // }
+                                    // }
+                                    // updatePriorities(alertHandle, priorities);
+                                    // setPieceDeadlinesForFile(alertHandle, alertInfo, alertStorage, index);
+                                }),
+                                TorrentAlertHandler.of(BlockFinishedAlert.class, a -> {
+                                    // int p = (int) (a.handle().status().progress() * 100);
+                                    // if (p % 10 == 0 && p != lastLoggedProgressWrapper.getValue()) {
+                                    // LOG.info("Progress: {}% for torrent name: {}", p, a.handle().name());
+                                    // lastLoggedProgressWrapper.setValue(p);
+                                    // }
+                                }))));
+        try (TorrentSession s = TorrentSession.getInstance()) {
+            s.addListener(listener);
+        } catch (Exception e) {
+            LOG.error("Failed to add listener for torrent handle", e);
+        }
+        // listener.alert();
+    }
+
+    // class TorrentAlertTester<T extends torrent_alert> extends AbstractAlert<T> {
+
+    // TorrentAlertTester(T alert) {
+    // super(alert);
+    // //TODO Auto-generated constructor stub
+    // }
+
+    // // TorrentAlertTester(T alert) {
+    // // // super(alert);
+    // // }
+
+    // }
+
     @Override
-    public ImportMediaEntry handle(ImportMediaEntry entry) {
+    public ImportMediaEntry handle(final ImportMediaEntry entry) {
+
+        final Wrapper<ImportMediaEntry> updatedEntryWrapper = new Wrapper<>(entry);
 
         String magnetLink = entry.magnetLink();
         if (magnetLink == null || magnetLink.isEmpty()) {
-            LOG.error("Magnet link is null or empty for entry: {}", entry);
-            entry = entry.withStatus(ImportMediaStatus.MAGNET_NOT_FOUND);
+            LOG.error("Magnet link is null or empty for entry: {}", updatedEntryWrapper.getValue());
+            updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_NOT_FOUND));
             try {
-                new ImportMediaEntry.Dao().update(entry);
+                new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
             } catch (Exception e) {
                 LOG.error("Failed to update entry status to MAGNET_NOT_FOUND", e);
             }
-            return entry;
+            return updatedEntryWrapper.getValue();
         }
 
         Path destinationFolder = switch (entry.category()) {
@@ -126,21 +213,21 @@ public class TorrentMagnetLink implements ImportMediaHandler {
         // Will need to switch to a different torrent library or implement torrent
         // downloading in a separate service that runs on the host machine and can
         // access the torrent download directory directly.
-        final CountDownLatch signal = new CountDownLatch(1);
 
-        ImportMediaAlertListener listener = null;
-        ScheduledFuture<?> saveResumeDataTask = null;
-        try (TorrentSession torrentSession = TorrentSession.getInstance()) {
-            SessionManager s = torrentSession.getSessionManager();
-            SessionHandle sh = new SessionHandle(s.swig());
+        // ScheduledFuture<?> saveResumeDataTask = null;
+        // TorrentHandle handle;
+        try (TorrentSession s = TorrentSession.getInstance()) {
+            // SessionManager s = torrentSession.getSessionManager();
+            // SessionHandle sh = new SessionHandle(s.swig());
 
-            entry = ensureResumeFileExists(entry, destinationFolder);
-            entry = ensureMagnetDataFileExists(entry, destinationFolder);
+            updatedEntryWrapper.apply(e -> ensureResumeFileExists(e, destinationFolder));
+            updatedEntryWrapper.apply(e -> ensureMagnetDataFileExists(e, destinationFolder));
 
             byte[] magnetData = null;
-            if (entry.magnetDataFile() != null
-                    && entry.status() != ImportMediaStatus.QUEUED && entry.status() != ImportMediaStatus.PENDING) {
-                File magnetDataFile = new File(entry.magnetDataFile());
+            if (updatedEntryWrapper.getValue().magnetDataFile() != null
+                    && updatedEntryWrapper.getValue().status() != ImportMediaStatus.QUEUED
+                    && updatedEntryWrapper.getValue().status() != ImportMediaStatus.PENDING) {
+                File magnetDataFile = new File(updatedEntryWrapper.getValue().magnetDataFile());
                 if (magnetDataFile.exists()) {
                     try {
                         magnetData = Files.readAllBytes(magnetDataFile.toPath());
@@ -153,16 +240,16 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                     magnetData = s.fetchMagnet(magnetLink, 30);// , TEMP_FOLDER.toFile());
                     if (magnetData != null) {
 
-                        File magnetDataFile = new File(entry.magnetDataFile());
+                        File magnetDataFile = new File(updatedEntryWrapper.getValue().magnetDataFile());
                         if (!magnetDataFile.exists()) {
-                            LOG.error("Magnet data file does not exist for entry: {}", entry);
-                            entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                            LOG.error("Magnet data file does not exist for entry: {}", updatedEntryWrapper.getValue());
+                            updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED));
                             try {
-                                new ImportMediaEntry.Dao().update(entry);
+                                new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
                             } catch (Exception e) {
                                 LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", e);
                             }
-                            return entry;
+                            return updatedEntryWrapper.getValue();
                         }
                         try {
                             Files.write(magnetDataFile.toPath(), magnetData, StandardOpenOption.CREATE,
@@ -176,34 +263,35 @@ public class TorrentMagnetLink implements ImportMediaHandler {
             }
             if (magnetData == null) {
                 LOG.error("Failed to fetch magnet data after 3 attempts");
-                entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED));
                 try {
-                    new ImportMediaEntry.Dao().update(entry);
+                    new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
                 } catch (Exception e) {
                     LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", e);
                 }
-                return entry;
+                return updatedEntryWrapper.getValue();
             }
 
             AddTorrentParams addTorrentParams = null;
-            if (entry.status() == ImportMediaStatus.PENDING || entry.status() == ImportMediaStatus.QUEUED) {
+            if (updatedEntryWrapper.getValue().status() == ImportMediaStatus.PENDING
+                    || updatedEntryWrapper.getValue().status() == ImportMediaStatus.QUEUED) {
                 addTorrentParams = AddTorrentParams.parseMagnetUri(magnetLink);
                 TorrentInfo info = new TorrentInfo(magnetData);
                 addTorrentParams.torrentInfo(info);
 
-            } else if (entry.status() == ImportMediaStatus.IN_PROGRESS) {
+            } else if (updatedEntryWrapper.getValue().status() == ImportMediaStatus.IN_PROGRESS) {
                 // If the entry is already in progress, we need to load the resume data from
                 // the resume file.
-                File resumeFile = new File(entry.resumeFile());
+                File resumeFile = new File(updatedEntryWrapper.getValue().resumeFile());
                 if (!resumeFile.exists()) {
-                    LOG.error("Resume file does not exist for entry: {}", entry);
-                    entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                    LOG.error("Resume file does not exist for entry: {}", updatedEntryWrapper.getValue());
+                    updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED));
                     try {
-                        new ImportMediaEntry.Dao().update(entry);
+                        new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
                     } catch (Exception e) {
                         LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", e);
                     }
-                    return entry;
+                    return updatedEntryWrapper.getValue();
                 }
 
                 try {
@@ -215,44 +303,42 @@ public class TorrentMagnetLink implements ImportMediaHandler {
                     if (error.value() != 0) {
                         LOG.error("Failed to read resume data from file: {}. Error: {}", resumeFile.getAbsolutePath(),
                                 error.message());
-                        entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                        updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED));
                         try {
-                            new ImportMediaEntry.Dao().update(entry);
+                            new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
                         } catch (Exception ex) {
                             LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", ex);
                         }
-                        return entry;
+                        return updatedEntryWrapper.getValue();
                     }
 
                     addTorrentParams = new AddTorrentParams(params_swig);
                     addTorrentParams.torrentInfo(new TorrentInfo(magnetData));
-                } catch (Exception e) {
-                    LOG.error("Failed to read resume data from file: {}", resumeFile.getAbsolutePath(), e);
-                    entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                } catch (Exception ex) {
+                    LOG.error("Failed to read resume data from file: {}", resumeFile.getAbsolutePath(), ex);
+                    updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED));
                     try {
-                        new ImportMediaEntry.Dao().update(entry);
-                    } catch (Exception ex) {
-                        LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", ex);
+                        new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
+                    } catch (Exception ex2) {
+                        LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", ex2);
                     }
-                    return entry;
+                    return updatedEntryWrapper.getValue();
                 }
             }
             if (addTorrentParams == null) {
-                LOG.error("Failed to create add_torrent_params for entry: {}", entry);
-                entry = entry.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED);
+                LOG.error("Failed to create add_torrent_params for entry: {}", updatedEntryWrapper.getValue());
+                updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.MAGNET_FETCH_FAILED));
                 try {
-                    new ImportMediaEntry.Dao().update(entry);
+                    new ImportMediaEntry.Dao().update(updatedEntryWrapper.getValue());
                 } catch (Exception e) {
                     LOG.error("Failed to update entry status to MAGNET_FETCH_FAILED", e);
                 }
-                return entry;
+                return updatedEntryWrapper.getValue();
             }
 
             // Add an alert listener to handle torrent events after all updates to the entry
             // have been made to ensure that the entry is in a consistent state before
             // processing any alerts.
-            listener = new ImportMediaAlertListener(entry, signal);
-            s.addListener(listener);
 
             TorrentInfo info = addTorrentParams.torrentInfo();
             FileStorage storage = info.files();
@@ -293,51 +379,83 @@ public class TorrentMagnetLink implements ImportMediaHandler {
 
             addTorrentParams.flags(TorrentFlags.SEQUENTIAL_DOWNLOAD);
 
-            ErrorCode error = new ErrorCode(new error_code());
+            final Wrapper<Integer> lastLoggedProgressWrapper = new Wrapper<>(-1);
 
-            TorrentHandle handle = sh.addTorrent(addTorrentParams, error);
+            CompletableFuture<TorrentHandle> futureHandler = s.addTorrent(addTorrentParams,
+                    TorrentAlertHandler.of(AddTorrentAlert.class, a -> {
+                        LOG.info("Torrent added: {}", a.handle().name());
+                        updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.IN_PROGRESS)
+                                .withTorrentHash(a.handle().infoHash().toHex()));
+                        var updatedEntry = updatedEntryWrapper.getValue();
+                        try {
+                            new ImportMediaEntry.Dao().update(updatedEntry);
+                        } catch (SQLException e) {
+                            LOG.error("Failed to update entry status to IN_PROGRESS", e);
+                        }
+                    }),
+                    TorrentAlertHandler.of(SaveResumeDataAlert.class, a -> {
+                        byte[] resumeData = Vectors
+                                .byte_vector2bytes(add_torrent_params.write_resume_data_buf(a.params().swig()));
+                        File resumeFile = new File(updatedEntryWrapper.getValue().resumeFile());
+                        try {
+                            Files.write(resumeFile.toPath(), resumeData, StandardOpenOption.CREATE,
+                                    StandardOpenOption.TRUNCATE_EXISTING);
+                        } catch (Exception e) {
+                            LOG.error("Failed to write resume data to file: {}", resumeFile.getAbsolutePath(), e);
+                        }
+                    }),
+                    TorrentAlertHandler.of(FileCompletedAlert.class, a -> {
+                        int index = a.index();
+                        TorrentHandle alertHandle = a.handle();
+                        TorrentInfo alertInfo = a.handle().torrentFile();
+                        FileStorage alertStorage = a.handle().torrentFile().files();
+                        Priority[] priorities = Priority.array(Priority.IGNORE, alertStorage.numFiles());
 
-            for (int i = 0; i < filePriorities.length; i++) {
-                int fileSize = (int) storage.fileSize(i);
-                if (fileSize == 0 || filePriorities[i] == Priority.IGNORE) {
-                    LOG.info("File size is 0 for file: {} in torrent: {}", storage.filePath(i), info.name());
-                    continue;
+                        for (int i = 0; i < priorities.length; i++) {
+                            String filePath = alertStorage.filePath(i);
+                            if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
+                                    filePath.endsWith(".avi")) {
+                                if (index + 1 != i) {
+                                    priorities[i] = Priority.NORMAL;
+                                } else {
+                                    priorities[i] = Priority.SEVEN;
+                                }
+                            }
+                        }
+                        updatePriorities(alertHandle, priorities);
+                        // setPieceDeadlinesForFile(alertHandle, alertInfo, alertStorage, index);
+                    }),
+                    TorrentAlertHandler.of(BlockFinishedAlert.class, a -> {
+                        int p = (int) (a.handle().status().progress() * 100);
+                        if (p % 10 == 0 && p != lastLoggedProgressWrapper.getValue()) {
+                            LOG.info("Progress: {}% for torrent name: {}", p, a.handle().name());
+                            lastLoggedProgressWrapper.setValue(p);
+                        }
+                    }));
+
+            futureHandler.thenAccept((TorrentHandle handle) -> {
+                LOG.info("Torrent download finished for: {}", handle.name());
+                updatedEntryWrapper.apply(e -> e.withStatus(ImportMediaStatus.TORRENT_DOWNLOADED));
+                var updatedEntry = updatedEntryWrapper.getValue();
+                try {
+                    new ImportMediaEntry.Dao().update(updatedEntry);
+                } catch (SQLException e) {
+                    LOG.error("Failed to update entry status to TORRENT_DOWNLOADED", e);
                 }
+            }).join();
 
-                PeerRequest pr = info.mapFile(i, 0, fileSize);
-                int startIndex = pr.piece();
-
-                int numPieces = pr.length();// + pieceLength - 1;
-                int endIndex = startIndex + numPieces - 1;
-
-                int deadline = 1;
-                for (int j = startIndex; j <= endIndex; j++) {
-                    handle.setPieceDeadline(j, deadline++);
-                }
-                break; // Only set deadlines for the first valid file
-            }
-
-            saveResumeDataTask = scheduler.scheduleAtFixedRate(() -> {
-                handle.saveResumeData();
-            }, Duration.ofSeconds(1));
-
-            try {
-                signal.await();
-            } catch (InterruptedException e) {
-                LOG.error("Torrent download interrupted", e);
-                Thread.currentThread().interrupt();
-            }
-
+        } catch (TorrentException e1) {
+            LOG.error("Failed to add torrent", e1);
         } finally {
-            signal.countDown();
-            if (saveResumeDataTask != null) {
-                saveResumeDataTask.cancel(true);
-            }
-            if (listener != null) {
-                TorrentSession.getInstance().getSessionManager().removeListener(listener);
-            }
+            // signal.countDown();
+            // if (saveResumeDataTask != null) {
+            // saveResumeDataTask.cancel(true);
+            // }
+            // if (listener != null) {
+            // TorrentSession.getInstance().removeListenerForHandle(listener.getTorrentHandle());
+            // }
         }
-        return listener != null ? listener.getUpdatedEntry() : entry;
+        return updatedEntryWrapper.getValue();
     }
 
     void setPieceDeadlinesForFile(TorrentHandle handle, TorrentInfo info, FileStorage storage, int fileIndex) {
@@ -359,102 +477,9 @@ public class TorrentMagnetLink implements ImportMediaHandler {
         }
     }
 
-    class ImportMediaAlertListener implements AlertListener {
-        private final ImportMediaEntry entry;
-        private ImportMediaEntry updatedEntry;
-        private int lastLoggedProgress = -1;
-        private final CountDownLatch signal;
-
-        public ImportMediaAlertListener(ImportMediaEntry entry, CountDownLatch signal) {
-            this.entry = entry;
-            this.updatedEntry = entry;
-            this.signal = signal;
-        }
-
-        public ImportMediaEntry getUpdatedEntry() {
-            return updatedEntry;
-        }
-
-        @Override
-        public int[] types() {
-            return null; // Listen to all alert types
-        }
-
-        private void updatePriorities(TorrentHandle handle, Priority[] priorities) {
-            for (int i = 0; i < priorities.length; i++) {
-                handle.filePriority(i, priorities[i]);
-            }
-        }
-
-        @Override
-        public void alert(Alert<?> alert) {
-            switch (alert) {
-                case AddTorrentAlert a -> {
-                    LOG.info("Torrent added: {}", a.handle().name());
-                    updatedEntry = updatedEntry.withStatus(ImportMediaStatus.IN_PROGRESS);
-                    try {
-                        new ImportMediaEntry.Dao().update(updatedEntry);
-                    } catch (SQLException e) {
-                        LOG.error("Failed to update entry status to IN_PROGRESS", e);
-                    }
-                    break;
-                }
-                case TorrentFinishedAlert finishedAlert -> {
-                    LOG.info("Torrent download finished for: {}", finishedAlert.handle().name());
-                    updatedEntry = updatedEntry.withStatus(ImportMediaStatus.TORRENT_DOWNLOADED);
-                    try {
-                        new ImportMediaEntry.Dao().update(updatedEntry);
-                    } catch (SQLException e) {
-                        LOG.error("Failed to update entry status to TORRENT_DOWNLOADED", e);
-                    }
-                    signal.countDown();
-                    break;
-                }
-                case SaveResumeDataAlert a -> {
-                    byte[] resumeData = Vectors
-                            .byte_vector2bytes(add_torrent_params.write_resume_data_buf(a.params().swig()));
-                    File resumeFile = new File(entry.resumeFile());
-                    try {
-                        Files.write(resumeFile.toPath(), resumeData, StandardOpenOption.CREATE,
-                                StandardOpenOption.TRUNCATE_EXISTING);
-                    } catch (Exception e) {
-                        LOG.error("Failed to write resume data to file: {}", resumeFile.getAbsolutePath(), e);
-                    }
-                    break;
-                }
-                case FileCompletedAlert a -> {
-                    int index = a.index();
-                    TorrentHandle handle = a.handle();
-                    TorrentInfo info = a.handle().torrentFile();
-                    FileStorage storage = a.handle().torrentFile().files();
-                    Priority[] priorities = Priority.array(Priority.IGNORE, storage.numFiles());
-
-                    for (int i = 0; i < priorities.length; i++) {
-                        String filePath = storage.filePath(i);
-                        if (filePath.endsWith(".mkv") || filePath.endsWith(".mp4") ||
-                                filePath.endsWith(".avi")) {
-                            if (index + 1 != i) {
-                                priorities[i] = Priority.NORMAL;
-                            } else {
-                                priorities[i] = Priority.SEVEN;
-                            }
-                        }
-                    }
-                    updatePriorities(handle, priorities);
-                    setPieceDeadlinesForFile(handle, info, storage, index);
-                    break;
-                }
-                case BlockFinishedAlert a -> {
-                    int p = (int) (a.handle().status().progress() * 100);
-                    if (p % 10 == 0 && p != lastLoggedProgress) {
-                        LOG.info("Progress: {}% for torrent name: {}", p, a.handle().name());
-                        lastLoggedProgress = p;
-                    }
-                    break;
-                }
-                default -> {
-                }
-            }            
+    private void updatePriorities(TorrentHandle handle, Priority[] priorities) {
+        for (int i = 0; i < priorities.length; i++) {
+            handle.filePriority(i, priorities[i]);
         }
     }
 }

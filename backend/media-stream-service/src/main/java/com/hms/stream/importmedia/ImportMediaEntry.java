@@ -12,32 +12,38 @@ import com.hms.dao.SQLiteRecordDao;
 import com.hms.shared.media.MediaCategory;
 
 public record ImportMediaEntry(String id, MediaCategory category, String title, ImportMediaStatus status,
-        String magnetLink, LocalDateTime createdAt, String torrentFolderPath, String resumeFile, String magnetDataFile)
+        String magnetLink, LocalDateTime createdAt, String torrentFolderPath, String resumeFile, String magnetDataFile,
+        String torrentHash)
         implements SQLiteRecord {
 
     ImportMediaEntry withStatus(ImportMediaStatus newStatus) {
         return new ImportMediaEntry(this.id, this.category, this.title, newStatus, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, this.magnetDataFile);
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash);
     }
 
     ImportMediaEntry withMagnetLink(String newMagnetLink) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, newMagnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, this.magnetDataFile);
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash);
     }
 
     ImportMediaEntry withTorrentFolderPath(String newTorrentFolderPath) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                newTorrentFolderPath, this.resumeFile, this.magnetDataFile);
+                newTorrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash);
     }
 
     ImportMediaEntry withResumeFile(String newResumeFile) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, newResumeFile, this.magnetDataFile);
+                this.torrentFolderPath, newResumeFile, this.magnetDataFile, this.torrentHash);
     }
 
     ImportMediaEntry withMagnetDataFile(String newMagnetDataFile) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, newMagnetDataFile);
+                this.torrentFolderPath, this.resumeFile, newMagnetDataFile, this.torrentHash);
+    }
+
+    ImportMediaEntry withTorrentHash(String newTorrentHash) {
+        return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, newTorrentHash);
     }
 
     @Override
@@ -73,26 +79,27 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
                     + "createdAt TEXT NOT NULL,"
                     + "torrentFolderPath TEXT,"
                     + "resumeFile TEXT,"
-                    + "magnetDataFile TEXT"
+                    + "magnetDataFile TEXT,"
+                    + "torrentHash TEXT"
                     + ");";
         }
 
         @Override
         public PreparedStatementValue toInsertStatement(ImportMediaEntry record) {
             return new PreparedStatementValue(
-                    "INSERT INTO import_media_entries (id, category, title, status, magnetLink, createdAt, torrentFolderPath, resumeFile, magnetDataFile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
+                    "INSERT INTO import_media_entries (id, category, title, status, magnetLink, createdAt, torrentFolderPath, resumeFile, magnetDataFile, torrentHash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
                     new Object[] { record.id(), record.category(), record.title(), record.status(), record.magnetLink(),
                             record.createdAt(), record.torrentFolderPath(), record.resumeFile(),
-                            record.magnetDataFile() });
+                            record.magnetDataFile(), record.torrentHash() });
         }
 
         @Override
         public PreparedStatementValue toUpdateStatement(ImportMediaEntry record) {
             return new PreparedStatementValue(
-                    "UPDATE import_media_entries SET category = ?, title = ?, status = ?, magnetLink = ?, createdAt = ?, torrentFolderPath = ?, resumeFile = ?, magnetDataFile = ? WHERE id = ?;",
+                    "UPDATE import_media_entries SET category = ?, title = ?, status = ?, magnetLink = ?, createdAt = ?, torrentFolderPath = ?, resumeFile = ?, magnetDataFile = ?, torrentHash = ? WHERE id = ?;",
                     new Object[] { record.category(), record.title(), record.status(), record.magnetLink(),
                             record.createdAt(), record.torrentFolderPath(), record.resumeFile(),
-                            record.magnetDataFile(), record.id() });
+                            record.magnetDataFile(), record.torrentHash(), record.id() });
         }
 
         @Override
@@ -131,7 +138,8 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
                     LocalDateTime.parse(rs.getString("createdAt")),
                     rs.getString("torrentFolderPath"),
                     rs.getString("resumeFile"),
-                    rs.getString("magnetDataFile"));
+                    rs.getString("magnetDataFile"),
+                    rs.getString("torrentHash"));
         }
 
         @Override

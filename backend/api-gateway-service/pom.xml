@@ -15,10 +15,10 @@
     <name>api-gateway-service</name>
 
     <dependencies>
-        <dependency>
+        <!-- <dependency>
             <groupId>com.hms</groupId>
             <artifactId>shared-lib</artifactId>
-        </dependency>
+        </dependency> -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
