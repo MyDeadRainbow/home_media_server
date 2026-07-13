@@ -168,8 +168,12 @@ public class TorrentSession implements AutoCloseable {
         return new ArrayList<>(torrentHandles.values());
     }
 
+    public TorrentHandle getTorrentHandle(String infoHash) {
+        return torrentHandles.get(new Sha1Hash(infoHash));
+    }
+
     public boolean pauseTorrent(String infoHash) {
-        TorrentHandle handle = torrentHandles.get(new Sha1Hash(infoHash));
+        TorrentHandle handle = getTorrentHandle(infoHash);
         if (handle != null) {
             handle.pause();
             return true;

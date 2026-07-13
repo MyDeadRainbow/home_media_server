@@ -2,6 +2,9 @@ package com.hms.stream.torrentinfo;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.hms.shared.orchestrator.SseEmitterOrchestrator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,10 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-
-
 @RestController
-@RequestMapping("/api/stream")
+@RequestMapping("/api/stream/torrent")
 public class TorrentInfoController {
     private final TorrentInfoService torrentInfoService;
 
@@ -25,11 +26,11 @@ public class TorrentInfoController {
         this.torrentInfoService = torrentInfoService;
     }
 
-    @GetMapping("/torrentInfo")
+    @GetMapping("/info")
     public ResponseEntity<List<TorrentInfoResponse>> getTorrentInfo() {
         return new ResponseEntity<>(torrentInfoService.getTorrentInfo(), HttpStatus.OK);
     }
-    
+
     @PostMapping("/pause/{infoHash}")
     public ResponseEntity<Boolean> postPause(@PathVariable String infoHash) {
         return new ResponseEntity<>(torrentInfoService.pauseTorrent(infoHash), HttpStatus.OK);
@@ -39,17 +40,24 @@ public class TorrentInfoController {
     public ResponseEntity<Boolean> postResume(@PathVariable String infoHash) {
         return new ResponseEntity<>(torrentInfoService.resumeTorrent(infoHash), HttpStatus.OK);
     }
-    
+
     @PostMapping("/delete/{infoHash}")
     public ResponseEntity<Boolean> postDelete(@PathVariable String infoHash) {
         return new ResponseEntity<>(torrentInfoService.deleteTorrent(infoHash), HttpStatus.OK);
     }
-    
+
     @PostMapping("/reorder/{infoHash}/{newPosition}")
     public ResponseEntity<Boolean> postReorder(@PathVariable String infoHash, @PathVariable int newPosition) {
-        //TODO: process POST request
-        
+        // TODO: process POST request
+
         return new ResponseEntity<>(false, HttpStatus.NOT_IMPLEMENTED);
     }
-    
+
+    @GetMapping("/infostream")
+    public SseEmitter getInfoStream(@RequestParam String infoHash) {
+        SseEmitter emitter = new SseEmitter();
+        torrentInfoService.getTorrentInfoStream(emitter, infoHash);
+        return emitter;
+    }
+
 }
