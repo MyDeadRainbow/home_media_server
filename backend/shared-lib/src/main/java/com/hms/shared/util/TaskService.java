@@ -21,7 +21,7 @@ public abstract class TaskService {
     public TaskService() {
         configure(executor, scheduler);
         executor.initialize();
-        scheduler.initialize();
+        scheduler.initialize();        
     }
 
     public abstract void configure(ThreadPoolTaskExecutor executor, ThreadPoolTaskScheduler scheduler);

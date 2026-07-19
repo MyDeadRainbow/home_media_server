@@ -1,22 +1,12 @@
 package com.hms.stream.importmedia;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import org.sqlite.SQLiteConnection;
-import org.sqlite.SQLiteUpdateListener;
-
 import com.google.common.base.Preconditions;
-import com.hms.dao.Database;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
@@ -27,13 +17,12 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
         String torrentHash, List<ImportMediaEntryMediaItem> items)
         implements SQLiteRecord {
 
-            
-            public ImportMediaEntry withStatus(ImportMediaStatus newStatus) {
-                return new ImportMediaEntry(this.id, this.category, this.title, newStatus, this.magnetLink, this.createdAt,
+    public ImportMediaEntry withStatus(ImportMediaStatus newStatus) {
+        return new ImportMediaEntry(this.id, this.category, this.title, newStatus, this.magnetLink, this.createdAt,
                 this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, this.items);
-            }
+    }
 
-            public ImportMediaEntry withMagnetLink(String newMagnetLink) {
+    public ImportMediaEntry withMagnetLink(String newMagnetLink) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, newMagnetLink, this.createdAt,
                 this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, this.items);
     }
@@ -62,21 +51,21 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
                 this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, newItems);
     }
-    
+
     public ImportMediaEntry addItem(ImportMediaEntryMediaItem newItem) {
         List<ImportMediaEntryMediaItem> updatedItems = new java.util.ArrayList<>(this.items);
         updatedItems.add(newItem);
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-            this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, updatedItems);
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, updatedItems);
     }
-    
+
     public ImportMediaEntry removeItem(ImportMediaEntryMediaItem itemToRemove) {
         List<ImportMediaEntryMediaItem> updatedItems = new java.util.ArrayList<>(this.items);
         updatedItems.remove(itemToRemove);
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
                 this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, updatedItems);
     }
-    
+
     @Override
     public String getPrimaryKeyField() {
         return "id";
@@ -86,71 +75,9 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
     public Object getPrimaryKeyValue() {
         return this.id;
     }
-    
-    public static class Dao extends SQLiteRecordDao<ImportMediaEntry> {        
+
+    public static class Dao extends SQLiteRecordDao<ImportMediaEntry> {
         
-        public //Flux<ImportMediaEntry> 
-        void listen() {
-            try (SQLiteConnection connection = (SQLiteConnection) Database.getConnection(getDbPath())) {
-                connection.addUpdateListener(new SQLiteUpdateListener() {
-
-                    @Override
-                    public void onUpdate(Type type, String database, String table, long rowId) {
-                        if (!table.equals(getTableName())) {
-                            return;
-                        }
-                        switch (type) {
-                            case INSERT:
-                                try {
-                                    connection.prepareStatement("SELECT * FROM " + getTableName() + " WHERE id = ?").setLong(1, rowId);
-                                    ImportMediaEntry newEntry = get(rowId);
-                                    // emitter.next(newEntry);
-                                } catch (SQLException e) {
-                                    // emitter.error(e);
-                                }
-                                break;
-                            case UPDATE:
-                                try {
-                                    ImportMediaEntry updatedEntry = get(rowId);
-                                    // emitter.next(updatedEntry);
-                                } catch (SQLException e) {
-                                    // emitter.error(e);
-                                }
-                                break;
-                            case DELETE:
-                                // Handle delete if necessary
-                                break;
-                        }
-                    }
-                    
-                });
-            } catch (Exception e) {
-                // emitter.error(e);
-            }
-            // return Flux.create(emitter -> {
-            //     try (Connection connection = Database.getConnection(getDbPath())) {
-            //         String query = "SELECT * FROM import_media_entries ORDER BY createdAt ASC;";
-            //         try (var statement = connection.createStatement()) {
-            //             while (!emitter.isCancelled()) {
-            //                 try (ResultSet rs = statement.executeQuery(query)) {
-            //                     List<ImportMediaEntry> entries = new java.util.ArrayList<>();
-            //                     while (rs.next()) {
-            //                         entries.add(mapResultSetToRecord(rs));
-            //                     }
-            //                     entries.sort(Comparator.comparing(ImportMediaEntry::createdAt));
-            //                     for (ImportMediaEntry entry : entries) {
-            //                         emitter.next(entry);
-            //                     }
-            //                 }
-            //                 Thread.sleep(1000); // Poll every second
-            //             }
-            //         }
-            //     } catch (SQLException | InterruptedException e) {
-            //         emitter.error(e);
-            //     }
-            // });
-        }
-
         @Override
         public String getDbPath() {
             return "media_catalog.db";

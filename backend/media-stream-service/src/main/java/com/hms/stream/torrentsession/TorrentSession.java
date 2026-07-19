@@ -75,12 +75,12 @@ public class TorrentSession implements AutoCloseable {
 
     private final DelegatingAlertListener delegatingAlertListener = new DelegatingAlertListener(
             List.of(
-                    AlertHandler.of(AlertsDroppedAlert.class, alert -> LOG.warn("Alerts dropped: {}", alert.message())),
+                    // AlertHandler.of(AlertsDroppedAlert.class, alert -> LOG.warn("Alerts dropped: {}", alert.message())),
                     // AlertHandler.of(DhtErrorAlert.class, alert -> LOG.warn("DHT error: {} | Operation: {}", alert.message(), alert.operation())),
                     AlertHandler.of(ListenFailedAlert.class, alert -> LOG.warn("Listen failed: {}", alert.message())),
                     // AlertHandler.of(LsdPeerAlert.class, alert -> LOG.info("LSD peer: {}", alert.message())),
                     // AlertHandler.of(LsdErrorAlert.class, alert -> LOG.warn("LSD error: {}", alert.message())),
-                    AlertHandler.of(PortmapErrorAlert.class, alert -> LOG.warn("Portmap error: {}", alert.message())),
+                    // AlertHandler.of(PortmapErrorAlert.class, alert -> LOG.warn("Portmap error: {}", alert.message())),
                     AlertHandler.of(SessionErrorAlert.class, alert -> LOG.warn("Session error: {}", alert.message())),
                     AlertHandler.of(UdpErrorAlert.class, alert -> LOG.warn("UDP error: {}", alert.message()))));
 
@@ -175,7 +175,7 @@ public class TorrentSession implements AutoCloseable {
                     alert -> LOG.warn("Torrent delete failed: {}", alert.message())),
             TorrentAlertHandler.of(TorrentErrorAlert.class, alert -> LOG.warn("Torrent error: {}", alert.message())),
             TorrentAlertHandler.of(ScrapeFailedAlert.class, alert -> LOG.warn("Scrape failed: {}", alert.message())),
-            TorrentAlertHandler.of(TrackerErrorAlert.class, alert -> LOG.warn("Tracker error: {}", alert.message())),
+            // TorrentAlertHandler.of(TrackerErrorAlert.class, alert -> LOG.warn("Tracker error: {}", alert.message())),
             new PieceDeadlineUpdater());
 
     public CompletableFuture<TorrentHandle> addTorrent(AddTorrentParams params, Consumer<TorrentHandle> onHandleInvalid, TorrentAlertHandler<?>... alertHandlers)

@@ -1,10 +1,21 @@
 package com.hms.dao;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+
+import org.sqlite.SQLiteConnection;
+import org.sqlite.SQLiteUpdateListener;
+
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public abstract class SQLiteRecordDao<T extends SQLiteRecord> {
 
@@ -51,6 +62,15 @@ public abstract class SQLiteRecordDao<T extends SQLiteRecord> {
     public T get(Object primaryKeyValue)
             throws SQLException {
         List<T> results = select(Map.of(getPrimaryKeyField(), primaryKeyValue));
+        if (results.size() > 0) {
+            return results.get(0);
+        } else {
+            return null;
+        }
+    }
+
+    protected T getByRowId(long rowId) throws SQLException {
+        List<T> results = select(Map.of("rowid", rowId));
         if (results.size() > 0) {
             return results.get(0);
         } else {
@@ -128,16 +148,83 @@ public abstract class SQLiteRecordDao<T extends SQLiteRecord> {
         }
     }
 
-    public void ensureTableExists() throws SQLException {        
+    private Observable<T> observable = null;
+
+    public Observable<T> listen() {
+        if (observable == null) {
+            observable = createObservable();
+        }
+        return observable;
+    }
+
+    private Observable<T> createObservable() {
+        return Observable.<Producer<T>>create(emitter -> {
+            SQLiteUpdateListener listener = new SQLiteUpdateListener() {
+
+                @Override
+                public void onUpdate(Type type, String database, String table, long rowId) {
+                    if (!table.equals(getTableName())) {
+                        return;
+                    }
+                    Maybe<T> completable = Maybe.fromCallable(() -> {
+                        return getByRowId(rowId);
+
+                    }).observeOn(Schedulers.io());
+
+                    switch (type) {
+                        case INSERT:
+                        case UPDATE:
+                            emitter.onNext(completable::blockingGet);
+                            break;
+                        case DELETE:
+                            // Handle delete if necessary
+                            break;
+                    }
+                }
+
+            };
+
+            AutoCloseable listenerRegistration = new SQLiteUpdateListenerCloseable(listener, getDbPath());
+            emitter.setCancellable(listenerRegistration::close);
+        }).observeOn(Schedulers.computation()).subscribeOn(Schedulers.computation()).map(p -> p.get());
+    }
+
+    public void ensureTableExists() throws SQLException {
         try (var conn = Database.getConnection(getDbPath());) {
             for (SQLiteRecordDao<?> dao : getDependecies()) {
                 dao.ensureTableExists();
             }
-            try (var stmt = conn.createStatement()) {                
+            try (var stmt = conn.createStatement()) {
                 stmt.execute(toCreateTableStatement());
             }
         } catch (DBFileNotFoundException | GetConnectionException e) {
             throw new SQLException("Failed to get database connection", e);
+        }
+    }
+}
+
+class SQLiteUpdateListenerCloseable implements AutoCloseable {
+    private final String dbPath;
+    private final Connection connection;
+    private final SQLiteUpdateListener listener;
+
+    public SQLiteUpdateListenerCloseable(SQLiteUpdateListener listener, String dbPath) {
+        this.listener = listener;
+        this.dbPath = dbPath;
+        try {
+            this.connection = Database.getConnection(dbPath);
+            connection.unwrap(SQLiteConnection.class).addUpdateListener(listener);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to add update listener", e);
+        }
+    }
+
+    @Override
+    public void close() {
+        try (Connection _ = connection) {
+            connection.unwrap(SQLiteConnection.class).removeUpdateListener(listener);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to close connection", e);
         }
     }
 }

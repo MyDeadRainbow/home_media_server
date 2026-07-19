@@ -2,10 +2,8 @@ package com.hms.stream.torrentinfo;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Comparator;
@@ -30,7 +28,6 @@ import com.hms.shared.media.MediaItem;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.catalogupdates.FilePathRecord;
-import com.hms.shared.util.Tuple2;
 import com.hms.shared.util.Wrapper;
 import com.hms.stream.importmedia.ImportMediaEntry;
 import com.hms.stream.importmedia.ImportMediaEntryMediaItem;
@@ -315,6 +312,7 @@ public class TorrentInfoService {
                     }
                 } catch (SQLException e) {
                     LOG.error("Error while fetching media import entry for mediaItemId: {}", mediaItemId, e);
+                    emitter.complete();
                 }
 
                 FileName fileNameRecord = null;
@@ -323,11 +321,13 @@ public class TorrentInfoService {
                             .findFirst().orElse(null);
                 } catch (SQLException e) {
                     LOG.error("Error while fetching file name record for mediaItemId: {}", mediaItemId, e);
+                    emitter.complete();
                 }
 
                 if (entry != null && fileNameRecord != null) {
                     TorrentHandle handle = torrentSession.getTorrentHandle(entry.torrentHash());
                     if (handle == null || !handle.isValid()) {
+                        emitter.complete();
                         return;
                     }
                     TorrentStatus status = handle.status();
