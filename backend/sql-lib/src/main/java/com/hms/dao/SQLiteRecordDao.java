@@ -20,7 +20,23 @@ public abstract class SQLiteRecordDao<T extends SQLiteRecord> {
 
     public abstract PreparedStatementValue toDeleteStatement(T record);
 
-    public abstract PreparedStatementValue toSelectStatement(Map<String, Object> conditions);
+    public PreparedStatementValue toSelectStatement(Map<String, Object> conditions) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT * FROM ").append(getTableName());
+        if (conditions != null && !conditions.isEmpty()) {
+            sb.append(" WHERE ");
+            boolean first = true;
+            for (String field : conditions.keySet()) {
+                if (!first) {
+                    sb.append(" AND ");
+                }
+                sb.append(field).append(" = ?");
+                first = false;
+            }
+        }
+        sb.append(";");
+        return new PreparedStatementValue(sb.toString(), conditions.values().toArray());
+    }
 
     public abstract T mapResultSetToRecord(ResultSet rs) throws SQLException;
 

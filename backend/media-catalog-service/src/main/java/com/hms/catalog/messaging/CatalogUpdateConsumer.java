@@ -22,10 +22,15 @@ import com.hms.catalog.datamine.api.MediaDbApiFactory;
 import com.hms.catalog.media.MovieParser;
 import com.hms.catalog.media.ParseEntry;
 import com.hms.catalog.media.SeriesParser;
+import com.hms.shared.media.Episode;
+import com.hms.shared.media.MediaCategory;
+import com.hms.shared.media.MediaItem;
 import com.hms.shared.media.Movie;
+import com.hms.shared.media.Season;
 import com.hms.shared.media.Series;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdateDeserializer;
+import com.hms.shared.messaging.catalogupdates.CatalogUpdateType;
 import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 
 @Service
@@ -60,15 +65,15 @@ public class CatalogUpdateConsumer {
         try {
             seriesList.forEach(series -> {
                 try {
-                    new Series.Dao().insert(series);
-                    MediaDbApiFactory.createTMDBApi().searchSeries(series)
-                            .thenAccept(s -> {
-                                try {
-                                    new Series.Dao().update(s);
-                                } catch (SQLException e) {
-                                    LOG.error("Error updating series: {}", s.title(), e);
-                                }
-                            });
+                    new Series.Dao().insert(series);                    
+                    // MediaDbApiFactory.createTMDBApi().searchSeries(series)
+                    //         .thenAccept(s -> {
+                    //             try {
+                    //                 new Series.Dao().update(s);
+                    //             } catch (SQLException e) {
+                    //                 LOG.error("Error updating series: {}", s.title(), e);
+                    //             }
+                    //         });
                 } catch (Exception e) {
                     LOG.error("Error inserting series: {}", series.title(), e);
                 }
@@ -83,25 +88,122 @@ public class CatalogUpdateConsumer {
         Movie movie = new MovieParser(new ParseEntry(filePathRecord.mediaId(), filePathRecord.filePath())).parse();
         try {
             new Movie.Dao().insert(movie);
-            MediaDbApiFactory.createTMDBApi().searchMovie(movie)
-                    .thenAccept(m -> {
-                        try {
-                            new Movie.Dao().update(m);
-                        } catch (SQLException e) {
-                            LOG.error("Error updating movie: {}", m.title(), e);
-                        }
-                    });
+            // MediaDbApiFactory.createTMDBApi().searchMovie(movie)
+            //         .thenAccept(m -> {
+            //             try {
+            //                 new Movie.Dao().update(m);
+            //             } catch (SQLException e) {
+            //                 LOG.error("Error updating movie: {}", m.title(), e);
+            //             }
+            //         });
         } catch (Exception e) {
             LOG.error("Error inserting movie: {}", movie.title(), e);
         }
     }
 
     private void handleMediaUpdated(CatalogUpdate message) {
-        
+
     }
 
     private void handleMediaDeleted(CatalogUpdate message) {
-        
+        switch (message.mediaType()) {
+            case SERIES -> handleSeriesDeleted(message);
+            case MOVIE -> handleMovieDeleted(message);
+            default -> LOG.warn("Received media deleted message with unsupported media type: {}", message.mediaType());
+        }
+    }
+
+    private void handleSeriesDeleted(CatalogUpdate message) {
+        List<Episode> episodesToDelete = message.filePaths().stream()
+                .map(filePathRecord -> {
+                    try {
+                        MediaItem mediaItem = new MediaItem.Dao().get(filePathRecord.mediaId());
+                        return new Episode.Dao().select(Map.of("mediaId", mediaItem.mediaId())).stream().findFirst().orElse(null);
+                    } catch (SQLException e) {
+                        LOG.error("Error retrieving episode with mediaId: {}", filePathRecord.mediaId(), e);
+                        return null;
+                    }
+                })
+                .filter(episode -> episode != null)
+                .toList();
+
+        episodesToDelete.forEach(episode -> {
+            try {
+                new Episode.Dao().delete(episode);
+            } catch (SQLException e) {
+                LOG.error("Error deleting episode with mediaId: {}", episode.media().mediaId(), e);
+            }
+        });
+
+        List<Season> seasonsToDelete = episodesToDelete.stream()
+                .map(Episode::seasonId)
+                .distinct()
+                .map(seasonId -> {
+                    try {
+                        Season season = new Season.Dao().get(seasonId);
+                        if (season != null) {
+                            if (season.episodes().isEmpty()) {
+                                return season;
+                            }
+                        }
+                        return null;
+                    } catch (SQLException e) {
+                        LOG.error("Error retrieving season with seasonId: {}", seasonId, e);
+                        return null;
+                    }
+                })
+                .filter(season -> season != null)
+                .toList();
+                
+        seasonsToDelete.forEach(season -> {
+            try {
+                new Season.Dao().delete(season);
+            } catch (SQLException e) {
+                LOG.error("Error deleting season with seasonId: {}", season.seasonId(), e);
+            }
+        });                
+
+        List<Series> seriesToDelete = seasonsToDelete.stream()
+                .map(Season::seriesId)
+                .distinct()
+                .map(seriesId -> {
+                    try {
+                        Series series = new Series.Dao().get(seriesId);
+                        if (series != null) {
+                            if (series.seasons().isEmpty()) {
+                                return series;
+                            }
+                        }
+                        return null;
+                    } catch (SQLException e) {
+                        LOG.error("Error retrieving series with seriesId: {}", seriesId, e);
+                        return null;
+                    }
+                })
+                .filter(series -> series != null)
+                .toList();
+                
+        seriesToDelete.forEach(series -> {
+            try {
+                new Series.Dao().delete(series);
+            } catch (SQLException e) {
+                LOG.error("Error deleting series with seriesId: {}", series.seriesId(), e);
+            }
+        });
+
+    }
+
+    private void handleMovieDeleted(CatalogUpdate message) {
+        message.filePaths().forEach(filePathRecord -> {
+            try {
+                Movie movie = new Movie.Dao().select(Map.of("mediaId", filePathRecord.mediaId())).stream().findFirst().orElse(null);
+                if (movie != null) {
+                    new Movie.Dao().delete(movie);
+                }
+            } catch (SQLException e) {
+                LOG.error("Error deleting movie with mediaId: {}", filePathRecord.mediaId(), e);
+            }
+        });
     }
 }
 

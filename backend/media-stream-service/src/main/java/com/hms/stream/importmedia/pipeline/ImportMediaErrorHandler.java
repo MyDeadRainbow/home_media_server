@@ -4,5 +4,5 @@ import com.hms.stream.importmedia.ImportMediaEntry;
 
 @FunctionalInterface
 public interface ImportMediaErrorHandler {
-    void handleError(ImportMediaEntry entry, Exception e);
+    void handleError(ImportMediaEntry entry, Throwable e);
 }

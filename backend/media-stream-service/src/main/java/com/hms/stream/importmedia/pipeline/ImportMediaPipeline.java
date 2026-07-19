@@ -26,7 +26,7 @@ public class ImportMediaPipeline implements Handler<ImportMediaEntry> {
         for (ImportMediaHandler handler : handlers) {
             try {
                 entry = handler.handle(entry);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 if (errorHandler != null) {
                     errorHandler.handleError(entry, e);
                 } else {

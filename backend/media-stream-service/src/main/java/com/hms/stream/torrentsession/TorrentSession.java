@@ -1,6 +1,7 @@
 package com.hms.stream.torrentsession;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -31,9 +33,26 @@ import com.frostwire.jlibtorrent.TorrentHandle;
 import com.frostwire.jlibtorrent.TorrentInfo;
 import com.frostwire.jlibtorrent.alerts.Alert;
 import com.frostwire.jlibtorrent.alerts.AlertsDroppedAlert;
+import com.frostwire.jlibtorrent.alerts.DhtErrorAlert;
+import com.frostwire.jlibtorrent.alerts.FileErrorAlert;
+import com.frostwire.jlibtorrent.alerts.FileRenameFailedAlert;
+import com.frostwire.jlibtorrent.alerts.HashFailedAlert;
+import com.frostwire.jlibtorrent.alerts.ListenFailedAlert;
+import com.frostwire.jlibtorrent.alerts.LsdErrorAlert;
+import com.frostwire.jlibtorrent.alerts.LsdPeerAlert;
+import com.frostwire.jlibtorrent.alerts.MetadataFailedAlert;
 import com.frostwire.jlibtorrent.alerts.PieceFinishedAlert;
+import com.frostwire.jlibtorrent.alerts.PortmapErrorAlert;
+import com.frostwire.jlibtorrent.alerts.SaveResumeDataFailedAlert;
+import com.frostwire.jlibtorrent.alerts.ScrapeFailedAlert;
+import com.frostwire.jlibtorrent.alerts.SessionErrorAlert;
+import com.frostwire.jlibtorrent.alerts.StateChangedAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentAlert;
+import com.frostwire.jlibtorrent.alerts.TorrentDeleteFailedAlert;
+import com.frostwire.jlibtorrent.alerts.TorrentErrorAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentFinishedAlert;
+import com.frostwire.jlibtorrent.alerts.TrackerErrorAlert;
+import com.frostwire.jlibtorrent.alerts.UdpErrorAlert;
 import com.frostwire.jlibtorrent.swig.error_code;
 import com.hms.stream.torrentsession.exception.AddTorrentException;
 import com.hms.stream.torrentsession.exception.TorrentException;
@@ -50,31 +69,39 @@ public class TorrentSession implements AutoCloseable {
     private SessionHandle sessionHandle;
     private AtomicInteger sessionCount = new AtomicInteger(0);
 
-    private final HashMap<Sha1Hash, TorrentHandle> torrentHandles = new HashMap<>();
+    private final HashMap<Sha1Hash, TorrentHandle> torrentHandles = new
+    HashMap<>();
+    // private final InfoHashMap torrentHandles;
 
     private final DelegatingAlertListener delegatingAlertListener = new DelegatingAlertListener(
-            List.of(AlertHandler.of(AlertsDroppedAlert.class, (AlertsDroppedAlert alert) -> {
-                // Handle the alert
-            })),
-            new ArrayList<>());
+            List.of(
+                    AlertHandler.of(AlertsDroppedAlert.class, alert -> LOG.warn("Alerts dropped: {}", alert.message())),
+                    // AlertHandler.of(DhtErrorAlert.class, alert -> LOG.warn("DHT error: {} | Operation: {}", alert.message(), alert.operation())),
+                    AlertHandler.of(ListenFailedAlert.class, alert -> LOG.warn("Listen failed: {}", alert.message())),
+                    // AlertHandler.of(LsdPeerAlert.class, alert -> LOG.info("LSD peer: {}", alert.message())),
+                    // AlertHandler.of(LsdErrorAlert.class, alert -> LOG.warn("LSD error: {}", alert.message())),
+                    AlertHandler.of(PortmapErrorAlert.class, alert -> LOG.warn("Portmap error: {}", alert.message())),
+                    AlertHandler.of(SessionErrorAlert.class, alert -> LOG.warn("Session error: {}", alert.message())),
+                    AlertHandler.of(UdpErrorAlert.class, alert -> LOG.warn("UDP error: {}", alert.message()))));
 
     private final ThreadPoolTaskScheduler scheduler;
     private final ThreadPoolTaskExecutor awaiter;
 
     private TorrentSession() {
         sessionManager = new SessionManager();
+        // torrentHandles = new InfoHashMap(sessionManager);
 
         scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(1);
         scheduler.setVirtualThreads(true);
+        scheduler.setThreadNamePrefix("TorrentSession-scheduler-");
         scheduler.initialize();
 
         awaiter = new ThreadPoolTaskExecutor();
         awaiter.setCorePoolSize(1);
-        awaiter.setMaxPoolSize(1);
-        awaiter.setQueueCapacity(1);
+        awaiter.setMaxPoolSize(100);
         awaiter.setVirtualThreads(true);
-        awaiter.setThreadNamePrefix("awaiter-");
+        awaiter.setThreadNamePrefix("TorrentSession-awaiter-");
         awaiter.initialize();
     }
 
@@ -99,12 +126,16 @@ public class TorrentSession implements AutoCloseable {
     @Override
     public void close() {
         if (sessionCount.decrementAndGet() == 0) {
-            if (sessionManager != null && sessionManager.isRunning()) {
+            if (sessionManager != null && sessionManager.isRunning() && !hasOpenTorrents()) {
                 sessionManager.removeListener(delegatingAlertListener);
                 sessionManager.stop();
                 sessionHandle = null;
             }
         }
+    }
+
+    public boolean hasOpenTorrents() {
+        return !torrentHandles.isEmpty();
     }
 
     public byte[] fetchMagnet(String magnetLink, int timeoutSeconds) {
@@ -129,21 +160,60 @@ public class TorrentSession implements AutoCloseable {
         return handle;
     }
 
-    public CompletableFuture<TorrentHandle> addTorrent(AddTorrentParams params, TorrentAlertHandler<?>... alertHandlers)
+    private final Map<Sha1Hash, ScheduledFuture<?>> saveResumeDataFutures = new HashMap<>();
+
+    private final TorrentAlertHandler<?>[] defaultTorrentAlertHandlers = TorrentAlertHandler.arrayOf(
+            TorrentAlertHandler.of(FileErrorAlert.class, alert -> LOG.warn("File error: {}", alert.message())),
+            TorrentAlertHandler.of(FileRenameFailedAlert.class,
+                    alert -> LOG.warn("File rename failed: {}", alert.message())),
+            TorrentAlertHandler.of(HashFailedAlert.class, alert -> LOG.warn("Hash failed: {}", alert.message())),
+            TorrentAlertHandler.of(MetadataFailedAlert.class,
+                    alert -> LOG.warn("Metadata failed: {}", alert.message())),
+            TorrentAlertHandler.of(SaveResumeDataFailedAlert.class,
+                    alert -> LOG.warn("Save resume data failed: {}", alert.message())),
+            TorrentAlertHandler.of(TorrentDeleteFailedAlert.class,
+                    alert -> LOG.warn("Torrent delete failed: {}", alert.message())),
+            TorrentAlertHandler.of(TorrentErrorAlert.class, alert -> LOG.warn("Torrent error: {}", alert.message())),
+            TorrentAlertHandler.of(ScrapeFailedAlert.class, alert -> LOG.warn("Scrape failed: {}", alert.message())),
+            TorrentAlertHandler.of(TrackerErrorAlert.class, alert -> LOG.warn("Tracker error: {}", alert.message())),
+            new PieceDeadlineUpdater());
+
+    public CompletableFuture<TorrentHandle> addTorrent(AddTorrentParams params, Consumer<TorrentHandle> onHandleInvalid, TorrentAlertHandler<?>... alertHandlers)
             throws TorrentException {
         CountDownLatch signal = new CountDownLatch(1);
-        TorrentHandle handle = addTorrent(params);
-        TorrentAlertListener listener = new TorrentAlertListener(handle,
+        TorrentAlertListener listener = new TorrentAlertListener(params.infoHash(),
                 Arrays.asList(
                         TorrentAlertHandler.join(
                                 alertHandlers,
-                                TorrentAlertHandler.arrayOf(new PieceDeadlineUpdater(),
+                                defaultTorrentAlertHandlers,
+                                TorrentAlertHandler.arrayOf(
+                                        TorrentAlertHandler.of(TorrentAlert.class, alert -> {
+                                            TorrentHandle handle = alert.handle();
+                                            if (handle == null || !handle.isValid()) {
+                                                LOG.warn("Torrent handle is invalid or null for infoHash: {} alert: {}",
+                                                        params.infoHash(), alert.message());
+                                                onHandleInvalid.accept(handle);
+                                                signal.countDown();
+                                            }
+                                        }),
                                         new TorrentFinishedAlertHandler(signal)))));
         addListener(listener);
 
+        TorrentHandle handle = addTorrent(params);
+        if (handle == null || !handle.isValid()) {
+            throw new AddTorrentException("Failed to add torrent: Invalid handle");
+        }
+
         ScheduledFuture<?> saveResumeDataTask = scheduler.scheduleAtFixedRate(() -> {
+            if (handle == null || !handle.isValid()) {
+                onHandleInvalid.accept(handle);
+                signal.countDown();
+                return;
+            }
             handle.saveResumeData();
         }, Duration.ofSeconds(1));
+
+        saveResumeDataFutures.put(handle.infoHash(), saveResumeDataTask);
 
         return CompletableFuture.runAsync(() -> {
             try {
@@ -152,6 +222,9 @@ public class TorrentSession implements AutoCloseable {
                 Thread.currentThread().interrupt();
             } finally {
                 saveResumeDataTask.cancel(true);
+                saveResumeDataFutures.remove(handle.infoHash());
+                torrentHandles.remove(handle.infoHash());
+                removeListener(listener);
             }
         }, awaiter).thenApply(v -> handle);
     }
@@ -169,6 +242,9 @@ public class TorrentSession implements AutoCloseable {
     }
 
     public TorrentHandle getTorrentHandle(String infoHash) {
+        if (infoHash == null || infoHash.isEmpty()) {
+            return null;
+        }
         return torrentHandles.get(new Sha1Hash(infoHash));
     }
 
@@ -182,7 +258,7 @@ public class TorrentSession implements AutoCloseable {
     }
 
     public boolean resumeTorrent(String infoHash) {
-        TorrentHandle handle = torrentHandles.get(new Sha1Hash(infoHash));
+        TorrentHandle handle = getTorrentHandle(infoHash);
         if (handle != null) {
             handle.resume();
             return true;
@@ -191,12 +267,17 @@ public class TorrentSession implements AutoCloseable {
     }
 
     public boolean deleteTorrent(String infoHash) {
-        TorrentHandle handle = torrentHandles.get(new Sha1Hash(infoHash));
+        TorrentHandle handle = getTorrentHandle(infoHash);
         if (handle != null) {
             handle.pause();
             removeListenerForHandle(handle);
+            ScheduledFuture<?> saveResumeDataTask = saveResumeDataFutures.get(handle.infoHash());
+            if (saveResumeDataTask != null) {
+                saveResumeDataTask.cancel(true);
+                saveResumeDataFutures.remove(handle.infoHash());
+            }
             sessionHandle.removeTorrent(handle, SessionHandle.DELETE_FILES);
-            torrentHandles.remove(handle.infoHash());
+            torrentHandles.remove(new Sha1Hash(infoHash));
             return true;
         }
         return false;
@@ -211,21 +292,25 @@ public class TorrentSession implements AutoCloseable {
         private final List<AlertHandler<?>> alertHandlers;
         private final Map<Sha1Hash, TorrentAlertListener> torrentAlertListeners;
 
+        public DelegatingAlertListener(List<AlertHandler<?>> alertHandlers) {
+            this(alertHandlers, new ArrayList<>());
+        }
+
         public DelegatingAlertListener(List<AlertHandler<?>> alertHandlers,
                 List<TorrentAlertListener> torrentAlertListeners) {
             this.alertHandlers = alertHandlers;
             this.torrentAlertListeners = torrentAlertListeners.stream()
-                    .map(tal -> Map.entry(tal.getTorrentHandle().infoHash(), tal))
+                    .map(tal -> Map.entry(tal.getTorrentHash(), tal))
                     .filter(entry -> entry.getKey() != null && entry.getValue() != null)
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
         }
 
         private void addTorrentAlertListener(TorrentAlertListener listener) {
-            torrentAlertListeners.put(listener.getTorrentHandle().infoHash(), listener);
+            torrentAlertListeners.put(listener.getTorrentHash(), listener);
         }
 
         private void removeTorrentAlertListener(TorrentAlertListener listener) {
-            torrentAlertListeners.remove(listener.getTorrentHandle().infoHash());
+            torrentAlertListeners.remove(listener.getTorrentHash());
         }
 
         @SuppressWarnings("unchecked")
@@ -268,14 +353,7 @@ public class TorrentSession implements AutoCloseable {
 
         @Override
         public void handle(TorrentFinishedAlert alert) {
-            LOG.info("Torrent download finished for: {}", alert.handle().name());
-            // entry = entry.withStatus(ImportMediaStatus.TORRENT_DOWNLOADED);
-            // try {
-            // new ImportMediaEntry.Dao().update(entry);
-            // } catch (SQLException e) {
-            // LOG.error("Failed to update entry status to TORRENT_DOWNLOADED", e);
-            // }
-            // signal.countDown();
+            // LOG.info("Torrent download finished for: {}", alert.handle().name());
             signal.countDown();
         }
     }
@@ -412,6 +490,57 @@ public class TorrentSession implements AutoCloseable {
                 }
             }
         }
+    }
+}
 
+class InfoHashMap {
+    private final HashMap<Sha1Hash, Function<Sha1Hash, TorrentHandle>> infoHashMap = new HashMap<>();
+    private final SessionManager sessionManager;
+
+    public InfoHashMap(SessionManager sessionManager) {
+        this.sessionManager = sessionManager;
+    }
+
+    public void add(Sha1Hash infoHash) {
+        infoHashMap.put(infoHash, (hash) -> {
+            return sessionManager.find(hash);
+        });
+    }
+
+    public void remove(Sha1Hash infoHash) {
+        infoHashMap.remove(infoHash);
+    }
+
+    public boolean contains(Sha1Hash infoHash) {
+        return infoHashMap.containsKey(infoHash);
+    }
+
+    public int size() {
+        return infoHashMap.size();
+    }
+
+    public void clear() {
+        infoHashMap.clear();
+    }
+
+    public TorrentHandle get(Sha1Hash infoHash) {
+        Function<Sha1Hash, TorrentHandle> func = infoHashMap.get(infoHash);
+        TorrentHandle handle = func != null ? func.apply(infoHash) : null;
+        if (handle == null || !handle.isValid()) {
+            infoHashMap.remove(infoHash);
+            return null;
+        }
+        return handle;
+    }
+
+    public List<Sha1Hash> getInfoHashes() {
+        return new ArrayList<>(infoHashMap.keySet());
+    }
+
+    public List<TorrentHandle> getTorrentHandles() {
+        return infoHashMap.keySet().stream()
+                .map(this::get)
+                .filter(handle -> handle != null && handle.isValid())
+                .toList();
     }
 }

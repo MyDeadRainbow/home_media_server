@@ -40,8 +40,8 @@ public class TMDBApi extends MediaDbApi {
     private final String moviePath = "/movie";
     private final String queryParameter = "query";
     private final String seasonPath = "/season";
-    private String imageUrl = "https://image.tmdb.org"; // Base URL for TMDB images
-    private String imageUrlPath = "/t/p/original"; // Path for original size images
+    private final String imageUrl = "https://image.tmdb.org"; // Base URL for TMDB images
+    private final String imageUrlPath = "/t/p/original"; // Path for original size images
 
     // https://api.themoviedb.org/3/search/tv
     @Override
@@ -253,7 +253,8 @@ public class TMDBApi extends MediaDbApi {
             metaData = metaData.withTitle(json.get("original_title").getAsString())
                     .withPlotSummary(json.get("overview").getAsString())
                     .withAirDate(LocalDate.parse(json.get("release_date").getAsString(), DateTimeFormatter.ISO_DATE))
-                    .withRating(json.get("vote_average").getAsFloat());
+                    .withRating(json.get("vote_average").getAsFloat())
+                    .withStatus(MetaDataStatus.COMPLETE);
             movie = movie.withMetaData(metaData);
 
             String posterPath = json.get("poster_path").getAsString();

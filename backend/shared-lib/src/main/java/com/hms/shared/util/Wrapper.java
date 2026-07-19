@@ -7,24 +7,25 @@ public class Wrapper<T> {
         this.value = value;
     }
 
-    public T getValue() {
+    public T get() {
         return value;
     }
 
-    public void setValue(T value) {
+    public void set(T value) {
         this.value = value;
     }
 
     /**
-     * Applies the given consumer to the wrapped value and updates the wrapped value with the result.
-     * @param consumer the consumer to apply to the wrapped value
+     * Applies the given function to the wrapped value and updates the wrapped value with the result.
+     * @param function the function to apply to the wrapped value
      */
-    public void apply(WrapperFunction<T> consumer) {
-        setValue(consumer.apply(getValue()));
+    public Wrapper<T> apply(WrapperFunction<T> function) {
+        set(function.apply(get()));
+        return this;
     }
 
     @FunctionalInterface
     public static interface WrapperFunction<T> {
-        T apply(T wrapper);
+        T apply(T value);
     }
 }

@@ -1,11 +1,22 @@
 package com.hms.stream.importmedia;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
+import org.sqlite.SQLiteConnection;
+import org.sqlite.SQLiteUpdateListener;
+
 import com.google.common.base.Preconditions;
+import com.hms.dao.Database;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
@@ -13,39 +24,59 @@ import com.hms.shared.media.MediaCategory;
 
 public record ImportMediaEntry(String id, MediaCategory category, String title, ImportMediaStatus status,
         String magnetLink, LocalDateTime createdAt, String torrentFolderPath, String resumeFile, String magnetDataFile,
-        String torrentHash)
+        String torrentHash, List<ImportMediaEntryMediaItem> items)
         implements SQLiteRecord {
 
-    ImportMediaEntry withStatus(ImportMediaStatus newStatus) {
-        return new ImportMediaEntry(this.id, this.category, this.title, newStatus, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash);
-    }
+            
+            public ImportMediaEntry withStatus(ImportMediaStatus newStatus) {
+                return new ImportMediaEntry(this.id, this.category, this.title, newStatus, this.magnetLink, this.createdAt,
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, this.items);
+            }
 
-    ImportMediaEntry withMagnetLink(String newMagnetLink) {
+            public ImportMediaEntry withMagnetLink(String newMagnetLink) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, newMagnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash);
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, this.items);
     }
 
-    ImportMediaEntry withTorrentFolderPath(String newTorrentFolderPath) {
+    public ImportMediaEntry withTorrentFolderPath(String newTorrentFolderPath) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                newTorrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash);
+                newTorrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, this.items);
     }
 
-    ImportMediaEntry withResumeFile(String newResumeFile) {
+    public ImportMediaEntry withResumeFile(String newResumeFile) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, newResumeFile, this.magnetDataFile, this.torrentHash);
+                this.torrentFolderPath, newResumeFile, this.magnetDataFile, this.torrentHash, this.items);
     }
 
-    ImportMediaEntry withMagnetDataFile(String newMagnetDataFile) {
+    public ImportMediaEntry withMagnetDataFile(String newMagnetDataFile) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, newMagnetDataFile, this.torrentHash);
+                this.torrentFolderPath, this.resumeFile, newMagnetDataFile, this.torrentHash, this.items);
     }
 
-    ImportMediaEntry withTorrentHash(String newTorrentHash) {
+    public ImportMediaEntry withTorrentHash(String newTorrentHash) {
         return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
-                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, newTorrentHash);
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, newTorrentHash, this.items);
     }
 
+    public ImportMediaEntry withItems(List<ImportMediaEntryMediaItem> newItems) {
+        return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, newItems);
+    }
+    
+    public ImportMediaEntry addItem(ImportMediaEntryMediaItem newItem) {
+        List<ImportMediaEntryMediaItem> updatedItems = new java.util.ArrayList<>(this.items);
+        updatedItems.add(newItem);
+        return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
+            this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, updatedItems);
+    }
+    
+    public ImportMediaEntry removeItem(ImportMediaEntryMediaItem itemToRemove) {
+        List<ImportMediaEntryMediaItem> updatedItems = new java.util.ArrayList<>(this.items);
+        updatedItems.remove(itemToRemove);
+        return new ImportMediaEntry(this.id, this.category, this.title, this.status, this.magnetLink, this.createdAt,
+                this.torrentFolderPath, this.resumeFile, this.magnetDataFile, this.torrentHash, updatedItems);
+    }
+    
     @Override
     public String getPrimaryKeyField() {
         return "id";
@@ -55,12 +86,74 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
     public Object getPrimaryKeyValue() {
         return this.id;
     }
+    
+    public static class Dao extends SQLiteRecordDao<ImportMediaEntry> {        
+        
+        public //Flux<ImportMediaEntry> 
+        void listen() {
+            try (SQLiteConnection connection = (SQLiteConnection) Database.getConnection(getDbPath())) {
+                connection.addUpdateListener(new SQLiteUpdateListener() {
 
-    public static class Dao extends SQLiteRecordDao<ImportMediaEntry> {
+                    @Override
+                    public void onUpdate(Type type, String database, String table, long rowId) {
+                        if (!table.equals(getTableName())) {
+                            return;
+                        }
+                        switch (type) {
+                            case INSERT:
+                                try {
+                                    connection.prepareStatement("SELECT * FROM " + getTableName() + " WHERE id = ?").setLong(1, rowId);
+                                    ImportMediaEntry newEntry = get(rowId);
+                                    // emitter.next(newEntry);
+                                } catch (SQLException e) {
+                                    // emitter.error(e);
+                                }
+                                break;
+                            case UPDATE:
+                                try {
+                                    ImportMediaEntry updatedEntry = get(rowId);
+                                    // emitter.next(updatedEntry);
+                                } catch (SQLException e) {
+                                    // emitter.error(e);
+                                }
+                                break;
+                            case DELETE:
+                                // Handle delete if necessary
+                                break;
+                        }
+                    }
+                    
+                });
+            } catch (Exception e) {
+                // emitter.error(e);
+            }
+            // return Flux.create(emitter -> {
+            //     try (Connection connection = Database.getConnection(getDbPath())) {
+            //         String query = "SELECT * FROM import_media_entries ORDER BY createdAt ASC;";
+            //         try (var statement = connection.createStatement()) {
+            //             while (!emitter.isCancelled()) {
+            //                 try (ResultSet rs = statement.executeQuery(query)) {
+            //                     List<ImportMediaEntry> entries = new java.util.ArrayList<>();
+            //                     while (rs.next()) {
+            //                         entries.add(mapResultSetToRecord(rs));
+            //                     }
+            //                     entries.sort(Comparator.comparing(ImportMediaEntry::createdAt));
+            //                     for (ImportMediaEntry entry : entries) {
+            //                         emitter.next(entry);
+            //                     }
+            //                 }
+            //                 Thread.sleep(1000); // Poll every second
+            //             }
+            //         }
+            //     } catch (SQLException | InterruptedException e) {
+            //         emitter.error(e);
+            //     }
+            // });
+        }
 
         @Override
         public String getDbPath() {
-            return "import_media.db";
+            return "media_catalog.db";
         }
 
         @Override
@@ -85,6 +178,14 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
         }
 
         @Override
+        public void insert(ImportMediaEntry record) throws SQLException {
+            super.insert(record);
+            for (ImportMediaEntryMediaItem item : record.items()) {
+                new ImportMediaEntryMediaItem.Dao().insert(item);
+            }
+        }
+
+        @Override
         public PreparedStatementValue toInsertStatement(ImportMediaEntry record) {
             return new PreparedStatementValue(
                     "INSERT INTO import_media_entries (id, category, title, status, magnetLink, createdAt, torrentFolderPath, resumeFile, magnetDataFile, torrentHash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
@@ -94,12 +195,29 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
         }
 
         @Override
+        public void update(ImportMediaEntry record) throws SQLException {
+            super.update(record);
+            for (ImportMediaEntryMediaItem item : record.items()) {
+                new ImportMediaEntryMediaItem.Dao().update(item);
+            }
+        }
+
+        @Override
         public PreparedStatementValue toUpdateStatement(ImportMediaEntry record) {
             return new PreparedStatementValue(
                     "UPDATE import_media_entries SET category = ?, title = ?, status = ?, magnetLink = ?, createdAt = ?, torrentFolderPath = ?, resumeFile = ?, magnetDataFile = ?, torrentHash = ? WHERE id = ?;",
                     new Object[] { record.category(), record.title(), record.status(), record.magnetLink(),
                             record.createdAt(), record.torrentFolderPath(), record.resumeFile(),
                             record.magnetDataFile(), record.torrentHash(), record.id() });
+        }
+
+        @Override
+        public void delete(ImportMediaEntry record) throws SQLException {
+            for (ImportMediaEntryMediaItem item : record.items()) {
+                new ImportMediaEntryMediaItem.Dao().delete(item);
+            }
+
+            super.delete(record);
         }
 
         @Override
@@ -139,7 +257,8 @@ public record ImportMediaEntry(String id, MediaCategory category, String title, 
                     rs.getString("torrentFolderPath"),
                     rs.getString("resumeFile"),
                     rs.getString("magnetDataFile"),
-                    rs.getString("torrentHash"));
+                    rs.getString("torrentHash"),
+                    new ImportMediaEntryMediaItem.Dao().select(Map.of("importMediaEntryId", rs.getString("id"))));
         }
 
         @Override

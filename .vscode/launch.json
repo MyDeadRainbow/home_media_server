@@ -131,7 +131,7 @@
             "preLaunchTask": "Compose Up (Debug)",
             "postDebugTask": "Compose Down (Debug)",
             "configurations": [
-                // "Debug Frontend (Docker)",
+                "Debug Frontend (Docker)",
                 "Attach Gateway Service (Docker)",
                 "Attach Catalog Service (Docker)",
                 "Attach Acquisition Service (Docker)",

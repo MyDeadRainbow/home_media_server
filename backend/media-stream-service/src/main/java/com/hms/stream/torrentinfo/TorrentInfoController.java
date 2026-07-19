@@ -5,9 +5,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.hms.shared.orchestrator.SseEmitterOrchestrator;
+import com.hms.shared.util.Tuple2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +47,8 @@ public class TorrentInfoController {
 
     @PostMapping("/delete/{infoHash}")
     public ResponseEntity<Boolean> postDelete(@PathVariable String infoHash) {
+        torrentInfoService.cancelEmitter(infoHash);
+        torrentInfoService.cancelInfoStream(infoHash);
         return new ResponseEntity<>(torrentInfoService.deleteTorrent(infoHash), HttpStatus.OK);
     }
 
@@ -54,10 +60,16 @@ public class TorrentInfoController {
     }
 
     @GetMapping("/infostream")
-    public SseEmitter getInfoStream(@RequestParam String infoHash) {
-        SseEmitter emitter = new SseEmitter();
-        torrentInfoService.getTorrentInfoStream(emitter, infoHash);
-        return emitter;
+    public ResponseEntity<SseEmitter> getInfoStream(@RequestParam String infoHash) {
+        ResponseEntity<SseEmitter> response = torrentInfoService.getTorrentInfoStream(infoHash);
+        return response;
     }
+
+    @GetMapping("/media/infostream")
+    public ResponseEntity<SseEmitter> getMediaItemInfoStream(@RequestParam String mediaItemId) {
+        ResponseEntity<SseEmitter> response = torrentInfoService.getMediaItemInfoStream(mediaItemId);
+        return response;
+    }
+    
 
 }

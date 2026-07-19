@@ -15,7 +15,10 @@ public class MovieParser {
 
     public Movie parse() {
         String name = filePath.filePath();
-        name = name.replaceAll("\\.?[0-9]{3,4}p.*$", "");
+        name = name.replaceAll("\\.?[0-9]{3,4}p.*$", "")
+                .replaceAll("\\.", " ")
+                .replaceAll("[1-2][0-9]{3}", "")
+                .trim();
 
         MediaItem movieItem = new MediaItem(
                 filePath.mediaId(),

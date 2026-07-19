@@ -185,6 +185,159 @@ export function deleteTorrent(infoHash) {
   })
 }
 
+export function updateMetadata(metaDataId, payload) {
+  return request(`${API_GATEWAY}/api/metadata/update/${encodeURIComponent(metaDataId)}`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+}
+
+export function requestMetadataSearch(metaDataId) {
+  return request(`${API_GATEWAY}/api/metadata/requestSearch/${encodeURIComponent(metaDataId)}`, {
+    method: 'POST'
+  })
+}
+
+export async function streamTorrentInfo(infoHash, options = {}) {
+  const { onUpdate, onError, onDone, signal } = options
+  if (!infoHash) {
+    throw new Error('infoHash is required for torrent stream.')
+  }
+
+  const response = await fetch(
+    `${API_GATEWAY}/api/stream/torrent/infostream?infoHash=${encodeURIComponent(infoHash)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/event-stream',
+        'X-API-Key': API_KEY
+      },
+      signal
+    }
+  )
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed: ${response.status}`)
+  }
+
+  if (!response.body) {
+    throw new Error('Streaming response body is not available.')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) {
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      const normalized = buffer.replace(/\r\n/g, '\n')
+      const events = normalized.split('\n\n')
+      buffer = events.pop() || ''
+
+      for (const eventChunk of events) {
+        const parsed = parseSseEvent(eventChunk)
+        if (!parsed) {
+          continue
+        }
+
+        if (parsed.eventName === 'error') {
+          if (onError) {
+            onError(parsed.data)
+          }
+          continue
+        }
+
+        if (onUpdate) {
+          onUpdate(parsed.data)
+        }
+      }
+    }
+
+    if (onDone) {
+      onDone()
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+export async function streamMediaItemInfo(mediaItemId, options = {}) {
+  const { onUpdate, onError, onDone, signal } = options
+  if (!mediaItemId) {
+    throw new Error('mediaItemId is required for media info stream.')
+  }
+
+  const response = await fetch(
+    `${API_GATEWAY}/api/stream/torrent/media/infostream?mediaItemId=${encodeURIComponent(mediaItemId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'text/event-stream',
+        'X-API-Key': API_KEY
+      },
+      signal
+    }
+  )
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || `Request failed: ${response.status}`)
+  }
+
+  if (!response.body) {
+    throw new Error('Streaming response body is not available.')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read()
+      if (done) {
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      const normalized = buffer.replace(/\r\n/g, '\n')
+      const events = normalized.split('\n\n')
+      buffer = events.pop() || ''
+
+      for (const eventChunk of events) {
+        const parsed = parseSseEvent(eventChunk)
+        if (!parsed) {
+          continue
+        }
+
+        if (parsed.eventName === 'error') {
+          if (onError) {
+            onError(parsed.data)
+          }
+          continue
+        }
+
+        if (onUpdate) {
+          onUpdate(parsed.data)
+        }
+      }
+    }
+
+    if (onDone) {
+      onDone()
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
 function buildAcquisitionSearchSuffix(query, category) {
   const params = new URLSearchParams()
 

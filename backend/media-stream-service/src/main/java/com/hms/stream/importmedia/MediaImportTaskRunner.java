@@ -4,39 +4,29 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Flow;
+import java.util.concurrent.Flow.Publisher;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
+import com.hms.shared.util.PollingService;
 import com.hms.stream.importmedia.pipeline.ImportMediaPipeline;
 
 /**
  * Polls the database for pending media import requests and processes them.
  */
 @Service
-public class MediaImportTaskRunner implements Runnable {
+public class MediaImportTaskRunner extends PollingService {
 
     private static final Logger LOG = LoggerFactory.getLogger(MediaImportTaskRunner.class);
 
-    private final Map<String, Runnable> taskMap = new ConcurrentHashMap<>();
-
-    ThreadPoolTaskScheduler scheduler;
-    ThreadPoolTaskExecutor executor;
-
     public MediaImportTaskRunner() {
-        executor = new ThreadPoolTaskExecutor();
-        // executor.setVirtualThreads(true);
-        executor.setCorePoolSize(5);
-        executor.setQueueCapacity(100);
-        executor.setMaxPoolSize(10);
-        executor.initialize();
-
-        scheduler = new ThreadPoolTaskScheduler();
-        scheduler.initialize();
-        scheduler.scheduleAtFixedRate(this, Duration.ofSeconds(1));
+        super();
         init();
     }
 
@@ -53,12 +43,22 @@ public class MediaImportTaskRunner implements Runnable {
     }
 
     @Override
-    public void run() {
+    public Duration pollingInterval() {
+        return Duration.ofSeconds(1);
+    }
+
+    @Override
+    public void poll() {
         try {
             var dao = new ImportMediaEntry.Dao();
             dao.select(Map.of("status", ImportMediaStatus.PENDING.name()))
                     .stream()
-                    .filter(e -> !taskMap.containsKey(e.id()))
+                    .filter(e -> !hasTask(e.id()))
+                    .sorted((e1, e2) -> e1.createdAt().compareTo(e2.createdAt()))
+                    .forEach(this::addProcessingTask);
+            dao.select(Map.of("status", ImportMediaStatus.RESUME.name()))
+                    .stream()
+                    .filter(e -> !hasTask(e.id()))
                     .sorted((e1, e2) -> e1.createdAt().compareTo(e2.createdAt()))
                     .forEach(this::addProcessingTask);
         } catch (SQLException e) {
@@ -67,24 +67,16 @@ public class MediaImportTaskRunner implements Runnable {
     }
 
     private void addProcessingTask(ImportMediaEntry entry) {
-        if (taskMap.containsKey(entry.id())) {
-            LOG.info("Task for entry {} is already running. Skipping.", entry.id());
-            return;
-        }
+        // try {
+        //     new ImportMediaEntry.Dao().update(entry.withStatus(ImportMediaStatus.QUEUED));
+        // } catch (SQLException e) {
+        //     LOG.error("Failed to update media import status to QUEUED", e);
+        // }
         Runnable task = () -> {
-            try {
-                processImport(entry);
-            } finally {
-                taskMap.remove(entry.id());
-            }
+            processImport(entry);
         };
-        taskMap.put(entry.id(), task);
-        try {
-            new ImportMediaEntry.Dao().update(entry.withStatus(ImportMediaStatus.QUEUED));
-        } catch (SQLException e) {
-            LOG.error("Failed to update media import status to QUEUED", e);
-        }
-        executor.execute(task);
+
+        submit(entry.id(), task);
     }
 
     /**
@@ -99,16 +91,16 @@ public class MediaImportTaskRunner implements Runnable {
         var dao = new ImportMediaEntry.Dao();
         ImportMediaPipeline pipeline = ImportMediaPipeline.builder()
                 // .addHandler((e) -> {
-                //     ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.IN_PROGRESS);
-                //     dao.update(updatedEntry);
-                //     return updatedEntry;
+                // ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.IN_PROGRESS);
+                // dao.update(updatedEntry);
+                // return updatedEntry;
                 // })
                 .addHandler(new TorrentMagnetLink())
-                .addHandler((e) -> {
-                    ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.COMPLETED);
-                    dao.update(updatedEntry);
-                    return updatedEntry;
-                })
+                // .addHandler((e) -> {
+                //     // ImportMediaEntry updatedEntry = e.withStatus(ImportMediaStatus.COMPLETED);
+                //     dao.update(e);
+                //     return e;
+                // })
                 .onError((ent, ex) -> {
                     LOG.error("Error processing media import for entry: " + ent.id(), ex);
                     ImportMediaEntry updatedEntry = ent.withStatus(ImportMediaStatus.FAILED);

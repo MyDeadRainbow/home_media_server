@@ -1,10 +1,11 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   deleteTorrent,
   getTorrentInfo,
   pauseTorrent,
-  resumeTorrent
+  resumeTorrent,
+  streamTorrentInfo
 } from '../api'
 
 const torrents = ref([])
@@ -12,6 +13,8 @@ const loading = ref(false)
 const error = ref('')
 const status = ref('')
 const actionInFlight = ref({})
+const streamControllers = ref({})
+const streamRetryTimers = ref({})
 
 function formatBytes(bytes) {
   const value = Number(bytes)
@@ -35,6 +38,18 @@ function formatSpeed(bytesPerSecond) {
   return `${formatBytes(bytesPerSecond)}/s`
 }
 
+function formatImportMediaStatus(value) {
+  if (!value) {
+    return 'N/A'
+  }
+
+  return String(value)
+    .split('_')
+    .filter(Boolean)
+    .map((token) => token.charAt(0) + token.slice(1).toLowerCase())
+    .join(' ')
+}
+
 function getCompletionPercent(item) {
   const total = Number(item?.totalSize)
   const downloaded = Number(item?.downloadedSize)
@@ -53,11 +68,156 @@ async function loadTorrentInfo() {
   try {
     const response = await getTorrentInfo()
     torrents.value = Array.isArray(response) ? response : []
+    syncTorrentStreams()
   } catch (err) {
     error.value = err?.message || 'Failed to load torrent information.'
   } finally {
     loading.value = false
   }
+}
+
+function applyTorrentUpdate(update) {
+  const infoHash = update?.infoHash
+  if (!infoHash) {
+    return
+  }
+
+  torrents.value = torrents.value.map((torrent) => {
+    if (torrent.infoHash !== infoHash) {
+      return torrent
+    }
+
+    return {
+      ...torrent,
+      downloadedSize: update.downloadedSize ?? torrent.downloadedSize,
+      uploadSpeed: update.uploadSpeed ?? torrent.uploadSpeed,
+      downloadSpeed: update.downloadSpeed ?? torrent.downloadSpeed,
+      numPeers: update.numPeers ?? torrent.numPeers,
+      importMediaStatus: update.importMediaStatus ?? torrent.importMediaStatus
+    }
+  })
+}
+
+function scheduleStreamReconnect(infoHash, delayMs = 1000) {
+  if (!infoHash || streamRetryTimers.value[infoHash]) {
+    return
+  }
+
+  const timeoutId = setTimeout(() => {
+    const { [infoHash]: timerToClear, ...remainingTimers } = streamRetryTimers.value
+    clearTimeout(timerToClear)
+    streamRetryTimers.value = remainingTimers
+
+    const stillExists = torrents.value.some((torrent) => torrent.infoHash === infoHash)
+    if (stillExists) {
+      openTorrentStream(infoHash)
+    }
+  }, delayMs)
+
+  streamRetryTimers.value = {
+    ...streamRetryTimers.value,
+    [infoHash]: timeoutId
+  }
+}
+
+function closeTorrentStream(infoHash) {
+  const controller = streamControllers.value[infoHash]
+  if (controller) {
+    controller.abort()
+    const { [infoHash]: controllerToClear, ...remainingControllers } = streamControllers.value
+    controllerToClear.abort()
+    streamControllers.value = remainingControllers
+  }
+
+  const timer = streamRetryTimers.value[infoHash]
+  if (timer) {
+    clearTimeout(timer)
+    const { [infoHash]: timerToClear, ...remainingTimers } = streamRetryTimers.value
+    clearTimeout(timerToClear)
+    streamRetryTimers.value = remainingTimers
+  }
+}
+
+function closeAllTorrentStreams() {
+  Object.keys(streamControllers.value).forEach((infoHash) => {
+    closeTorrentStream(infoHash)
+  })
+  Object.keys(streamRetryTimers.value).forEach((infoHash) => {
+    closeTorrentStream(infoHash)
+  })
+}
+
+function openTorrentStream(infoHash) {
+  if (!infoHash || streamControllers.value[infoHash]) {
+    return
+  }
+
+  const controller = new AbortController()
+  streamControllers.value = {
+    ...streamControllers.value,
+    [infoHash]: controller
+  }
+
+  streamTorrentInfo(infoHash, {
+    signal: controller.signal,
+    onUpdate: (update) => {
+      applyTorrentUpdate(update)
+    },
+    onDone: () => {
+      if (controller.signal.aborted) {
+        return
+      }
+
+      const { [infoHash]: closedController, ...remainingControllers } = streamControllers.value
+      if (closedController === controller) {
+        streamControllers.value = remainingControllers
+      }
+      scheduleStreamReconnect(infoHash)
+    },
+    onError: () => {
+      if (controller.signal.aborted) {
+        return
+      }
+
+      scheduleStreamReconnect(infoHash)
+    }
+  }).catch((err) => {
+    if (controller.signal.aborted) {
+      return
+    }
+
+    const { [infoHash]: failedController, ...remainingControllers } = streamControllers.value
+    if (failedController === controller) {
+      streamControllers.value = remainingControllers
+    }
+
+    error.value = err?.message || `Failed to open torrent stream for ${infoHash}.`
+    scheduleStreamReconnect(infoHash, 2000)
+  })
+}
+
+function syncTorrentStreams() {
+  const infoHashes = new Set(
+    torrents.value
+      .map((torrent) => torrent?.infoHash)
+      .filter((infoHash) => Boolean(infoHash))
+  )
+
+  Object.keys(streamControllers.value).forEach((infoHash) => {
+    if (!infoHashes.has(infoHash)) {
+      closeTorrentStream(infoHash)
+    }
+  })
+
+  Object.keys(streamRetryTimers.value).forEach((infoHash) => {
+    if (!infoHashes.has(infoHash)) {
+      closeTorrentStream(infoHash)
+    }
+  })
+
+  infoHashes.forEach((infoHash) => {
+    openTorrentStream(infoHash)
+  })
 }
 
 function setInFlight(infoHash, value) {
@@ -110,6 +270,10 @@ function remove(infoHash) {
 onMounted(() => {
   loadTorrentInfo()
 })
+
+onBeforeUnmount(() => {
+  closeAllTorrentStreams()
+})
 </script>
 
 <template>
@@ -152,6 +316,7 @@ onMounted(() => {
             <p><strong>Download:</strong> {{ formatSpeed(torrent.downloadSpeed) }}</p>
             <p><strong>Upload:</strong> {{ formatSpeed(torrent.uploadSpeed) }}</p>
             <p><strong>Peers:</strong> {{ torrent.numPeers }}</p>
+            <p><strong>Import Status:</strong> {{ formatImportMediaStatus(torrent.importMediaStatus) }}</p>
           </div>
 
           <div class="torrent-actions">

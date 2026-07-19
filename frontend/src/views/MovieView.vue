@@ -52,6 +52,40 @@
               </option>
             </select>
           </div>
+          <div v-if="mediaInfo" class="media-info-panel">
+            <div class="progress-wrap media-progress-wrap">
+              <div class="progress-track">
+                <div class="progress-fill" :style="{ width: `${mediaDownloadPercent}%` }"></div>
+              </div>
+              <strong>{{ mediaDownloadPercent.toFixed(1) }}%</strong>
+            </div>
+            <div class="detail-grid">
+              <div class="detail-row">
+                <strong>Stream mediaItemId:</strong>
+                <span>{{ displayValue(mediaInfo.mediaItemId) }}</span>
+              </div>
+              <div class="detail-row">
+                <strong>File size:</strong>
+                <span>{{ formatBytes(mediaInfo.fileSize) }}</span>
+              </div>
+              <div class="detail-row">
+                <strong>Bytes downloaded:</strong>
+                <span>{{ formatBytes(mediaInfo.bytesDownloaded) }}</span>
+              </div>
+              <div class="detail-row">
+                <strong>Delta bytes downloaded:</strong>
+                <span>{{ formatSpeed(mediaInfo.deltaBytesDownloaded) }}</span>
+              </div>
+              <div class="detail-row">
+                <strong>Required download rate:</strong>
+                <span>{{ formatSpeed(mediaInfo.requiredDownloadRate) }}</span>
+              </div>
+              <div class="detail-row">
+                <strong>Import media status:</strong>
+                <span>{{ formatImportMediaStatus(mediaInfo.importMediaStatus) }}</span>
+              </div>
+            </div>
+          </div>
           <div class="detail-grid">
             <div v-for="entry in activeMovieDetails" :key="entry.label" class="detail-row">
               <strong>{{ entry.label }}:</strong>
@@ -69,10 +103,10 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MediaCard from '../components/MediaCard.vue'
-import { API_GATEWAY, searchCatalogMovies, streamCaptionsUrl, streamManifest } from '../api'
+import { API_GATEWAY, searchCatalogMovies, streamCaptionsUrl, streamManifest, streamMediaItemInfo } from '../api'
 
 const route = useRoute()
 const router = useRouter()
@@ -84,6 +118,8 @@ const activeMedia = ref(null)
 const selectedCaption = ref('off')
 const error = ref('')
 const player = ref(null)
+const mediaInfo = ref(null)
+const mediaInfoStreamController = ref(null)
 
 function displayValue(value) {
   if (value === null || value === undefined || String(value).trim() === '') {
@@ -158,6 +194,90 @@ function formatRating(value) {
   return parsed.toFixed(1)
 }
 
+function formatBytes(bytes) {
+  const value = Number(bytes)
+  if (!Number.isFinite(value) || value < 0) {
+    return 'N/A'
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let size = value
+  let unitIndex = 0
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex += 1
+  }
+
+  return `${size.toFixed(size >= 100 ? 0 : 1)} ${units[unitIndex]}`
+}
+
+function formatSpeed(bytesPerSecond) {
+  const value = Number(bytesPerSecond)
+  if (!Number.isFinite(value) || value < 0) {
+    return 'N/A'
+  }
+  return `${formatBytes(value)}/s`
+}
+
+function formatImportMediaStatus(value) {
+  if (!value) {
+    return 'N/A'
+  }
+
+  return String(value)
+    .split('_')
+    .filter(Boolean)
+    .map((token) => token.charAt(0) + token.slice(1).toLowerCase())
+    .join(' ')
+}
+
+const mediaDownloadPercent = computed(() => {
+  const total = Number(mediaInfo.value?.fileSize)
+  const downloaded = Number(mediaInfo.value?.bytesDownloaded)
+
+  if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(downloaded) || downloaded < 0) {
+    return 0
+  }
+
+  return Math.max(0, Math.min(100, (downloaded / total) * 100))
+})
+
+function closeMediaInfoStream() {
+  const controller = mediaInfoStreamController.value
+  if (!controller) {
+    return
+  }
+
+  controller.abort()
+  mediaInfoStreamController.value = null
+}
+
+function openMediaInfoStream(mediaItemId) {
+  if (!mediaItemId) {
+    mediaInfo.value = null
+    return
+  }
+
+  closeMediaInfoStream()
+  const controller = new AbortController()
+  mediaInfoStreamController.value = controller
+
+  streamMediaItemInfo(mediaItemId, {
+    signal: controller.signal,
+    onUpdate: (update) => {
+      mediaInfo.value = update
+    }
+  }).catch((err) => {
+    if (controller.signal.aborted) {
+      return
+    }
+
+    mediaInfoStreamController.value = null
+    error.value = err?.message || 'Failed to open media info stream.'
+  })
+}
+
 function resolveMediaUrl(value) {
   if (!value) return ''
   if (/^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:')) {
@@ -170,16 +290,21 @@ async function startPlayback(item) {
   activeMedia.value = item
   selectedCaption.value = 'off'
   error.value = ''
+  mediaInfo.value = null
+
+  const mediaItemId = item?.mediaId || item?.id
+  openMediaInfoStream(mediaItemId)
 
   try {
-    manifest.value = await streamManifest(item.mediaId || item.id, item.streamUrl)
+    manifest.value = await streamManifest(mediaItemId, item.streamUrl)
     tracks.value = (manifest.value?.captions || []).map((track) => ({
       ...track,
-      url: streamCaptionsUrl(item.mediaId || item.id, track.language)
+      url: streamCaptionsUrl(mediaItemId, track.language)
     }))
     await nextTick()
     applyCaptionTrack()
   } catch (err) {
+    closeMediaInfoStream()
     error.value = err.message || 'Failed to start playback.'
   }
 }
@@ -228,5 +353,9 @@ async function loadMovie() {
 
 onMounted(() => {
   loadMovie()
+})
+
+onBeforeUnmount(() => {
+  closeMediaInfoStream()
 })
 </script>
