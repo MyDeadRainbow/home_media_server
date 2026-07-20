@@ -12,15 +12,16 @@ import com.hms.shared.media.Series;
 import com.hms.shared.media.metadata.MetaData;
 import com.hms.shared.media.metadata.MetaDataStatus;
 import com.hms.shared.media.poster.Poster;
+import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 
 public class SeriesParser {
 
     private final Pattern seriesPattern = Pattern
             .compile("^(?<seriesName>.+)\\.S(?<seasonNumber>\\d+)E(?<episodeNumber>\\d+)\\.(?<episodeName>.+)\\..+$");
 
-    private List<ParseEntry> filePaths;
+    private List<FilePathRecord> filePaths;
 
-    protected SeriesParser(List<ParseEntry> filePaths) {
+    protected SeriesParser(List<FilePathRecord> filePaths) {
         this.filePaths = filePaths;
     }
 
@@ -31,7 +32,7 @@ public class SeriesParser {
 
         SQLiteMap<Series> seriesMap = new SQLiteMap<>(new Series.Dao());
 
-        for (ParseEntry entry : filePaths) {
+        for (FilePathRecord entry : filePaths) {
             String string = entry.filePath();
             seriesPattern.matcher(string).results().forEach(result -> {
                 String seriesName = result.group("seriesName").replaceAll("\\.", " ");
@@ -92,17 +93,17 @@ public class SeriesParser {
     }
 
     public static class Builder {
-        private List<ParseEntry> filePaths = new ArrayList<>();
+        private List<FilePathRecord> filePaths = new ArrayList<>();
 
         private Builder() {
         }
 
-        public Builder addFilePath(ParseEntry filePath) {
+        public Builder addFilePath(FilePathRecord filePath) {
             filePaths.add(filePath);
             return this;
         }
 
-        public Builder addFilePaths(List<ParseEntry> filePaths) {
+        public Builder addFilePaths(List<FilePathRecord> filePaths) {
             this.filePaths.addAll(filePaths);
             return this;
         }

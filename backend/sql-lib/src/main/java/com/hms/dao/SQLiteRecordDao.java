@@ -133,6 +133,8 @@ public abstract class SQLiteRecordDao<T extends SQLiteRecord> {
         } catch (DBFileNotFoundException | GetConnectionException e) {
             throw new SQLException("Failed to get database connection", e);
         }
+
+        
     }
 
     public void delete(T record) throws SQLException {

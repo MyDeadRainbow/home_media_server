@@ -1,5 +1,5 @@
 package com.hms.catalog.media;
-
+import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 import com.hms.shared.media.MediaItem;
 import com.hms.shared.media.Movie;
 import com.hms.shared.media.metadata.MetaData;
@@ -7,9 +7,9 @@ import com.hms.shared.media.metadata.MetaDataStatus;
 import com.hms.shared.media.poster.Poster;
 
 public class MovieParser {
-    private ParseEntry filePath;
+    private FilePathRecord filePath;
 
-    public MovieParser(ParseEntry filePath) {
+    public MovieParser(FilePathRecord filePath) {
         this.filePath = filePath;
     }
 

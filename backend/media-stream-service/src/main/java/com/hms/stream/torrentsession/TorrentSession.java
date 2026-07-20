@@ -1,7 +1,7 @@
 package com.hms.stream.torrentsession;
 
+import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -31,18 +33,14 @@ import com.frostwire.jlibtorrent.SessionManager;
 import com.frostwire.jlibtorrent.Sha1Hash;
 import com.frostwire.jlibtorrent.TorrentHandle;
 import com.frostwire.jlibtorrent.TorrentInfo;
+import com.frostwire.jlibtorrent.TorrentStatus;
 import com.frostwire.jlibtorrent.alerts.Alert;
-import com.frostwire.jlibtorrent.alerts.AlertsDroppedAlert;
-import com.frostwire.jlibtorrent.alerts.DhtErrorAlert;
 import com.frostwire.jlibtorrent.alerts.FileErrorAlert;
 import com.frostwire.jlibtorrent.alerts.FileRenameFailedAlert;
 import com.frostwire.jlibtorrent.alerts.HashFailedAlert;
 import com.frostwire.jlibtorrent.alerts.ListenFailedAlert;
-import com.frostwire.jlibtorrent.alerts.LsdErrorAlert;
-import com.frostwire.jlibtorrent.alerts.LsdPeerAlert;
 import com.frostwire.jlibtorrent.alerts.MetadataFailedAlert;
 import com.frostwire.jlibtorrent.alerts.PieceFinishedAlert;
-import com.frostwire.jlibtorrent.alerts.PortmapErrorAlert;
 import com.frostwire.jlibtorrent.alerts.SaveResumeDataFailedAlert;
 import com.frostwire.jlibtorrent.alerts.ScrapeFailedAlert;
 import com.frostwire.jlibtorrent.alerts.SessionErrorAlert;
@@ -51,11 +49,16 @@ import com.frostwire.jlibtorrent.alerts.TorrentAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentDeleteFailedAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentErrorAlert;
 import com.frostwire.jlibtorrent.alerts.TorrentFinishedAlert;
-import com.frostwire.jlibtorrent.alerts.TrackerErrorAlert;
 import com.frostwire.jlibtorrent.alerts.UdpErrorAlert;
 import com.frostwire.jlibtorrent.swig.error_code;
+import com.hms.stream.torrentinfo.MediaItemInfoUpdate;
 import com.hms.stream.torrentsession.exception.AddTorrentException;
 import com.hms.stream.torrentsession.exception.TorrentException;
+
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Observable;
+import ws.schild.jave.MultimediaObject;
+import ws.schild.jave.info.MultimediaInfo;
 
 public class TorrentSession implements AutoCloseable {
     private static final TorrentSession INSTANCE = new TorrentSession();
@@ -69,18 +72,22 @@ public class TorrentSession implements AutoCloseable {
     private SessionHandle sessionHandle;
     private AtomicInteger sessionCount = new AtomicInteger(0);
 
-    private final HashMap<Sha1Hash, TorrentHandle> torrentHandles = new
-    HashMap<>();
+    private final HashMap<Sha1Hash, TorrentHandle> torrentHandles = new HashMap<>();
     // private final InfoHashMap torrentHandles;
 
     private final DelegatingAlertListener delegatingAlertListener = new DelegatingAlertListener(
             List.of(
-                    // AlertHandler.of(AlertsDroppedAlert.class, alert -> LOG.warn("Alerts dropped: {}", alert.message())),
-                    // AlertHandler.of(DhtErrorAlert.class, alert -> LOG.warn("DHT error: {} | Operation: {}", alert.message(), alert.operation())),
+                    // AlertHandler.of(AlertsDroppedAlert.class, alert -> LOG.warn("Alerts dropped:
+                    // {}", alert.message())),
+                    // AlertHandler.of(DhtErrorAlert.class, alert -> LOG.warn("DHT error: {} |
+                    // Operation: {}", alert.message(), alert.operation())),
                     AlertHandler.of(ListenFailedAlert.class, alert -> LOG.warn("Listen failed: {}", alert.message())),
-                    // AlertHandler.of(LsdPeerAlert.class, alert -> LOG.info("LSD peer: {}", alert.message())),
-                    // AlertHandler.of(LsdErrorAlert.class, alert -> LOG.warn("LSD error: {}", alert.message())),
-                    // AlertHandler.of(PortmapErrorAlert.class, alert -> LOG.warn("Portmap error: {}", alert.message())),
+                    // AlertHandler.of(LsdPeerAlert.class, alert -> LOG.info("LSD peer: {}",
+                    // alert.message())),
+                    // AlertHandler.of(LsdErrorAlert.class, alert -> LOG.warn("LSD error: {}",
+                    // alert.message())),
+                    // AlertHandler.of(PortmapErrorAlert.class, alert -> LOG.warn("Portmap error:
+                    // {}", alert.message())),
                     AlertHandler.of(SessionErrorAlert.class, alert -> LOG.warn("Session error: {}", alert.message())),
                     AlertHandler.of(UdpErrorAlert.class, alert -> LOG.warn("UDP error: {}", alert.message()))));
 
@@ -175,10 +182,12 @@ public class TorrentSession implements AutoCloseable {
                     alert -> LOG.warn("Torrent delete failed: {}", alert.message())),
             TorrentAlertHandler.of(TorrentErrorAlert.class, alert -> LOG.warn("Torrent error: {}", alert.message())),
             TorrentAlertHandler.of(ScrapeFailedAlert.class, alert -> LOG.warn("Scrape failed: {}", alert.message())),
-            // TorrentAlertHandler.of(TrackerErrorAlert.class, alert -> LOG.warn("Tracker error: {}", alert.message())),
+            // TorrentAlertHandler.of(TrackerErrorAlert.class, alert -> LOG.warn("Tracker
+            // error: {}", alert.message())),
             new PieceDeadlineUpdater());
 
-    public CompletableFuture<TorrentHandle> addTorrent(AddTorrentParams params, Consumer<TorrentHandle> onHandleInvalid, TorrentAlertHandler<?>... alertHandlers)
+    public CompletableFuture<TorrentHandle> addTorrent(AddTorrentParams params, Consumer<TorrentHandle> onHandleInvalid,
+            TorrentAlertHandler<?>... alertHandlers)
             throws TorrentException {
         CountDownLatch signal = new CountDownLatch(1);
         TorrentAlertListener listener = new TorrentAlertListener(params.infoHash(),

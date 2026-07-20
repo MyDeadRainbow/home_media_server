@@ -32,7 +32,7 @@ public class MetadataController {
     }
 
     @PostMapping("/update/{metaDataId}")
-    public ResponseEntity<MetaData> postMethodName(@PathVariable String metaDataId,
+    public ResponseEntity<MetaData> updateMetaData(@PathVariable String metaDataId,
             @RequestBody MetaData entity) {
         try {
             MetaData oldMetaData = new MetaData.Dao().get(metaDataId);
@@ -48,94 +48,6 @@ public class MetadataController {
                     .withTitle(entity.title());
             new MetaData.Dao().update(updatedMetaData);
 
-            taskExecutor.submit(metaDataId, () -> {
-                // Custom task logic here
-                try {
-                    // attempt to merge series metadata if applicable
-                    Series series = new Series.Dao().select(Map.of("metaDataId", metaDataId)).stream().findFirst()
-                            .orElse(null);
-                    if (series != null) {
-                        List<Season> seasons = series.seasons();
-
-                        List<Series> otherSeries = new MetaData.Dao().select(Map.of("title", series.title()))
-                                .stream()
-                                .filter(md -> {
-                                    try {
-                                        return md.metaDataId() != metaDataId && new Series.Dao()
-                                                .select(Map.of("metaDataId", md.metaDataId())).stream().findFirst()
-                                                .orElse(null) != null;
-                                    } catch (SQLException e) {
-                                        e.printStackTrace();
-                                        return false;
-                                    }
-                                })
-                                .map(md -> {
-                                    try {
-                                        return new Series.Dao().select(Map.of("metaDataId", md.metaDataId())).stream()
-                                                .findFirst().orElse(null);
-                                    } catch (SQLException e) {
-                                        e.printStackTrace();
-                                        return null;
-                                    }
-                                })
-                                .filter(s -> s != null)
-                                .toList();
-
-                        for (Series s : otherSeries) {
-                            List<Season> otherSeasons = s.seasons();
-                            // List<Season> seasonsToMerge = seasons.stream()
-                            // .filter(season -> otherSeasons.stream()
-                            // .anyMatch(otherSeason -> otherSeason.seasonNumber() ==
-                            // season.seasonNumber()))
-                            // .toList();
-
-                            // Merge logic for like seasons
-                            for (Season season : seasons) {
-                                // Merge logic for each season
-                                Season otherSeason = otherSeasons.stream()
-                                        .filter(os -> os.seasonNumber() == season.seasonNumber())
-                                        .findFirst()
-                                        .orElse(null);
-                                if (otherSeason != null) {
-                                    // Merge episodes from both seasons
-                                    List<Episode> otherEpisodes = otherSeason.episodes();
-                                    for (Episode otherEpisode : otherEpisodes) {
-                                        otherEpisode = otherEpisode
-                                                .withSeasonId(season.seasonId())
-                                                .withSeriesId(series.seriesId());
-                                        new Episode.Dao().update(otherEpisode);
-                                    }
-                                    new Season.Dao().delete(otherSeason);
-                                }
-                            }
-
-                            // Merge logic for seasons that don't exist in the current series
-                            List<Season> otherSeasonsToMerge = otherSeasons.stream()
-                                    .filter(otherSeason -> seasons.stream()
-                                            .noneMatch(season -> season.seasonNumber() == otherSeason.seasonNumber()))
-                                    .toList();
-                            for (Season otherSeason : otherSeasonsToMerge) {
-                                List<Episode> otherEpisodes = otherSeason.episodes();
-                                for (Episode otherEpisode : otherEpisodes) {
-                                    otherEpisode = otherEpisode
-                                            .withSeriesId(series.seriesId());
-                                    new Episode.Dao().update(otherEpisode);
-                                }
-                                otherSeason = otherSeason
-                                        .withSeriesId(series.seriesId());
-                                new Season.Dao().update(otherSeason);
-
-                            }
-
-                            s = new Series.Dao().get(s.seriesId());
-                            new Series.Dao().delete(s);
-                        }
-                    }
-                } catch (SQLException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            });
 
             return ResponseEntity.ok(updatedMetaData);
         } catch (SQLException e) {

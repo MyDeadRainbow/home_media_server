@@ -77,7 +77,7 @@ public record Series(String seriesId, MetaData metaData, Poster poster,
         updatedSeasons.add(newSeason);
         return new Series(this.seriesId, this.metaData, this.poster, updatedSeasons);
     }
-    
+
     public Series withPoster(Poster newPoster) {
         return new Series(this.seriesId, this.metaData, newPoster, this.seasons);
     }
@@ -139,6 +139,106 @@ public record Series(String seriesId, MetaData metaData, Poster poster,
             }
         }
 
+        public void merge(Series series) throws SQLException {
+
+            try {
+                // attempt to merge series and children
+                if (series != null) {
+                    
+                    List<Series> otherSeries = new MetaData.Dao().select(Map.of("title", series.title()))
+                    .stream()
+                    .filter(md -> {
+                        try {
+                            return !md.metaDataId().equals(series.metaData().metaDataId()) && new Series.Dao()
+                            .select(Map.of("metaDataId", md.metaDataId())).stream().findFirst()
+                            .orElse(null) != null;
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            return false;
+                        }
+                    })
+                    .map(md -> {
+                        try {
+                            return new Series.Dao().select(Map.of("metaDataId", md.metaDataId())).stream()
+                            .findFirst().orElse(null);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    })
+                    .filter(s -> s != null)
+                    .toList();
+                    
+                    List<Season> seasons = series.seasons();
+                    for (Series other : otherSeries) {
+                        List<Season> otherSeasons = other.seasons();
+
+                        // Merge logic for like seasons
+                        for (Season season : seasons) {
+                            // Merge logic for each season
+                            Season otherSeason = otherSeasons.stream()
+                                    .filter(os -> os.seasonNumber() == season.seasonNumber())
+                                    .findFirst()
+                                    .orElse(null);
+                            if (otherSeason != null) {
+                                // Merge episodes from both seasons
+                                List<Episode> otherEpisodes = otherSeason.episodes();
+                                for (Episode otherEpisode : otherEpisodes) {
+                                    otherEpisode = otherEpisode
+                                            .withSeasonId(season.seasonId())
+                                            .withSeriesId(series.seriesId());
+                                    new Episode.Dao().update(otherEpisode);
+                                }
+                                otherSeason = new Season.Dao().get(otherSeason.seasonId());
+                                new Season.Dao().delete(otherSeason);
+                            }
+                        }
+
+                        // Merge logic for seasons that don't exist in the current series
+                        // for (Season season : seasons) {
+                        //     Season otherSeason = otherSeasons.stream()
+                        //             .filter(os -> os.seasonNumber() == season.seasonNumber())
+                        //             .findFirst()
+                        //             .orElse(null);
+                        //     if (otherSeason != null) {
+                        //         // Merge episodes from both seasons
+                        //         List<Episode> otherEpisodes = otherSeason.episodes();
+                        //         for (Episode otherEpisode : otherEpisodes) {
+                        //             otherEpisode = otherEpisode
+                        //                     .withSeasonId(season.seasonId())
+                        //                     .withSeriesId(series.seriesId());
+                        //             new Episode.Dao().update(otherEpisode);
+                        //         }
+                        //         new Season.Dao().delete(otherSeason);
+                        //     }
+                        // }
+                        List<Season> otherSeasonsToMerge = otherSeasons.stream()
+                                .filter(otherSeason -> seasons.stream()
+                                        .noneMatch(season -> season.seasonNumber() == otherSeason.seasonNumber()))
+                                .toList();
+                        for (Season otherSeason : otherSeasonsToMerge) {
+                            List<Episode> otherEpisodes = otherSeason.episodes();
+                            for (Episode otherEpisode : otherEpisodes) {
+                                otherEpisode = otherEpisode
+                                        .withSeriesId(series.seriesId());
+                                new Episode.Dao().update(otherEpisode);
+                            }
+                            otherSeason = new Season.Dao().get(otherSeason.seasonId())
+                                    .withSeriesId(series.seriesId());
+                            new Season.Dao().update(otherSeason);
+
+                        }
+
+                        // other = new Series.Dao().get(other.seriesId());
+                        // new Series.Dao().delete(other);
+                    }
+                }
+            } catch (SQLException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+
         @Override
         public PreparedStatementValue toDeleteStatement(Series record) {
             return new PreparedStatementValue(
@@ -173,7 +273,7 @@ public record Series(String seriesId, MetaData metaData, Poster poster,
 
         @Override
         public Series mapResultSetToRecord(ResultSet rs) throws SQLException {
-            String seriesId = rs.getString("seriesId");            
+            String seriesId = rs.getString("seriesId");
             String metaDataId = rs.getString("metaDataId");
             String posterId = rs.getString("posterId");
             MetaData metaData = new MetaData.Dao().get(metaDataId);

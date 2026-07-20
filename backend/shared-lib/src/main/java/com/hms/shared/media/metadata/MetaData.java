@@ -3,6 +3,7 @@ package com.hms.shared.media.metadata;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -10,6 +11,9 @@ import com.google.common.base.Preconditions;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
+import com.hms.shared.media.Episode;
+import com.hms.shared.media.Season;
+import com.hms.shared.media.Series;
 import com.hms.shared.media.Title;
 import com.hms.shared.messaging.JsonSerializable;
 
@@ -99,6 +103,17 @@ public record MetaData(String metaDataId, String title, String plotSummary, Loca
                     "INSERT INTO metadata (metaDataId, title, plotSummary, airDate, rating, status, message) VALUES (?, ?, ?, ?, ?, ?, ?);",
                     new Object[] { record.metaDataId(), record.title(), record.plotSummary(), record.airDate(),
                             record.rating(), record.status(), record.message() });
+        }
+
+        @Override
+        public void update(MetaData record) throws SQLException {
+            super.update(record);
+
+            Series series = new Series.Dao().select(Map.of("metaDataId", record.metaDataId())).stream().findFirst()
+                    .orElse(null);
+            if (series != null) {                
+                new Series.Dao().merge(series);
+            }
         }
 
         @Override

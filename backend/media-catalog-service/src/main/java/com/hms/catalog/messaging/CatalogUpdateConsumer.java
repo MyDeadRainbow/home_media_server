@@ -59,7 +59,7 @@ public class CatalogUpdateConsumer {
 
     private void handleSeriesCreated(CatalogUpdate message) {
         List<Series> seriesList = SeriesParser.builder()
-                .addFilePaths(message.filePaths().stream().map(r -> new ParseEntry(r.mediaId(), r.filePath())).toList())
+                .addFilePaths(message.filePaths())
                 .build()
                 .parse();
         try {
@@ -85,7 +85,7 @@ public class CatalogUpdateConsumer {
 
     private void handleMovieCreated(CatalogUpdate message) {
         FilePathRecord filePathRecord = message.filePaths().get(0);
-        Movie movie = new MovieParser(new ParseEntry(filePathRecord.mediaId(), filePathRecord.filePath())).parse();
+        Movie movie = new MovieParser(filePathRecord).parse();
         try {
             new Movie.Dao().insert(movie);
             // MediaDbApiFactory.createTMDBApi().searchMovie(movie)

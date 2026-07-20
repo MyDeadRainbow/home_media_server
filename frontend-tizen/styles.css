@@ -1,0 +1,508 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #38373d;
+  background: #f4f0ea;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.site-shell {
+  min-height: 100vh;
+  background: #f4f0ea;
+}
+
+.navbar {
+  overflow: hidden;
+  padding: 16px 24px;
+  background: #3d3937;
+  color: #ffffff;
+}
+
+.nav-logo {
+  float: left;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.nav-logo a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.nav-links {
+  float: right;
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-links li {
+  display: inline-block;
+  margin-left: 18px;
+}
+
+.nav-links a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.nav-links a:hover,
+.nav-links .active {
+  color: #d0a77b;
+}
+
+.app-root {
+  padding: 24px 0 40px;
+}
+
+.page {
+  width: 94%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.hero {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 42px;
+  line-height: 1.1;
+}
+
+.hero p {
+  margin: 0;
+  font-size: 18px;
+}
+
+.panel {
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 1px solid #d7cec0;
+  border-radius: 14px;
+  background: #fcfbf8;
+  box-shadow: 0 8px 24px rgba(61, 57, 55, 0.06);
+}
+
+.controls-header,
+.library-header,
+.torrent-toolbar,
+.detail-toolbar {
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.controls-header h2,
+.library-header h2,
+.torrent-toolbar h2,
+.detail-toolbar h2,
+.library-subsection h3,
+.search-source-group h3 {
+  margin: 0;
+}
+
+.library-header .secondary-button,
+.torrent-toolbar button,
+.detail-toolbar .secondary-button {
+  float: right;
+}
+
+.library-subsection,
+.search-source-group,
+.player-section,
+.overview-section {
+  margin-top: 18px;
+}
+
+.status,
+.error,
+.muted {
+  margin: 12px 0;
+}
+
+.status {
+  color: #1d6b3a;
+}
+
+.error {
+  color: #a02c2c;
+}
+
+.muted {
+  color: #6c645f;
+}
+
+.search-row,
+.upload-grid,
+.acquisition-actions,
+.acquisition-search-box,
+.caption-controls,
+.torrent-actions,
+.metadata-editor-actions,
+.torrent-shortcuts {
+  overflow: hidden;
+}
+
+.search-row input,
+.acquisition-search-box input {
+  float: left;
+  width: 72%;
+}
+
+.search-row button,
+.acquisition-search-box button {
+  float: right;
+  width: 25%;
+}
+
+.acquisition-actions select {
+  float: left;
+  width: 49%;
+}
+
+.acquisition-actions select + select {
+  float: right;
+}
+
+.upload-grid .field {
+  float: left;
+  width: 48.5%;
+  margin-bottom: 12px;
+}
+
+.upload-grid .field-right {
+  float: right;
+}
+
+.upload-grid .field-wide {
+  width: 100%;
+}
+
+.upload-grid .field-submit {
+  text-align: right;
+}
+
+.search-row:after,
+.upload-grid:after,
+.acquisition-actions:after,
+.acquisition-search-box:after,
+.caption-controls:after,
+.torrent-actions:after,
+.metadata-editor-actions:after,
+.navbar:after,
+.controls-header:after,
+.library-header:after,
+.torrent-toolbar:after,
+.detail-toolbar:after,
+.torrent-shortcuts:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #c8b9a9;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #38373d;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button {
+  padding: 10px 16px;
+  border: 1px solid #bf9d78;
+  border-radius: 10px;
+  background: #bf9d78;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #a98763;
+}
+
+button[disabled] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.secondary-button {
+  background: #ffffff;
+  color: #3d3937;
+}
+
+.secondary-button:hover {
+  background: #f0e7dc;
+}
+
+.danger-button {
+  background: #8d2b2b;
+  border-color: #8d2b2b;
+}
+
+.danger-button:hover {
+  background: #731f1f;
+}
+
+.cards {
+  margin: 0 -8px;
+}
+
+.card-cell {
+  float: left;
+  width: 50%;
+  padding: 8px;
+}
+
+.cards:after,
+.torrent-list:after,
+.season-buttons:after,
+.detail-grid:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.season-buttons button {
+  float: left;
+  margin: 0 10px 10px 0;
+}
+
+.season-active {
+  background: #3d3937;
+  border-color: #3d3937;
+  color: #ffffff;
+}
+
+.media-card {
+  min-height: 100%;
+  overflow: hidden;
+  border: 1px solid #ddd4c7;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.poster-frame {
+  float: left;
+  width: 210px;
+  min-height: 100%;
+  background: #ede6dc;
+}
+
+.poster {
+  display: block;
+  width: 100%;
+  height: 315px;
+  object-fit: cover;
+  background: #d8cfbf;
+}
+
+.media-card-body {
+  margin-left: 210px;
+  padding: 16px;
+}
+
+.meta-row,
+.card-details,
+.player-meta,
+.detail-grid,
+.torrent-grid,
+.search-result-meta {
+  color: #5c5651;
+}
+
+.meta-row span,
+.card-details span,
+.player-meta span,
+.search-result-meta span {
+  display: inline-block;
+  margin: 0 12px 6px 0;
+}
+
+.detail-row,
+.torrent-grid p {
+  float: left;
+  width: 50%;
+  margin: 0 0 10px;
+}
+
+.summary,
+.player-summary,
+.torrent-hash {
+  word-break: break-word;
+}
+
+.metadata-editor label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.metadata-message {
+  margin-top: 10px;
+}
+
+.video-wrap {
+  margin-top: 14px;
+}
+
+video {
+  width: 100%;
+  background: #000000;
+  border-radius: 12px;
+}
+
+.progress-wrap {
+  margin: 12px 0;
+}
+
+.progress-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4ddd4;
+}
+
+.progress-fill {
+  height: 12px;
+  background: #bf9d78;
+}
+
+.search-results-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-result-item {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #ddd4c7;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.search-result-actions button {
+  margin-right: 10px;
+}
+
+.torrent-card {
+  float: left;
+  width: 48.5%;
+  margin: 0 0.75% 16px;
+  padding: 16px;
+  border: 1px solid #ddd4c7;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.queue-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f0e7dc;
+  color: #3d3937;
+}
+
+.torrent-actions button {
+  float: left;
+  margin-right: 10px;
+}
+
+.empty-poster {
+  display: block;
+  width: 100%;
+  height: 315px;
+  padding: 120px 20px 0;
+  text-align: center;
+  color: #6c645f;
+}
+
+.page-note {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #efe5d8;
+  color: #4b4038;
+}
+
+@media screen and (max-width: 900px) {
+  .card-cell,
+  .torrent-card,
+  .detail-row,
+  .torrent-grid p,
+  .upload-grid .field {
+    float: none;
+    width: 100%;
+  }
+
+  .upload-grid .field-right {
+    float: none;
+  }
+
+  .poster-frame {
+    float: none;
+    width: 100%;
+  }
+
+  .poster {
+    height: auto;
+    max-height: 420px;
+  }
+
+  .media-card-body {
+    margin-left: 0;
+  }
+
+  .search-row input,
+  .search-row button,
+  .acquisition-search-box input,
+  .acquisition-search-box button,
+  .acquisition-actions select {
+    float: none;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .nav-logo,
+  .nav-links {
+    float: none;
+  }
+
+  .nav-links {
+    margin-top: 12px;
+  }
+
+  .nav-links li {
+    margin: 0 14px 8px 0;
+  }
+}

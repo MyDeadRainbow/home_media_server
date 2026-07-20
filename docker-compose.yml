@@ -92,3 +92,14 @@ services:
       - api-gateway-service
     env_file:
       - .env    
+
+  frontend-tizen:
+    build:
+      context: ./frontend-tizen
+    image: hms/frontend-tizen:0.1.0
+    ports:
+      - "${FRONTEND_TIZEN_PORT-5180}:${DOCKER_FRONTEND_TIZEN_PORT-80}"
+    depends_on:
+      - api-gateway-service
+    env_file:
+      - .env

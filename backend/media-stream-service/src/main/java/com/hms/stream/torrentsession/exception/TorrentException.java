@@ -1,6 +1,6 @@
 package com.hms.stream.torrentsession.exception;
 
-public abstract class TorrentException extends Exception {
+public class TorrentException extends Exception {
     public TorrentException(String message) {
         super(message);
     }
