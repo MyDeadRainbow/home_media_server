@@ -2,6 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "java",
+            "name": "FrontendApplication",
+            "request": "launch",
+            "mainClass": "com.hms.FrontendApplication",
+            "projectName": "frontend-spring"
+        },
+        {
             "type": "dockerfile",
             "request": "launch",
             "name": "Docker: Build",
@@ -78,6 +85,13 @@
             "request": "attach",
             "hostName": "localhost",
             "port": 5007
+        },
+        {
+            "type": "java",
+            "name": "Attach Frontend (Docker)",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5008
         }
     ],
     "compounds": [

@@ -1,0 +1,44 @@
+<html lang="en">
+
+<head-component src="components/standard_head.html"></head-component>
+
+<body data-page="search">
+    <div class="site-shell">
+        <component src="components/navbar.html"></component>
+        <div id="app" class="app-root">
+            <div class="page search-page">
+                <header class="hero">
+                    <h1>Search Torrents</h1>
+                    <p>Search torrent sources and send import requests to the stream service.</p>
+                </header>
+                <section class="panel controls">
+                    <div class="controls-header">
+                        <h2>Search Torrents</h2>
+                    </div>
+                    <div class="acquisition-search">
+                        <div class="acquisition-actions"><select id="search-category">
+                                <option value="MOVIE" selected="selected">Movies</option>
+                                <option value="SERIES">Series</option>
+                            </select><select id="search-sort">
+                                <option value="seeders" selected="selected">Sort by Seeders</option>
+                                <option value="size">Sort by Size</option>
+                            </select></div>
+                        <form id="acquisition-search-form" class="acquisition-search-box"><input id="search-query"
+                                type="text" value="" placeholder="Search torrent sources"
+                                aria-label="Search torrent sources"><button type="submit">Search Sources</button></form>
+                    </div>
+                </section>
+                <section class="panel search-results-panel">
+                    <h2>Search Results</h2>
+                    <p class="muted">Click Search Sources to run a search.</p>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+
+</body>
+
+</html>

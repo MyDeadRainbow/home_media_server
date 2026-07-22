@@ -1,0 +1,36 @@
+<html>
+
+<head-component src="components/standard_head.html"></head-component>
+
+<body>
+    <component src="components/navbar.html"></component>
+    <div class="page">
+        <header class="hero">
+            <h1>Library</h1>
+        </header>
+        <section class="panel library">
+            <!-- <div class="library-header">
+                <h2>Media Library</h2>
+            </div> -->
+            <div class="library-subsection">
+                <h3>Search Library</h3>
+                <form id="library-search-form" class="search-row" action="library" method="get">
+                    <input id="library-query" name="query" type="text" value="" placeholder="Search media library">
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+            <section class="library-subsection" id="series-list">
+                <h3>Series</h3>
+                <p class="muted">No series found.</p>
+                <div class="cards"></div>
+            </section>
+            <section class="library-subsection" id="movies-list">
+                <h3>Movies</h3>
+                <p class="muted">No movies found.</p>
+                <div class="cards"></div>
+            </section>
+        </section>
+    </div>
+</body>
+
+</html>

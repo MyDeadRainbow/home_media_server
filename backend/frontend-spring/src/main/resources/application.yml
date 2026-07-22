@@ -1,0 +1,2 @@
+server:
+    port: ${FRONTEND_SPRING_PORT:8085}

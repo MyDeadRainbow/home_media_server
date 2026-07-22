@@ -9,6 +9,7 @@ COPY api-gateway-service/pom.xml api-gateway-service/pom.xml
 COPY media-catalog-service/pom.xml media-catalog-service/pom.xml
 COPY media-acquisition-service/pom.xml media-acquisition-service/pom.xml
 COPY media-stream-service/pom.xml media-stream-service/pom.xml
+COPY frontend-spring/pom.xml frontend-spring/pom.xml
 
 # Download dependencies before copying sources.
 RUN mvn -B -pl media-acquisition-service -am dependency:go-offline
@@ -16,6 +17,7 @@ RUN mvn -B -pl media-acquisition-service -am dependency:go-offline
 COPY sql-lib/src sql-lib/src
 COPY shared-lib/src shared-lib/src
 COPY media-acquisition-service/src media-acquisition-service/src
+COPY frontend-spring/src frontend-spring/src
 RUN mvn -B -pl media-acquisition-service -am clean package
 
 # FROM openjdk:25-rc AS extractor

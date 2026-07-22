@@ -19,6 +19,7 @@
         <module>media-catalog-service</module>
         <module>media-acquisition-service</module>
         <module>media-stream-service</module>
+        <module>frontend-spring</module>
     </modules>
 
     <properties>

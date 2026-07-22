@@ -1,0 +1,42 @@
+<html>
+
+<head-component src="components/standard_head.html"></head-component>
+
+<body>
+    <component src="navbar.html"></component>
+    <div class="page">
+        <header class="hero">
+            <h1>Upload</h1>
+        </header>
+        <section class="panel library">
+            <div class="library-subsection">
+                <h3>Upload to Library</h3>
+                <form id="upload-form" class="upload-grid">
+                    <div class="field">
+                        <input id="upload-title" type="text" value="" placeholder="Upload title">
+                    </div>
+                    <div class="field field-right">
+                        <select id="upload-type">
+                            <option value="movie" selected="selected">Movie</option>
+                            <option value="series">Series</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <input id="upload-year" type="number" value="2026" placeholder="Year">
+                    </div>
+                    <div class="field field-right">
+                        <input id="upload-file" type="file" accept="video/*">
+                    </div>
+                    <div class="field field-wide">
+                        <textarea id="upload-description" placeholder="Description"></textarea>
+                    </div>
+                    <div class="field field-wide field-submit">
+                        <button type="submit">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</body>
+
+</html>

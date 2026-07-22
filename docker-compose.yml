@@ -103,3 +103,15 @@ services:
       - api-gateway-service
     env_file:
       - .env
+
+  frontend-spring:
+    build:
+      context: ./backend
+      dockerfile: frontend-spring/Dockerfile
+    image: hms/frontend-spring:0.1.0
+    ports:
+      - "${FRONTEND_SPRING_PORT-8085}:${DOCKER_FRONTEND_SPRING_PORT-8085}"
+    depends_on:
+      - api-gateway-service
+    env_file:
+      - .env
