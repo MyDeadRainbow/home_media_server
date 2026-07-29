@@ -76,6 +76,15 @@ public class MediaCatalogService {
         return seriesList;
     }
 
+    public Series getSeriesById(String seriesId) {
+        try {
+            return new Series.Dao().get(seriesId);
+        } catch (SQLException e) {
+            LOG.error("Failed to query series by ID from database: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
     public List<Season> getSeason(String seriesId, String query) {
         List<Season> seasonList = new ArrayList<>();
         try {
@@ -133,6 +142,15 @@ public class MediaCatalogService {
             LOG.error("Failed to query movies from database: {}", e.getMessage(), e);
         }
         return movieList;
+    }
+
+    public Movie getMovieById(String id) {
+        try {
+            return new Movie.Dao().get(id);
+        } catch (SQLException e) {
+            LOG.error("Failed to query movie by ID from database: {}", e.getMessage(), e);
+            return null;
+        }
     }
 
     private String normalizeQuery(String query) {

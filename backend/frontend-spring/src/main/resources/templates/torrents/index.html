@@ -3,26 +3,22 @@
 <head-component src="components/standard_head.html"></head-component>
 
 <body data-page="torrents">
-    <div class="site-shell">
-        <component src="components/navbar.html"></component>
-        <div id="app" class="app-root">
-            <div class="page torrents-page">
-                <header class="hero">
-                    <h1>Torrent Queue</h1>
-                    <p>Inspect active torrents and control pause, resume, and delete operations.</p>
-                </header>
-                <section class="panel controls">
-                    <div class="torrent-toolbar">
-                        <h2>TorrentInfoResponse List</h2><button type="button"
-                            data-action="refresh-torrents">Refresh</button>
-                    </div>
-                </section>
+    <component src="components/navbar.html"></component>
+    <div class="page torrents-page">
+        <header class="hero">
+            <h1>Torrent Queue</h1>
+            <p>Inspect active torrents and control pause, resume, and delete operations.</p>
+        </header>
+        <section class="panel controls">
+            <div class="torrent-toolbar">
+                <h2>Torrent List</h2>
+                <button type="button" data-action="refresh-torrents">Refresh</button>
             </div>
-        </div>
+            <ul rid="torrent-list" class="torrent-list">
+                
+            </div>
+        </section>
     </div>
-
-    <script src="config.js"></script>
-    <script src="app.js"></script>
 
 </body>
 

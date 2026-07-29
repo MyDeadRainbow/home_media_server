@@ -46,4 +46,22 @@ public class SeriesService {
         }
         return seriesList;
     }
+
+    public Series getSeriesById(String seriesId) {
+        // Implement the logic to fetch a movie by its ID from the API Gateway
+        // Make sure to include the API key in the request headers for authentication
+        // Return a Series object representing the movie
+        try (HttpClient client = HttpClient.newHttpClient();) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiGatewayUrl + "/api/media/series/" + seriesId))
+                    .GET()
+                    .header("X-API-Key", apiKey)
+                    .build();
+            String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            return JsonSerializable.fromJson(response, Series.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

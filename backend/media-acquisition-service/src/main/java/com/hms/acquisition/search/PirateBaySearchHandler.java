@@ -3,17 +3,20 @@ package com.hms.acquisition.search;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
+import com.hms.shared.json.SearchResponse;
 import com.hms.shared.media.MediaCategory;
 import com.hms.shared.orchestrator.SseEmitterHandler;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
-public class PirateBaySearchHandler implements SseEmitterHandler<SearchRequest> {
+public class PirateBaySearchHandler implements SseEmitterHandler<SearchRequest>, TorrentSearchHandler {
 
     public static void main(String[] args) throws Exception {
         new PirateBaySearchHandler().handle(new SseEmitter(), new SearchRequest("The Flash", MediaCategory.MOVIE));
@@ -86,6 +89,52 @@ public class PirateBaySearchHandler implements SseEmitterHandler<SearchRequest> 
                         return null;
                     }).join();
         }
+    }
+
+    public List<SearchResponse> searchTorrentsJson(SearchRequest data) throws Exception {
+        List<SearchResponse> searchResponses = new ArrayList<>();
+
+        try (HttpClient client = HttpClient.newHttpClient();) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(UrlBuilder.fromString(PIRATE_BAY_API_URL)
+                            .withPath(SEARCH_PATH)
+                            .addParameter(QUERY_PARAM, data.query())
+                            .addParameter(CATEGORY_PARAM,
+                                    data.category() == MediaCategory.MOVIE ? HD_MOVIE_CATEGORY : HD_TV_SHOW_CATEGORY)
+                            .toUri())
+                    .header(REFERER_HEADER, PIRATE_BAY_REFERER)
+                    .header(USER_AGENT_HEADER, USER_AGENT)
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                // Process the response body and extract search results
+                JsonArray results = JsonParser.parseString(response.body()).getAsJsonArray();
+                for (int i = 0; i < results.size(); i++) {
+                    var result = results.get(i).getAsJsonObject();
+                    String seeders = result.get("seeders").getAsString();
+                    if (Integer.parseInt(seeders) < 1) {
+                        continue; // Skip torrents with less than 1 seeder
+                    }
+                    String title = result.get("name").getAsString();
+                    String infoHash = result.get("info_hash").getAsString();
+                    String magnetLink = createMagnetForInfoHash(infoHash, title);
+                    String sourceUrl = PIRATE_BAY_REFERER + "/description.php?id="
+                            + result.get("id").getAsString();
+                    String size = toSize(result.get("size").getAsString());
+                    String leechers = result.get("leechers").getAsString();
+
+                    searchResponses.add(new SearchResponse(title, magnetLink, "Pirate Bay", sourceUrl, size,
+                            seeders, leechers));
+                }
+            } else {
+                System.err.println("Failed to access Pirate Bay. HTTP status: " + response.statusCode());
+            }
+        }
+
+        return searchResponses;
     }
 
     /**
@@ -207,119 +256,3 @@ public class PirateBaySearchHandler implements SseEmitterHandler<SearchRequest> 
         return String.format("%.2f", rounded);
     }
 }
-
-// public class PirateBaySearchHandler
-// implements Handler<SearchResponsePipelineEntry>,
-// SseEmitterHandler<SearchRequest> {
-// private final org.slf4j.Logger LOG =
-// org.slf4j.LoggerFactory.getLogger(PirateBaySearchHandler.class);
-
-// private final String PIRATE_BAY_BASE_URL = "https://thepiratebay.org";
-// private final String PIRATE_BAY_SEARCH_PATH = "/search.php";
-
-// private final String CATEGORY_PARAM = "cat";
-// private final String HD_MOVIE_CATEGORY = "207";
-// private final String HD_TV_SHOW_CATEGORY = "208";
-
-// private final String QUERY_PARAM = "q";
-
-// @Override
-// public SearchResponsePipelineEntry handle(SearchResponsePipelineEntry entry)
-// throws Exception {
-// try (Page page = entry.getBrowser().newPage();) {
-
-// Response response = page.navigate(UrlBuilder.fromString(PIRATE_BAY_BASE_URL)
-// .withPath(PIRATE_BAY_SEARCH_PATH)
-// .addParameter(QUERY_PARAM, entry.getSearchResponseList().query())
-// .addParameter(CATEGORY_PARAM, HD_MOVIE_CATEGORY)
-// .toString());
-
-// switch (response.status()) {
-// case 200:
-// break; // OK
-// case 403:
-// LOG.error("Access to Pirate Bay is forbidden. Check if the site is blocked in
-// your region.");
-// return entry;
-// default:
-// LOG.error("Failed to access Pirate Bay. HTTP status: {}", response.status());
-// return entry;
-// }
-// // Wait for the search results to load
-// page.waitForSelector("li.list-entry");
-
-// // Get the list of search result entries
-// List<ElementHandle> listItems = page.querySelectorAll("li.list-entry");
-
-// List<SearchResponse> searchResults = listItems.stream().map(item -> {
-// String title = item.querySelector("span.item-title a").innerText();
-// String sourceUrl = PIRATE_BAY_BASE_URL + item.querySelector("span.item-title
-// a").getAttribute("href");
-// String magnetLink =
-// item.querySelector("a[href*=magnet]").getAttribute("href");
-// String size = item.querySelector("span.item-size").innerText();
-// String seeders = item.querySelector("span.item-seeds").innerText();
-// String leechers = item.querySelector("span.item-leechs").innerText();
-// return new SearchResponse(title, magnetLink, "Pirate Bay", sourceUrl, size,
-// seeders, leechers);
-// }).toList();
-
-// entry.setSearchResponseList(entry.getSearchResponseList().with(searchResults));
-// return entry;
-// }
-// }
-
-// @Override
-// public void handle(SseEmitter emitter, SearchRequest request) throws
-// Exception {
-// try (Playwright playwright = Playwright.create(new CreateOptions());
-// Browser browser = playwright.chromium().launch(new
-// BrowserType.LaunchOptions().setHeadless(true));
-// Page page = browser.newPage();) {
-
-// String categoryValue = switch (request.category()) {
-// case MOVIE -> HD_MOVIE_CATEGORY;
-// case SERIES -> HD_TV_SHOW_CATEGORY;
-// default -> throw new IllegalArgumentException("Unsupported media category: "
-// + request.category());
-// };
-
-// Response response = page.navigate(UrlBuilder.fromString(PIRATE_BAY_BASE_URL)
-// .withPath(PIRATE_BAY_SEARCH_PATH)
-// .addParameter(QUERY_PARAM, request.query())
-// .addParameter(CATEGORY_PARAM, categoryValue)
-// .toString());
-
-// switch (response.status()) {
-// case 200:
-// break; // OK
-// case 403:
-// LOG.error("Access to Pirate Bay is forbidden. Check if the site is blocked in
-// your region.");
-// return;
-// default:
-// LOG.error("Failed to access Pirate Bay. HTTP status: {}", response.status());
-// return;
-// }
-// // Wait for the search results to load
-// page.waitForSelector("li.list-entry");
-
-// // Get the list of search result entries
-// List<ElementHandle> listItems = page.querySelectorAll("li.list-entry");
-
-// for (ElementHandle item : listItems) {
-// String title = item.querySelector("span.item-title a").innerText();
-// String sourceUrl = PIRATE_BAY_BASE_URL + item.querySelector("span.item-title
-// a").getAttribute("href");
-// String magnetLink =
-// item.querySelector("a[href*=magnet]").getAttribute("href");
-// String size = item.querySelector("span.item-size").innerText();
-// String seeders = item.querySelector("span.item-seed").innerText();
-// String leechers = item.querySelector("span.item-leech").innerText();
-// emitter.send(new SearchResponse(title, magnetLink, "Pirate Bay", sourceUrl,
-// size, seeders, leechers));
-// }
-// }
-// }
-
-// }

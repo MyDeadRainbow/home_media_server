@@ -1,0 +1,26 @@
+<component>
+    <li class="search-result-item">
+        <div class="search-result-row"><strong rid="title"></strong>
+        </div>
+        <div class="search-result-row search-result-meta">
+            <span>Seeders: <span rid="seeders"></span></span>
+            <span>Leechers: <span rid="leechers"></span></span>
+            <span>Size: <span rid="size"></span></span>
+            <span>Category: <span rid="category"></span></span>
+            <span>Source: <span rid="source"></span></span>
+        </div>
+        <div class="search-result-actions">
+            <!-- <button type="button" class="secondary-button" data-action="use-result-title"
+                data-title="Grown Ups 2 (2013) [2160p] [4K] [WEB] [5.1] [YTS.MX]">
+                Use Title
+            </button> -->
+            <form id="importForm" action="import" method="post" onsubmit="responseToOutput(event)">
+                <input rid="title-input" type="hidden" name="title" value="">
+                <input rid="magnet-link" type="hidden" name="magnetLink" value="">
+                <input rid="category-input" type="hidden" name="category" value="">
+                <button type="submit">Import</button>
+                <output name="result" form="importForm"></output>
+            </form>
+        </div>
+    </li>
+</component>

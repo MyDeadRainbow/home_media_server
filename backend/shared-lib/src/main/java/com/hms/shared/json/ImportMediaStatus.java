@@ -1,4 +1,4 @@
-package com.hms.stream.importmedia;
+package com.hms.shared.json;
 
 public enum ImportMediaStatus {
     PENDING,

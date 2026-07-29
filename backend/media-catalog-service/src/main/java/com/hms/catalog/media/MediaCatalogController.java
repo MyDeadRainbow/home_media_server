@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,6 +44,16 @@ public class MediaCatalogController {
             @RequestParam(required = false) String query) {
         return mediaCatalogService.getSeries(query);
     }
+    
+    @GetMapping("/series/{id}")
+    public ResponseEntity<Series> getSeriesById(@PathVariable String id) {
+        Series series = mediaCatalogService.getSeriesById(id);
+        if (series != null) {
+            return ResponseEntity.ok(series);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
 
     @GetMapping("/seasons")
     public List<Season> getSeason(@RequestParam String seriesId, @RequestParam(required = false) String query) {
@@ -57,6 +68,16 @@ public class MediaCatalogController {
     @GetMapping("/movies")
     public List<Movie> getMovies(@RequestParam(required = false) String query) {
         return mediaCatalogService.getMovies(query);
+    }
+
+    @GetMapping("/movies/{id}")
+    public ResponseEntity<Movie> getMovieById(@PathVariable String id) {
+        Movie movie = mediaCatalogService.getMovieById(id);
+        if (movie != null) {
+            return ResponseEntity.ok(movie);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
     
     // @GetMapping("/{id}")

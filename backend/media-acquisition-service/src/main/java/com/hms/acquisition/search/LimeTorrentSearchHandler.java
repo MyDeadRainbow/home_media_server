@@ -1,6 +1,8 @@
 package com.hms.acquisition.search;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -8,12 +10,13 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.shared.json.SearchResponse;
 import com.hms.shared.orchestrator.SseEmitterHandler;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
 public class LimeTorrentSearchHandler
-        implements SseEmitterHandler<SearchRequest> {
+        implements SseEmitterHandler<SearchRequest>, TorrentSearchHandler {
 
     private final Logger LOG = org.slf4j.LoggerFactory.getLogger(LimeTorrentSearchHandler.class);
 
@@ -83,5 +86,51 @@ public class LimeTorrentSearchHandler
                 LOG.error("Error sending search response to emitter", e);
             }
         });
+    }
+
+    public List<SearchResponse> searchTorrentsJson(SearchRequest request) throws Exception {
+        String categoryValue = switch (request.category()) {
+            case MOVIE -> MOVIE_CATEGORY_VALUE;
+            case SERIES -> TV_SHOW_CATEGORY_VALUE;
+            default -> throw new IllegalArgumentException("Unsupported media category: " + request.category());
+        };
+
+        String url = UrlBuilder.fromString(LIME_TORRENT_BASE_URL)
+                .withPath(LIME_TORRENT_SEARCH_PATH)
+                .addParameter(CATEGORY_PARAM, categoryValue)
+                .addParameter(QUERY_PARAM, request.query())
+                .addParameter(ORDER_BY_PARAM, ORDER_BY_VALUE)
+                .addParameter(ORDER_PARAM, ORDER_VALUE)
+                .toString();
+
+        Connection session = Jsoup.newSession();
+        session.url(url);
+        session.header(USER_AGENT_HEADER, USER_AGENT);
+
+        Document doc = session.post();
+        List<SearchResponse> results = new ArrayList<>();
+        doc.select("table.table2 > tbody.torsearch > tr").forEach(item -> {
+            String title = item.select("td.tdleft > div.tt-name > a[class=openPopup]").text();
+            String sourceUrl = LIME_TORRENT_BASE_URL
+                    + item.select("td.tdleft > div.tt-name > a[class=openPopup]").attr("href");
+            String size = item.select("td.tdnormal + .tdnormal").text();
+            String seeders = item.select("td.tdseed").text();
+            String leechers = item.select("td.tdleech").text();
+
+            String magnetLink = null;
+            String magnetLinkPage = item.select("td.tdleft > div.tt-name > a[class=openPopup]")
+                    .attr("href");                    
+            session.url(magnetLinkPage);
+            session.header(USER_AGENT_HEADER, USER_AGENT);
+            try {
+                Document magnetDoc = session.get();
+                magnetLink = magnetDoc.select("a[href*=magnet]").attr("href");
+            } catch (IOException e) {
+                LOG.error("Error fetching magnet link from LimeTorrent", e);
+            }
+
+            results.add(new SearchResponse(title, magnetLink, "LimeTorrent", sourceUrl, size, seeders, leechers));
+        });
+        return results;
     }
 }

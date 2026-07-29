@@ -41,6 +41,7 @@ import com.frostwire.jlibtorrent.swig.add_torrent_params;
 import com.frostwire.jlibtorrent.swig.error_code;
 import com.frostwire.jlibtorrent.swig.torrent_alert;
 import com.hms.dao.Identity;
+import com.hms.shared.json.ImportMediaStatus;
 import com.hms.shared.media.FileName;
 import com.hms.shared.media.MediaItem;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;

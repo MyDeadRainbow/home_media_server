@@ -1,0 +1,53 @@
+<component>
+    <li>
+
+        <article class="torrent-card">
+            <header class="torrent-card-header">
+                <h3 rid="title"></h3><span class="queue-chip">Queue #<span rid="queue-position">-1</span></span>
+            </header>
+            <p rid="torrent-hash" class="torrent-hash"></p>
+            <htmx:poll rid="torrent-info-htmx" action="/torrentInfo" method="GET" interval="1000" target="torrent-info">
+                <form>
+                    <input rid="torrent-hash-input" type="hidden" name="torrentHash" value="">
+                </form>
+                <div rid="torrent-info">
+                    <div class="progress-wrap">
+                        <div class="progress-track">
+                            <div rid="progress-fill" class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                        <span rid="progress-percentage">0.0%</span>
+                        <div class="torrent-grid">
+                            <p><strong>Total: </strong><span rid="total"></span></p>
+                            <p><strong>Downloaded: </strong><span rid="downloaded"></span></p>
+                            <p><strong>Download: </strong><span rid="download-speed"></span></p>
+                            <p><strong>Upload: </strong><span rid="upload-speed"></span></p>
+                            <p><strong>Peers: </strong><span rid="peers"></span></p>
+                            <p><strong>Import Status: </strong><span rid="import-status"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <!-- <div class="progress-wrap">
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: 0%;"></div>
+                    </div><span>0.0%</span>
+                </div>
+                <div class="torrent-grid">
+                    <p><strong>Total:</strong> 0.0 B</p>
+                    <p><strong>Downloaded:</strong> 0.0 B</p>
+                    <p><strong>Download:</strong> 0.0 B/s</p>
+                    <p><strong>Upload:</strong> 0.0 B/s</p>
+                    <p><strong>Peers:</strong> 0</p>
+                    <p><strong>Import Status:</strong> Magnet Fetch Failed</p>
+                </div> -->
+            </htmx:poll>
+            <div rid="torrent-actions" class="torrent-actions">
+                <!-- <form>
+                    <input rid="torrent-hash-input" type="hidden" name="torrentHash" value="">
+                    <button type="submit" class="secondary-button"> Pause </button>
+                    <button type="submit" class="secondary-button"> Resume </button>
+                    <button type="submit" class="danger-button"> Delete </button>
+                </form> -->
+            </div>
+        </article>
+    </li>
+</component>

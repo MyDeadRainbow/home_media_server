@@ -24,6 +24,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.frostwire.jlibtorrent.FileStorage;
 import com.frostwire.jlibtorrent.TorrentHandle;
 import com.frostwire.jlibtorrent.TorrentStatus;
+import com.hms.shared.json.ImportMediaStatus;
+import com.hms.shared.json.TorrentInfoResponse;
 import com.hms.shared.media.FileName;
 import com.hms.shared.media.MediaItem;
 import com.hms.shared.messaging.catalogupdates.CatalogUpdate;
@@ -32,7 +34,6 @@ import com.hms.shared.messaging.catalogupdates.FilePathRecord;
 import com.hms.shared.util.Wrapper;
 import com.hms.stream.importmedia.ImportMediaEntry;
 import com.hms.stream.importmedia.ImportMediaEntryMediaItem;
-import com.hms.stream.importmedia.ImportMediaStatus;
 import com.hms.stream.messaging.CatalogUpdateProducer;
 import com.hms.stream.torrentsession.TorrentSession;
 
@@ -90,6 +91,43 @@ public class TorrentInfoService {
             LOG.error("Error while fetching torrent info", e);
         }
         return List.of();
+    }
+
+    public TorrentInfoResponse getTorrentInfo(String infoHash) {
+        try (TorrentSession torrentSession = TorrentSession.getInstance()) {
+            ImportMediaEntry entry = new ImportMediaEntry.Dao().select(Map.of("torrentHash", infoHash)).stream()
+                    .findFirst().orElse(null);
+            if (entry == null) {
+                return null;
+            }
+            TorrentHandle handle = torrentSession.getTorrentHandle(infoHash);
+            if (handle == null || !handle.isValid()) {
+                return new TorrentInfoResponse(
+                        entry.title(),
+                        entry.torrentHash(),
+                        -1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        entry.status());
+            }
+            TorrentStatus status = handle.status();
+            return new TorrentInfoResponse(
+                    entry.title(),
+                    entry.torrentHash(),
+                    status.queuePosition(),
+                    status.totalWanted(),
+                    status.totalDone(),
+                    status.uploadRate(),
+                    status.downloadRate(),
+                    status.numPeers(),
+                    entry.status());
+        } catch (SQLException e) {
+            LOG.error("Error while fetching torrent info for infoHash: {}", infoHash, e);
+        }
+        return null;
     }
 
     public boolean pauseTorrent(String infoHash) {

@@ -1,6 +1,6 @@
 package com.hms.stream.torrentinfo;
 
-import com.hms.stream.importmedia.ImportMediaStatus;
+import com.hms.shared.json.ImportMediaStatus;
 
 public record MediaItemInfoUpdate(String mediaItemId,
                                     long fileSize,

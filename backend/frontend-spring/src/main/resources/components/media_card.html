@@ -1,75 +1,19 @@
 <component>
-    <div class="card-cell"> 
-        <a id="watch-link" href="">
+    <div class="card-cell">
+        <a rid="watch-link" href="">
             <article class="media-card">
                 <div class="poster-frame">
-                    <img class="poster" id="poster" />
+                    <img class="poster" rid="poster" />
                 </div>
                 <div class="content media-card-body">
                     <div class="meta-row">
                         <span class="type"></span>
                         <span class="year"></span>
                     </div>
-                    <h3 id="displayTitle">{{ displayTitle }}</h3>
-                    <p class="summary" id="displaySummary">{{ displaySummary }}</p>
-                    <div class="card-details" id="card-details">
+                    <h3 rid="displayTitle">{{ displayTitle }}</h3>
+                    <p class="summary" rid="displaySummary">{{ displaySummary }}</p>
+                    <div class="card-details" rid="card-details">
                     </div>
-        <!-- 
-                    <div v-if="hasEditableMetadata" class="metadata-actions">
-                        <button v-if="!isEditing" type="button" class="secondary-button"
-                            :disabled="savingMetadata || requestingSearch" @click="beginEdit">
-                            Edit Metadata
-                        </button>
-                        <button v-if="!isEditing" type="button" class="secondary-button"
-                            :disabled="savingMetadata || requestingSearch" @click="searchMetadataAgain">
-                            Search Metadata Again
-                        </button>
-                    </div>
-        
-                    <form v-if="hasEditableMetadata && isEditing" class="metadata-editor" @submit.prevent="saveMetadata">
-                        <label>
-                            Metadata ID
-                            <input type="text" :value="metadataDraft.metaDataId" disabled />
-                        </label>
-                        <label>
-                            Title
-                            <input v-model="metadataDraft.title" type="text" />
-                        </label>
-                        <label>
-                            Plot Summary
-                            <textarea v-model="metadataDraft.plotSummary" rows="3"></textarea>
-                        </label>
-                        <label>
-                            Air Date
-                            <input v-model="metadataDraft.airDate" type="date" />
-                        </label>
-                        <label>
-                            Rating
-                            <input v-model="metadataDraft.rating" type="number" min="0" max="10" step="0.1" />
-                        </label>
-                        <label>
-                            Status
-                            <select v-model="metadataDraft.status">
-                                <option v-for="status in metadataStatuses" :key="status" :value="status">{{ status }}</option>
-                            </select>
-                        </label>
-                        <label>
-                            Message
-                            <textarea v-model="metadataDraft.message" rows="2"></textarea>
-                        </label>
-        
-                        <div class="metadata-editor-actions">
-                            <button type="submit" :disabled="savingMetadata">{{ savingMetadata ? 'Saving...' : 'Save Metadata'
-                                }}</button>
-                            <button type="button" class="secondary-button" :disabled="savingMetadata"
-                                @click="cancelEdit">Cancel</button>
-                        </div>
-                    </form> -->
-        
-                    <!-- <p v-if="metadataStatusMessage" class="status metadata-message">{{ metadataStatusMessage }}</p>
-                    <p v-if="metadataError" class="error metadata-message">{{ metadataError }}</p>
-        
-                    <button v-if="showAction" type="button" @click="emitAction">{{ actionLabel }}</button> -->
                 </div>
             </article>
         </a>

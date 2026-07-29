@@ -10,6 +10,7 @@ import com.google.common.base.Preconditions;
 import com.hms.dao.PreparedStatementValue;
 import com.hms.dao.SQLiteRecord;
 import com.hms.dao.SQLiteRecordDao;
+import com.hms.shared.json.ImportMediaStatus;
 import com.hms.shared.media.MediaCategory;
 
 public record ImportMediaEntry(String id, MediaCategory category, String title, ImportMediaStatus status,

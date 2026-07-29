@@ -9,6 +9,12 @@
             "projectName": "frontend-spring"
         },
         {
+            "type": "chrome",
+            "name": "FrontendApplication Chrome",
+            "request": "launch",
+            "url": "http://localhost:8085"
+        },
+        {
             "type": "dockerfile",
             "request": "launch",
             "name": "Docker: Build",
@@ -190,6 +196,14 @@
                 "Attach Catalog Service (Docker)",
                 "Attach Acquisition Service (Docker)",
                 "Attach Stream Service (Docker)"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Debug Frontend Spring",
+            "configurations": [
+                "FrontendApplication",
+                "FrontendApplication Chrome"
             ],
             "stopAll": true
         }

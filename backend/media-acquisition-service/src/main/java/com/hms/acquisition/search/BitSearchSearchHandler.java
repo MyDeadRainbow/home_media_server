@@ -1,15 +1,19 @@
 package com.hms.acquisition.search;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.shared.json.SearchResponse;
 import com.hms.shared.orchestrator.SseEmitterHandler;
 
 import io.mikael.urlbuilder.UrlBuilder;
 
-public class BitSearchSearchHandler implements SseEmitterHandler<SearchRequest> {
+public class BitSearchSearchHandler implements SseEmitterHandler<SearchRequest>, TorrentSearchHandler {
 
     private final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(BitSearchSearchHandler.class);
 
@@ -62,5 +66,45 @@ public class BitSearchSearchHandler implements SseEmitterHandler<SearchRequest> 
                 LOG.error("Error sending search response to emitter", e);
             }
         });
+    }
+
+    public List<SearchResponse> searchTorrentsJson(SearchRequest request) throws Exception {
+        List<SearchResponse> searchResponses = new ArrayList<>();
+        String categoryValue = switch (request.category()) {
+                case MOVIE -> MOVIE_CATEGORY_VALUE;
+                case SERIES -> TV_SHOW_CATEGORY_VALUE;
+                default -> throw new IllegalArgumentException("Unsupported media category: " + request.category());
+            };
+        String url = UrlBuilder.fromString(BIT_SEARCH_BASE_URL)
+                    .withPath(BIT_SEARCH_SEARCH_PATH)
+                    .addParameter(QUERY_PARAM, request.query())
+                    .addParameter(SORT_BY_PARAM, SORT_BY_VALUE)
+                    .addParameter(PAGE_PARAM, "1")
+                    .addParameter(CATEGORY_PARAM, categoryValue)
+                    .toString();
+        
+        Connection session = Jsoup.newSession();
+            
+        session.url(url);
+        session.header(USER_AGENT_HEADER, USER_AGENT);
+
+        Document doc = session.get();
+        doc.select("main.max-w-7xl > div.space-y-4 > div").forEach(item -> {
+            String seeders = item.select("div > div > div > span > i.fa-arrow-up + span").text();
+            if (seeders == null || seeders.isEmpty()) {
+                seeders = "0";
+            }
+            if (seeders.equals("0")) {
+                return; // Skip this item if seeders is 0
+            }
+            String title = item.select("div > div > div > h3 > a").text();
+            String sourceUrl = BIT_SEARCH_BASE_URL + item.select("div > div > div > h3 > a").attr("href");
+            String magnetLink = item.select("div > div > a[href*=magnet]").attr("href");
+            String size = item.select("div > div > div > span > i.fa-download + span").text();
+            String leechers = item.select("div > div > div > span > i.fa-arrow-down + span").text();
+            searchResponses.add(new SearchResponse(title, magnetLink, "BitSearch", sourceUrl, size, seeders, leechers));
+        });
+        return searchResponses;
+        
     }
 }

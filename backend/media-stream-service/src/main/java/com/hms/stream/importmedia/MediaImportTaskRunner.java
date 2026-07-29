@@ -9,6 +9,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
+import com.hms.shared.json.ImportMediaStatus;
 import com.hms.shared.util.TaskService;
 import com.hms.stream.importmedia.pipeline.ImportMediaPipeline;
 

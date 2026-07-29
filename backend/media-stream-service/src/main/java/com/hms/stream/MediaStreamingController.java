@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.hms.stream.importmedia.ImportMediaRequest;
+import com.hms.shared.json.ImportMediaRequest;
 
 import jakarta.validation.Valid;
 

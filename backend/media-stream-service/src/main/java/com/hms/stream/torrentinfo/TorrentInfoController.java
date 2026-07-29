@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.hms.shared.json.TorrentInfoResponse;
+
 @RestController
 @RequestMapping("/api/stream/torrent")
 public class TorrentInfoController {
@@ -24,6 +26,11 @@ public class TorrentInfoController {
     @GetMapping("/info")
     public ResponseEntity<List<TorrentInfoResponse>> getTorrentInfo() {
         return new ResponseEntity<>(torrentInfoService.getTorrentInfo(), HttpStatus.OK);
+    }
+
+    @GetMapping("/info/{infoHash}")
+    public ResponseEntity<TorrentInfoResponse> getTorrentInfoFromHash(@PathVariable String infoHash) {
+        return new ResponseEntity<>(torrentInfoService.getTorrentInfo(infoHash), HttpStatus.OK);
     }
 
     @PostMapping("/pause/{infoHash}")

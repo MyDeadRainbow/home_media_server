@@ -48,4 +48,23 @@ public class MovieService {
         }
         return movieList;
     }
+
+    public Movie getMovieById(String movieId) {
+        // Implement the logic to fetch a specific movie by its ID from the API Gateway
+        // You can use RestTemplate or WebClient to make HTTP requests
+        // Make sure to include the API key in the request headers for authentication
+        // Return a Movie object representing the movie with the specified ID
+        try (HttpClient client = HttpClient.newHttpClient();) {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiGatewayUrl + "/api/media/movies/" + movieId))
+                    .GET()
+                    .header("X-API-Key", apiKey)
+                    .build();
+            String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            return JsonSerializable.fromJson(response, Movie.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
