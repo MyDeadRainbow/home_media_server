@@ -1,49 +1,53 @@
 server:
-  port: ${API_GATEWAY_SERVICE_PORT:8080}
+    port: ${API_GATEWAY_SERVICE_PORT:8080}
 
 spring:
-  application:
-    name: api-gateway-service
-  cloud:
-    gateway:
-      server:
-        webflux:
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowedOrigins: "*"
-                allowedMethods:
-                  - GET
-                  - POST
-                  - PUT
-                  - DELETE
-                  - OPTIONS
-                allowedHeaders: "*"
-          routes:
-            - id: catalog
-              uri: ${CATALOG_SERVICE_URL}
-              predicates:
-                - Path=/api/media/**
-            - id: metadata
-              uri: ${CATALOG_SERVICE_URL}
-              predicates:
-                - Path=/api/metadata/**
-            - id: acquisition
-              uri: ${ACQUISITION_SERVICE_URL:http://localhost:8082}
-              predicates:
-                - Path=/api/acquisition/**
-            - id: stream
-              uri: ${STREAM_SERVICE_URL:http://localhost:8083}
-              predicates:
-                - Path=/api/stream/**
+    application:
+        name: api-gateway-service
+    cloud:
+        gateway:
+            server:
+                webflux:
+                    globalcors:
+                        cors-configurations:
+                            "[/**]":
+                                allowedOrigins: "*"
+                                allowedMethods:
+                                    - GET
+                                    - POST
+                                    - PUT
+                                    - DELETE
+                                    - OPTIONS
+                                allowedHeaders: "*"
+                    routes:
+                        - id: catalog
+                          uri: ${CATALOG_SERVICE_URL}
+                          predicates:
+                              - Path=/api/media/**
+                        - id: metadata
+                          uri: ${CATALOG_SERVICE_URL}
+                          predicates:
+                              - Path=/api/metadata/**
+                        - id: acquisition
+                          uri: ${ACQUISITION_SERVICE_URL:http://localhost:8082}
+                          predicates:
+                              - Path=/api/acquisition/**
+                        - id: stream
+                          uri: ${STREAM_SERVICE_URL:http://localhost:8083}
+                          predicates:
+                              - Path=/api/stream/**
+                        - id: frontend
+                          uri: ${FRONTEND_SERVICE_URL:http://localhost:8085}
+                          predicates:
+                              - Path=/**
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
+    endpoints:
+        web:
+            exposure:
+                include: health,info
 
 hms:
-  gateway:
-    api-key: ${GATEWAY_API_KEY:dev-local-key}
-    rate-limit-per-minute: ${GATEWAY_RATE_LIMIT_PER_MINUTE:240}
+    gateway:
+        api-key: ${GATEWAY_API_KEY:dev-local-key}
+        rate-limit-per-minute: ${GATEWAY_RATE_LIMIT_PER_MINUTE:240}

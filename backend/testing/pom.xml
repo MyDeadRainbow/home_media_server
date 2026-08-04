@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+          <groupId>com.hms</groupId>
+          <artifactId>home-media-server</artifactId>
+          <version>0.1.0</version>
+          <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <groupId>com.hms</groupId>
+    <artifactId>testing</artifactId>
+    <!-- <version>1.0-SNAPSHOT</version> -->
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>6.1.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.hms</groupId>
+            <artifactId>sql-lib</artifactId>
+            <version>${project.version}</version>
+        </dependency>        
+
+        <dependency>
+            <groupId>com.hms</groupId>
+            <artifactId>shared-lib</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>            
+            <groupId>com.hms</groupId>
+            <artifactId>media-stream-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.hms</groupId>
+            <artifactId>media-catalog-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.hms</groupId>
+            <artifactId>media-acquisition-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.hms</groupId>
+            <artifactId>frontend-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.0-M1</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

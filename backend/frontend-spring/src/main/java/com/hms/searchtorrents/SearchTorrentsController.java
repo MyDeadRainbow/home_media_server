@@ -24,6 +24,9 @@ import com.hms.HtmlRestController;
 import com.hms.shared.json.ImportMediaRequest;
 import com.hms.shared.json.SearchResponse;
 import com.hms.shared.messaging.JsonSerializable;
+
+import io.mikael.urlbuilder.UrlBuilder;
+
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -52,6 +55,17 @@ public class SearchTorrentsController extends HtmlRestController {
             @RequestParam(required = false) String category) {
         try {
             Document doc = buildDocument("templates/search/index.html");
+            doc.selectFirst("[rid=nav-links]").children().forEach((li) -> {
+                Element a = li.selectFirst("a");
+                if (a != null) {
+                    String rid = a.attr("rid");
+                    if ("search".equals(rid)) {
+                        a.addClass("active");
+                    } else {
+                        a.removeClass("active");
+                    }
+                }
+            });
             if (query == null || query.isEmpty() || category == null || category.isEmpty()) {
                 return ResponseEntity.ok(doc.html());
             }
@@ -66,10 +80,12 @@ public class SearchTorrentsController extends HtmlRestController {
                     .attr("selected", "selected");
 
             try (HttpClient client = HttpClient.newHttpClient();) {
-
+                UrlBuilder urlBuilder = UrlBuilder.fromString(apiGatewayUrl)
+                        .withPath("/api/acquisition/search")
+                        .addParameter("query", query)
+                        .addParameter("category", category);
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(
-                                apiGatewayUrl + "/api/acquisition/search?query=" + query + "&category=" + category))
+                        .uri(urlBuilder.toUri())
                         .header("Accept", "application/json")
                         .header("Cache-Control", "no-cache")
                         .header("X-API-Key", apiKey)

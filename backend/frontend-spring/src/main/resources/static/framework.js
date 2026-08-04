@@ -583,25 +583,28 @@ function responseToOutput(event) {
     return false; // Prevent the default form submission
 }
 
-function htmxRequest(action, method, formData, target) {
-    const xhr = new XMLHttpRequest();
+function htmxRequest(action, method, formData, target, onNoContent) {
+    var xhr = new XMLHttpRequest();
     if (method && method.toUpperCase() === 'GET') {
-        const params = new URLSearchParams();
-        const entries = formData ? formData.entries() : [];
-        for (var i = 0; i < entries.length; i++) {
-            var ent = entries[i];
-            params.append(ent[0], ent[1]);
-        }
-        // for (const ent of formData.entries()) {
-        //     params.append(ent[0], ent[1]);
+        action += '?';
+        var entries = formData ? formData.entries() : [];
+        var queryParams = [];
+        // for (var i = 0; i < entries.length; i++) {
+        //     var ent = entries[i];
+        //     queryParams.push(encodeURIComponent(ent[0]) + '=' + encodeURIComponent(ent[1]));
         // }
-        action += '?' + params.toString();
+        for (var ent of entries) {
+            queryParams.push(encodeURIComponent(ent[0]) + '=' + encodeURIComponent(ent[1]));
+        }
+        action += queryParams.join('&');
         formData = null; // GET requests should not have a body
     }
     xhr.open(method || 'POST', action, true);
     xhr.onload = function () {
         if (xhr.status >= 200 && xhr.status < 300) {
-            if (target) {
+            if (xhr.status === 204 && onNoContent) {
+                onNoContent();
+            } else if (target) {
                 target.innerHTML = xhr.responseText;
             }
         } else {
@@ -618,6 +621,25 @@ function htmxRequest(action, method, formData, target) {
     xhr.send(formData);
 }
 
+function runPoll(pollElement, action, method, formData, target) {
+    var interval = parseInt(pollElement.getAttribute('interval'), 10) || 1000;
+    var id = setInterval(function () {
+        var action = pollElement.getAttribute('action') || '';
+        var method = pollElement.getAttribute('method') || 'POST';
+        var targetId = pollElement.getAttribute('target') || '';
+        var target = targetId ? pollElement.querySelector('[rid=' + targetId + ']') : null;
+        var form = pollElement.querySelector('form');
+        var formData = form ? new FormData(form) : null;
+        if (formData.values().next().value) {
+            htmxRequest(action, method, formData, target, function () {
+                clearInterval(id); // Stop polling if no content is returned
+            });
+        } else {
+            clearInterval(id); // Stop polling if no form data is available
+        }
+    }, interval); // Default polling interval, can be parameterized if needed
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const pollElements = document.querySelectorAll('htmx\\:poll');
     for (var i = 0; i < pollElements.length; i++) {
@@ -630,11 +652,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var form = pollElement.querySelector('form');
         var formData = form ? new FormData(form) : null;
         if (formData.values().next().value) {
-            setInterval(function () {
-                // const form = pollElement.querySelector('form');
-                // const formData = form ? new FormData(form) : null;
-                htmxRequest(action, method, formData, target);
-            }, interval);
+            runPoll(pollElement, action, method, formData, target);
         }
     }
     // for (const pollElement of document.querySelectorAll('htmx\\:poll')) {

@@ -13,6 +13,7 @@
 
     <artifactId>media-stream-service</artifactId>
     <name>media-stream-service</name>
+    <packaging>jar</packaging>
 
     <properties>
         <libtorrent4j.version>2.1.0-39</libtorrent4j.version>

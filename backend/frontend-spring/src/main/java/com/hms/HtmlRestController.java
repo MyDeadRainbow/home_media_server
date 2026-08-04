@@ -22,7 +22,7 @@ public abstract class HtmlRestController {
     @Autowired
     protected ResourceLoader resourceLoader;
 
-    public Document buildDocument(String path) throws Exception {
+    public Document buildDocument(String path) throws Exception {        
         Resource resource = resourceLoader.getResource(resPath(path));
         try (InputStream inputStream = resource.getInputStream()) {
             // Read the contents of the file

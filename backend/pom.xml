@@ -20,6 +20,7 @@
         <module>media-acquisition-service</module>
         <module>media-stream-service</module>
         <module>frontend-spring</module>
+        <!-- <module>testing</module> -->
     </modules>
 
     <properties>
@@ -46,6 +47,12 @@
                 <artifactId>shared-lib</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!-- <dependency>
+                <groupId>com.hms</groupId>
+                <artifactId>testing</artifactId>
+                <version>${project.version}</version>
+                <scope>test</scope>
+            </dependency> -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>

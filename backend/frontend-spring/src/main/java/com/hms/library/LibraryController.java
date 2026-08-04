@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hms.HtmlRestController;
+import com.hms.html.DocumentBuilderFactory;
 import com.hms.shared.media.Movie;
 import com.hms.shared.media.Series;
 
@@ -34,7 +35,21 @@ public class LibraryController extends HtmlRestController {
     public ResponseEntity<String> getLibrary(@RequestParam(required = false) String query) {
         query = (query == null) ? "" : query.trim();
         try {
-            Document doc = buildDocument("templates/library/index.html");
+            // Document doc = buildDocument("templates/library/index.html");
+
+            // doc.selectFirst("[rid=nav-links]").children().forEach((li) -> {
+            //     Element a = li.selectFirst("a");
+            //     if (a != null) {
+            //         String rid = a.attr("rid");
+            //         if ("library".equals(rid)) {
+            //             a.addClass("active");
+            //         } else {
+            //             a.removeClass("active");
+            //         }
+            //     }
+            // });
+
+            Document doc = DocumentBuilderFactory.getDocumentBuilder("library").buildDocument();
 
             Element seriesSection = doc.selectFirst("[rid=series-list]");
 

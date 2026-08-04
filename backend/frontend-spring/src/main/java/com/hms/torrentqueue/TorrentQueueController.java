@@ -39,21 +39,38 @@ public class TorrentQueueController extends HtmlRestController {
     public ResponseEntity<String> getTorrentQueuePage() {
         try (HttpClient client = HttpClient.newHttpClient();) {
             Document doc = buildDocument("templates/torrents/index.html");
+            doc.selectFirst("[rid=nav-links]").children().forEach((li) -> {
+                Element a = li.selectFirst("a");
+                if (a != null) {
+                    String rid = a.attr("rid");
+                    if ("torrents".equals(rid)) {
+                        a.addClass("active");
+                    } else {
+                        a.removeClass("active");
+                    }
+                }
+            });
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(apiGatewayUrl + "/api/stream/torrent/info"))
-                    .header("Content-Type", "application/json")
-                    .header("X-API-Key", apiKey)
-                    .GET()
-                    .build();
+            JsonArray torrentInfoArray;
+            try {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(apiGatewayUrl + "/api/stream/torrent/info"))
+                        .header("Content-Type", "application/json")
+                        .header("X-API-Key", apiKey)
+                        .GET()
+                        .build();
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                torrentInfoArray = JsonParser.parseString(response.body()).getAsJsonArray();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseEntity.status(500).body("Error reading torrents/index.html");
+            }
 
             Element torrentListElement = doc.selectFirst("[rid=torrent-list]");
             Element torrentCardTemplate = buildComponent("components/torrent/torrent_card.html");
             Element torrentActionsTemplate = buildComponent("components/torrent/torrent_card_action_button.html");
 
-            JsonArray torrentInfoArray = JsonParser.parseString(response.body()).getAsJsonArray();
             for (JsonElement jsonElement : torrentInfoArray) {
                 TorrentInfoResponse torrentInfo = JsonSerializable.fromJsonObject(jsonElement.getAsJsonObject(),
                         TorrentInfoResponse.class);
@@ -64,6 +81,8 @@ public class TorrentQueueController extends HtmlRestController {
                         .text(Optional.ofNullable(torrentInfo.infoHash()).orElse(""));
                 torrentCard.selectFirst("[rid=torrent-hash-input]")
                         .val(Optional.ofNullable(torrentInfo.infoHash()).orElse(""));
+                torrentCard.selectFirst("[rid=current-status-input]")
+                        .val(Optional.ofNullable(torrentInfo.importMediaStatus().name()).orElse(""));
                 torrentCard.selectFirst("[rid=total]").text(formatBytes(torrentInfo.totalSize()));
                 torrentCard.selectFirst("[rid=downloaded]").text(formatBytes(torrentInfo.downloadedSize()));
                 torrentCard.selectFirst("[rid=download-speed]").text(formatBytes(torrentInfo.downloadSpeed()) + "/s");
@@ -108,7 +127,7 @@ public class TorrentQueueController extends HtmlRestController {
     }
 
     @GetMapping(path = "/torrentInfo", produces = "text/html")
-    public ResponseEntity<String> getTorrentInfo(@RequestParam String torrentHash) {
+    public ResponseEntity<String> getTorrentInfo(@RequestParam String torrentHash, @RequestParam String currentStatus) {
         if (torrentHash == null || torrentHash.isEmpty()) {
             return ResponseEntity.badRequest().body("Missing required parameter: torrentHash");
         }
@@ -127,6 +146,21 @@ public class TorrentQueueController extends HtmlRestController {
             TorrentInfoResponse torrentInfo = JsonSerializable.fromJsonObject(
                     JsonParser.parseString(response.body()).getAsJsonObject(),
                     TorrentInfoResponse.class);
+
+            switch (torrentInfo.importMediaStatus()) {
+                case COMPLETED:
+                case MAGNET_NOT_FOUND:
+                case MAGNET_FETCH_FAILED:
+                case FAILED:
+                    return ResponseEntity.noContent().build();
+                default:
+                    break;
+            }
+
+            torrentInfoElement.selectFirst("[rid=torrent-hash-input]")
+                    .val(Optional.ofNullable(torrentInfo.infoHash()).orElse(""));
+            torrentInfoElement.selectFirst("[rid=current-status-input]")
+                    .val(Optional.ofNullable(torrentInfo.importMediaStatus().name()).orElse(""));
 
             torrentInfoElement.selectFirst("[rid=total]").text(formatBytes(torrentInfo.totalSize()));
             torrentInfoElement.selectFirst("[rid=downloaded]").text(formatBytes(torrentInfo.downloadedSize()));
